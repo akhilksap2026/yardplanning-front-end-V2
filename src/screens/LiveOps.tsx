@@ -97,7 +97,7 @@ const MARK_COLOR: Record<string, string> = {
 // ── Component ──────────────────────────────────────────────────────────────
 export default function LiveOps({ onNavigate }: Props) {
   const { visits, moves, events } = useData()
-  const [now,   setNow]   = useState(600)   // default 10:00
+  const [now,   setNow]   = useState(360)   // default 06:00
   const [focus,     setFocus]     = useState<string | null>(null)
   const [showMore,  setShowMore]  = useState(false)
 
