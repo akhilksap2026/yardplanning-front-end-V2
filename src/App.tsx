@@ -31,11 +31,11 @@ const NAV_ITEMS: { id: Screen; group: string; name: string; crumb: string; alert
 const NAV_GROUPS = [...new Set(NAV_ITEMS.map(i => i.group))]
 
 const STORY = [
-  { screen: "plan"     as Screen, step: "Step 1 of 5", title: "Planner — 96 moves, ranked",             persona: "Yard Manager · Martín R." },
-  { screen: "yard"     as Screen, step: "Step 2 of 5", title: "Yard state at shift start",               persona: "Yard Manager · Martín R." },
-  { screen: "gate"     as Screen, step: "Step 3 of 5", title: "Morning arrivals against the plan",       persona: "Gate & Yard Ops · Diego V." },
-  { screen: "tower"    as Screen, step: "Step 4 of 5", title: "RS-03 fault — 14 moves replanned",        persona: "Yard Manager · Martín R." },
-  { screen: "operator" as Screen, step: "Step 5 of 5", title: "MV-1028 in the cab — OCR mismatch",       persona: "Operator · R. Giménez" },
+  { screen: "plan"     as Screen, step: "Step 1 of 5", title: "9 PM · engine evaluates 154 moves for tomorrow",          persona: "Yard Manager · Martín R." },
+  { screen: "settings" as Screen, step: "Step 2 of 5", title: "Priority model — detention, customer, hazmat, stacking",  persona: "Yard Manager · Martín R." },
+  { screen: "operator" as Screen, step: "Step 3 of 5", title: "Jockey executes — scan, pick, move, confirm",             persona: "Operator · R. Giménez"    },
+  { screen: "tower"    as Screen, step: "Step 4 of 5", title: "10:30 AM — disruption, engine adapts without a restart",  persona: "Yard Manager · Martín R." },
+  { screen: "liveops"  as Screen, step: "Step 5 of 5", title: "Predict → Plan → Execute → Monitor → Replan → Optimise", persona: "Yard Manager · Martín R." },
 ]
 
 const ALL_SLICES: RefreshSlice[] = [

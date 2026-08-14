@@ -1,0 +1,128 @@
+It is 9:00 PM.
+ 
+· The yard manager is looking at tomorrow. He knows that containers are coming in from the port, trucks are expected to arrive, some containers have detention deadlines approaching, and tomorrow's volume is going to be higher than today.
+·The question is not simply, "Where do we put the containers?"
+·The real question is, "What is the best sequence of decisions we can make tonight so that tomorrow the yard can execute with the least possible movement, time, and disruption?"
+
+And this is where the planning engine becomes the brain of the operation.
+
+1. The Planning Engine Looks Ahead
+The engine starts with everything it knows at 9:00 PM:
+ 
+Containers expected from the port
+Expected arrival times
+Outbound requirements
+Customer priorities
+Detention deadlines
+Hazardous containers
+Container condition
+Current yard positions
+Available slots and stacking levels
+Jockey availability
+ 
+It doesn't look at each container in isolation. It looks at the yard as one interconnected problem.
+For example, imagine Container A is arriving tomorrow morning.
+There are three possible locations where we could place it.
+·       Location 1 is closest to the gate, but placing it there could block access to several containers.
+·       Location 2 is slightly further away, but it is closer to where the container will eventually need to go.
+·       Location 3 is available, but placing the container there would violate a stacking or hazardous-material rule.
+ 
+A human operator could make a decision based on what looks best at that moment.
+The planning engine asks a different question:
+"What happens to the rest of the yard if I make this decision?"
+It evaluates the downstream impact and chooses the position that produces the best overall outcome.
+ 
+2. It Doesn't Just Decide Where—It Decides What Happens First
+Now suppose we have 100 containers and only a limited number of jockeys.
+Not every container has the same urgency.
+One container may have three days of detention-free time remaining.
+Another may expire tomorrow.
+Another may be hazardous.
+Another may belong to a high-priority customer.
+Another may already be positioned correctly and should not be touched.
+ 
+So the engine creates a priority model.
+ 
+It effectively asks:
+"If I have limited resources, which move gives me the highest operational benefit right now?"
+And these priorities are configurable.
+ 
+The yard manager can decide how strongly detention, customer priority, hazardous material, stacking rules or other factors should influence the plan.
+So the system is not simply following a fixed algorithm. It is following the operational strategy of the yard.
+ 
+3. Now the Engine Creates Tomorrow's Plan
+·       Once the decisions are made, the engine produces the complete operational plan.
+It decides:
+·       Container → Destination → Sequence → Jockey → Timing
+So instead of giving the jockey a blank yard and asking:"What should I move next?"
+ 
+the system tells him: "Scan this container. Pick it from Bay A12, Level 2. Move it to Staging Area S04."
+The jockey doesn't need to understand the entire optimization problem. The engine has already done that thinking. The jockey simply executes.
+ 
+4. Now Imagine We Didn't Have the Planning Engine
+This is where the real value becomes clear.
+ 
+Imagine tomorrow morning starts without this planning engine.
+The containers begin arriving.
+The yard supervisor starts assigning moves based on experience and what appears urgent at that moment.
+One jockey moves a container to a nearby free slot.
+Another moves a container because a truck is waiting.
+Another decides to temporarily place a container somewhere else because the ideal location is occupied.
+Individually, every decision may appear reasonable.
+ 
+But the problem is that the decisions are not connected.
+A container that was placed in a convenient location at 8:00 AM may become the container blocking three other movements at 11:00 AM.
+A container moved to save five minutes now may create an additional two moves later.
+A detention-critical container may remain buried behind containers that could have been moved earlier.
+And suddenly, the yard starts generating re-handling.
+·       More moves.
+·       More travel.
+·       More jockey time.
+·       More congestion.
+·       More delays.
+And ultimately, higher operating cost.
+ 
+The problem is not that people are making bad decisions.
+The problem is: No human can continuously calculate the impact of every decision across the entire yard. That is the problem the planning engine solves.
+ 
+5. And Then Reality Happens
+At 10:30 AM, something changes.
+A ship is delayed.
+Or a truck has an accident.
+Or a container is held for inspection.
+Or an inbound container arrives out of sequence.
+ 
+Now the original plan is no longer completely valid and This is where a traditional static planning system struggles.
+But our engine doesn't simply say: "The plan has failed. Start again."
+It looks at the current state of the yard.
+It knows:
+·       What was planned → What has actually happened → What is currently in progress → What has changed.
+It then recalculates the affected part of the operation.
+·       If one container becomes more urgent, the engine can change its priority.
+·       If a move is no longer required, it can remove it.
+·       If a jockey becomes unavailable, it can redistribute the affected moves.
+And the jockey simply sees the updated queue on the tablet. The complexity stays with the engine.
+ 
+6. The Yard Manager Remains in Control
+The engine is making the operational decisions, but the yard manager remains in control of the strategy.
+·       If detention becomes more critical, the manager can increase its priority.
+·       If customer orders become more important, the weighting can be adjusted.
+·       If a new operational factor is introduced, it can be incorporated into the decision framework.
+So the philosophy is: The system makes the calculations. The yard manager sets the strategy.
+ 
+7. The Result: A Yard That Thinks Before It Moves
+By the time the jockey starts his shift, most of the difficult decisions have already been made.
+·       The engine has considered the yard, the incoming containers, the outgoing requirements, the constraints, the priorities and the available resources.
+·       The jockey executes.
+·       The yard manager monitors.
+ 
+And when reality changes, the engine adapts.
+ 
+That creates a continuous cycle:
+Predict → Plan → Execute → Monitor → Replan → Optimize
+ 
+And that is ultimately what we are demonstrating today.
+ 
+We are not just showing a system that tells a jockey where to move a container.
+ 
+We are showing a planning engine that continuously decides what should happen across the yard-and keeps making those decisions as the yard changes.
