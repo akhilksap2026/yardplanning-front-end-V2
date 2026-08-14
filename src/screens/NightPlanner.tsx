@@ -689,6 +689,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     {/* Step 4: WHY THIS MOVE — always visible */}
                     <div className="ds-callout mx-4 mb-3">
                       <div className="ds-callout-label">Why this move</div>
+                      <div className="text-[9.5px] font-semibold tracking-wide opacity-50 mb-1">PIFO — Priority-In-First-Out</div>
                       <div className="text-[12.5px] leading-relaxed">{selMove.reason}</div>
                     </div>
 

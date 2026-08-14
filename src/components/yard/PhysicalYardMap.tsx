@@ -33,8 +33,9 @@ const ZONE_PANEL: Record<string, {
 }
 
 const ZONE_SUBTITLES: Record<string, string> = {
-  A: "Import full · Zone A", B: "Import full · Zone B", C: "Customs controlled",
-  D: "Hazmat / IMDG", E: "Empties", S: "Outbound staging", R: "Receiving lanes",
+  A: "Dry / general (loaded) · Zone A", B: "Dry / general (loaded) · Zone B", C: "Customs hold",
+  D: "Hazmat / IMDG", E: "Empty depot", S: "Staging (drop & hook)", R: "Gate-in / receiving",
+  F: "Reefer / food-grade", Q: "Quarantine / M&R",
 }
 
 const EQ_STATUS_COLOR: Record<string, string> = {

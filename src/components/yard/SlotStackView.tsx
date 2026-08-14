@@ -162,7 +162,8 @@ export default function SlotStackView({
 
               {selC.whyHere && (
                 <div className="px-5 py-3 border-b border-neutral-200 bg-red-50">
-                  <div className="ds-label text-[#a01f14] mb-1">Why here</div>
+                  <div className="ds-label text-[#a01f14] mb-0.5">Why here</div>
+                  <div className="text-[9.5px] font-semibold tracking-wide text-[#a01f14] opacity-60 mb-1.5">PIFO — Priority-In-First-Out</div>
                   <div className="text-[12.5px] leading-relaxed">{selC.whyHere}</div>
                 </div>
               )}

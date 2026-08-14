@@ -52,11 +52,11 @@ export const EVENTS: Event[] = [
 ];
 
 export const DIFF_ROWS = [
-  { moveId:"MV-1032", action:"REASSIGNED", type:"Retrieve to staging", before:"RS-03 · L. Duarte · 06:42", after:"RS-01 · R. Giménez · 06:48", note:"Nearest capable machine; sequence continuity kept." },
-  { moveId:"MV-1034", action:"REASSIGNED", type:"Reshuffle", before:"RS-03 · L. Duarte · 06:51", after:"RS-02 · M. Sosa · 06:55", note:"Within reassignment cap (2/hour) for this operator." },
+  { moveId:"MV-1032", action:"REASSIGNED", type:"Retrieve", before:"RS-03 · L. Duarte · 06:42", after:"RS-01 · R. Giménez · 06:48", note:"Nearest capable machine; sequence continuity kept." },
+  { moveId:"MV-1034", action:"REASSIGNED", type:"Rehandle", before:"RS-03 · L. Duarte · 06:51", after:"RS-02 · M. Sosa · 06:55", note:"Within reassignment cap (2/hour) for this operator." },
   { moveId:"MV-1039", action:"ADDED", type:"Move to inspection", before:"—", after:"RS-01 · R. Giménez · 07:10", note:"Orange channel: inspection bay booked 10:00." },
-  { moveId:"MV-1041", action:"CANCELLED", type:"Retrieve to staging", before:"RS-02 · M. Sosa · 07:04", after:"—", note:"Reserved staging slot released, order re-promised." },
-  { moveId:"MV-1044", action:"HELD", type:"Load outbound", before:"RS-01 · R. Giménez · 06:22", after:"unchanged", note:"In progress on the spreader — never cancelled." },
+  { moveId:"MV-1041", action:"CANCELLED", type:"Retrieve", before:"RS-02 · M. Sosa · 07:04", after:"—", note:"Reserved staging slot released, order re-promised." },
+  { moveId:"MV-1044", action:"HELD", type:"Load out", before:"RS-01 · R. Giménez · 06:22", after:"unchanged", note:"In progress on the spreader — never cancelled." },
   { moveId:"MV-1047", action:"ADDED", type:"Pre-marshal", before:"—", after:"RS-02 · M. Sosa · 07:22", note:"Idle window absorbs the redistributed load." }
 ];
 
@@ -85,10 +85,10 @@ export const TURN_BY_HOUR = [
 ];
 
 export const CYCLE_BY_TYPE = [
-  { type:"Retrieve to staging", p50:4.6, p90:6.9, n:142 },
-  { type:"Load outbound", p50:3.9, p90:5.4, n:96 },
-  { type:"Place inbound", p50:5.1, p90:7.6, n:121 },
-  { type:"Reshuffle", p50:6.4, p90:9.8, n:38 },
+  { type:"Retrieve", p50:4.6, p90:6.9, n:142 },
+  { type:"Load out", p50:3.9, p90:5.4, n:96 },
+  { type:"Put-away", p50:5.1, p90:7.6, n:121 },
+  { type:"Rehandle", p50:6.4, p90:9.8, n:38 },
   { type:"Pre-marshal", p50:5.8, p90:8.2, n:17 }
 ];
 

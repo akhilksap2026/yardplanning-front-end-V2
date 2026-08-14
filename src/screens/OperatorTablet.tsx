@@ -7,7 +7,7 @@ import { slotAddress, REASON_LABELS } from "@/lib/backend-adapters"
 import { OPERATOR_QUEUES } from "@/data/yard-ops"
 
 const STEPS = [
-  { key:"instruction", title:"Retrieve to staging", tag:"1", label:"Instruction",   note:"One instruction per view, large type for cab visibility." },
+  { key:"instruction", title:"Retrieve", tag:"1", label:"Instruction",   note:"One instruction per view, large type for cab visibility." },
   { key:"identify",    title:"Confirm identity",    tag:"2", label:"Identification", note:"Cab OCR read against the instruction — mismatch blocks the lift." },
   { key:"exception",   title:"Authorised exception",tag:"3", label:"Exception path", note:"Supervisor approval with photo and reason code, fully audited." },
   { key:"damage",      title:"Damage capture",      tag:"4", label:"Damage",         note:"Photos on the condition record; quarantine flip triggers a replan." },

@@ -42,15 +42,18 @@ export const DEPOTS = [
 
 export interface Zone {
   id: string; name: string; blocks: number; rows: number; slots: number; maxTiers: number; ceiling: number; hazmat: boolean; customs: boolean;
+  reefer?: boolean; quarantine?: boolean;
 }
 export const ZONES: Zone[] = [
-  { id:"A", name:"Zone A — Import full", blocks:6, rows:3, slots:10, maxTiers:4, ceiling:0.85, hazmat:false, customs:false },
-  { id:"B", name:"Zone B — Import full", blocks:6, rows:3, slots:10, maxTiers:4, ceiling:0.85, hazmat:false, customs:false },
-  { id:"C", name:"Zone C — Customs controlled", blocks:4, rows:2, slots:8, maxTiers:3, ceiling:0.80, hazmat:false, customs:true },
+  { id:"A", name:"Zone A — Dry / general (loaded)", blocks:6, rows:3, slots:10, maxTiers:4, ceiling:0.85, hazmat:false, customs:false },
+  { id:"B", name:"Zone B — Dry / general (loaded)", blocks:6, rows:3, slots:10, maxTiers:4, ceiling:0.85, hazmat:false, customs:false },
+  { id:"C", name:"Zone C — Customs hold", blocks:4, rows:2, slots:8, maxTiers:3, ceiling:0.80, hazmat:false, customs:true },
   { id:"D", name:"Zone D — Hazmat / IMDG", blocks:2, rows:2, slots:6, maxTiers:2, ceiling:0.70, hazmat:true, customs:false },
-  { id:"E", name:"Zone E — Empties", blocks:4, rows:3, slots:10, maxTiers:4, ceiling:0.90, hazmat:false, customs:false },
-  { id:"R", name:"Receiving lanes", blocks:1, rows:1, slots:12, maxTiers:1, ceiling:1.0, hazmat:false, customs:false },
-  { id:"S", name:"Outbound staging", blocks:1, rows:1, slots:10, maxTiers:1, ceiling:1.0, hazmat:false, customs:false }
+  { id:"E", name:"Zone E — Empty depot", blocks:4, rows:3, slots:10, maxTiers:4, ceiling:0.90, hazmat:false, customs:false },
+  { id:"R", name:"Gate-in / receiving", blocks:1, rows:1, slots:12, maxTiers:1, ceiling:1.0, hazmat:false, customs:false },
+  { id:"S", name:"Staging (drop & hook)", blocks:1, rows:1, slots:10, maxTiers:1, ceiling:1.0, hazmat:false, customs:false },
+  { id:"F", name:"Zone F — Reefer / food-grade", blocks:2, rows:2, slots:8, maxTiers:3, ceiling:0.80, hazmat:false, customs:false, reefer:true },
+  { id:"Q", name:"Zone Q — Quarantine / M&R", blocks:1, rows:1, slots:6, maxTiers:1, ceiling:1.0, hazmat:false, customs:false, quarantine:true },
 ];
 
 export const EQUIPMENT = [
@@ -196,8 +199,8 @@ export function getHotContainers(containers: Container[], nowHour?: number): Set
 
 export const MOVE_TYPES = ["RETRIEVE_STAGE","PLACE_INBOUND","RESHUFFLE","LOAD_OUTBOUND","PRE_MARSHAL","RECEIVE_FROM_LANE","MOVE_INSPECTION"];
 export const TYPE_LABEL: Record<string, string> = {
-  RETRIEVE_STAGE: "Retrieve to staging", PLACE_INBOUND: "Place inbound", RESHUFFLE: "Reshuffle",
-  LOAD_OUTBOUND: "Load outbound", PRE_MARSHAL: "Pre-marshal", RECEIVE_FROM_LANE: "Receive from lane",
+  RETRIEVE_STAGE: "Retrieve", PLACE_INBOUND: "Put-away", RESHUFFLE: "Rehandle",
+  LOAD_OUTBOUND: "Load out", PRE_MARSHAL: "Pre-marshal", RECEIVE_FROM_LANE: "Gate receipt",
   MOVE_INSPECTION: "Move to inspection"
 };
 const MOVE_REASONS: Record<string, string> = {

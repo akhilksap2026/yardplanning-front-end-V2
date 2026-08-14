@@ -532,12 +532,16 @@ export default function GateConsole({ focus }: Props) {
 
             {/* Step 4: Actions — primary + more actions dropdown */}
             <div className="px-4 pt-3 pb-4" style={{ borderTop:"1px solid #e5e7eb" }}>
-              {/* Primary action */}
-              <button className="w-full text-[11.5px] text-left px-3 py-2.5 font-semibold mb-2"
+              {/* Primary action — Gate-in */}
+              <div className="ds-label text-neutral-400 mb-1.5">Gate-in</div>
+              <button className="w-full text-[11.5px] text-left px-3 py-2.5 font-semibold mb-1"
                 style={{ background:"#111827", color:"#fff", borderRadius:5 }}
                 onClick={handleCheckIn} disabled={checkingIn}>
                 {checkInDone?"✓ Checked in and assigned to lane":checkingIn?"Checking in…":"Check in and assign lane"}
               </button>
+              {checkInDone && (
+                <div className="text-[10px] font-semibold text-[#059669] mb-1.5 px-0.5">EDI 322 sent ✓</div>
+              )}
               {/* More actions dropdown */}
               <div ref={moreActionsRef} className="relative">
                 <button onClick={()=>setMoreActionsOpen(v=>!v)}
@@ -681,10 +685,13 @@ export default function GateConsole({ focus }: Props) {
                             <td className="px-3 py-2">{g.inTx?.carrier_ref??g.outTx?.carrier_ref??"—"}</td>
                             <td className="px-3 py-2">
                               {isRunning&&g.containerId!=null&&(
-                                <button disabled={gateOutLoading===g.containerId} onClick={()=>handleGateOut(g.containerId!,inTime)}
-                                  style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:5, fontSize:10.5, padding:"3px 10px", fontWeight:600, whiteSpace:"nowrap", opacity:gateOutLoading===g.containerId?0.5:1 }}>
-                                  {gateOutLoading===g.containerId?"…":"Gate out"}
-                                </button>
+                                <div>
+                                  <div className="text-[8.5px] font-semibold text-neutral-400 mb-0.5 tracking-wide">Gate-out</div>
+                                  <button disabled={gateOutLoading===g.containerId} onClick={()=>handleGateOut(g.containerId!,inTime)}
+                                    style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:5, fontSize:10.5, padding:"3px 10px", fontWeight:600, whiteSpace:"nowrap", opacity:gateOutLoading===g.containerId?0.5:1 }}>
+                                    {gateOutLoading===g.containerId?"…":"Gate out"}
+                                  </button>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -726,6 +733,7 @@ export default function GateConsole({ focus }: Props) {
           {apptData && (
             <div className="overflow-auto bg-white">
               <div className="px-4 pt-4 pb-2">
+                <div className="text-[9.5px] font-semibold tracking-wide text-neutral-400 mb-1">ASN — advance ship notice</div>
                 <div className="ds-label text-neutral-500">Window <span className="font-mono">{apptData.window}</span></div>
                 <div className="font-semibold text-[16px] mt-1"><span className="font-mono">{apptData.booked}</span> booked of <span className="font-mono">{apptData.capacity}</span> capacity</div>
               </div>

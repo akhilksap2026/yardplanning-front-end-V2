@@ -10,9 +10,9 @@ import type {
 } from "./backend-api";
 
 export const REASON_LABELS: Record<string, string> = {
-  inbound_placement: "Place inbound",
+  inbound_placement: "Put-away",
   outbound_staging: "Stage outbound",
-  shuffle: "Reshuffle",
+  shuffle: "Rehandle",
   re_marshal: "Pre-marshal",
   replan_reassignment: "Replan reassignment",
 };

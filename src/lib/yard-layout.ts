@@ -42,13 +42,15 @@ const YARD_WIDTH      = 2400 // used only for live layout
 // Zone A/B must start at x ≥ 784 + 80 = 864 to avoid overlap.
 // Zone D must start beyond Zone A's right edge: 864+3*(360+14)−14 = 1972 → 1980+.
 const ZONE_LAYOUT: Record<string, { x: number; y: number; cols: number }> = {
-  C: { x: 50,   y: 80,   cols: 2 },   // Customs      — upper left
-  A: { x: 880,  y: 80,   cols: 3 },   // Import full  — upper center (clear of E)
-  B: { x: 880,  y: 545,  cols: 3 },   // Import full  — lower center (below A)
-  D: { x: 1990, y: 80,   cols: 1 },   // Hazmat       — far right, isolated
-  E: { x: 50,   y: 430,  cols: 2 },   // Empties      — lower left  (below C)
-  S: { x: 880,  y: 990,  cols: 5 },   // Staging      — near gate
-  R: { x: 50,   y: 1100, cols: 10 },  // Receiving    — near gate, wide strip
+  C: { x: 50,   y: 80,   cols: 2 },   // Customs hold    — upper left
+  A: { x: 880,  y: 80,   cols: 3 },   // Dry/general     — upper center (clear of E)
+  B: { x: 880,  y: 545,  cols: 3 },   // Dry/general     — lower center (below A)
+  D: { x: 1990, y: 80,   cols: 1 },   // Hazmat          — far right, isolated
+  E: { x: 50,   y: 430,  cols: 2 },   // Empty depot     — lower left  (below C)
+  S: { x: 880,  y: 990,  cols: 5 },   // Staging         — near gate
+  R: { x: 50,   y: 1100, cols: 10 },  // Receiving       — near gate, wide strip
+  F: { x: 1990, y: 420,  cols: 1 },   // Reefer          — far right, below D (D bottom ≈ 350)
+  Q: { x: 1990, y: 740,  cols: 1 },   // Quarantine/M&R  — far right, below F (F bottom ≈ 690)
 }
 
 export function computeBlockLayouts(
