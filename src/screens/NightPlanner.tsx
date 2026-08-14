@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { TYPE_LABEL, VESSEL_SCHEDULES, CONTAINERS, getHotContainers, EQUIPMENT, OPERATORS, type Move } from "@/data/yard-data"
 import { useData } from "@/lib/DataContext"
 import { adaptMoveForDisplay, REASON_LABELS } from "@/lib/backend-adapters"
+import { checkPlacementRules } from "@/lib/placement-rules"
 import { backendApi } from "@/lib/backend-api"
 import type { BackendPlanDetail } from "@/lib/backend-api"
 
@@ -686,12 +687,27 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                       )}
                     </div>
 
-                    {/* Step 4: WHY THIS MOVE — always visible */}
-                    <div className="ds-callout mx-4 mb-3">
-                      <div className="ds-callout-label">Why this move</div>
-                      <div className="text-[9.5px] font-semibold tracking-wide opacity-50 mb-1">PIFO — Priority-In-First-Out</div>
-                      <div className="text-[12.5px] leading-relaxed">{selMove.reason}</div>
-                    </div>
+                    {/* Step 4: WHY THIS MOVE / HARD-RULE BLOCK — always visible */}
+                    {(() => {
+                      const ruleBlock = checkPlacementRules(selMove, CONTAINERS)
+                      return ruleBlock ? (
+                        <div className="mx-4 mb-3 px-4 py-3"
+                          style={{ background:"#fef2f2", border:"1px solid #fca5a5", borderRadius:6 }}>
+                          <div className="text-[9.5px] font-bold tracking-widest text-[#b91c1c] mb-1.5 uppercase">
+                            Hard rule — move blocked
+                          </div>
+                          <div className="text-[12.5px] font-semibold text-[#b91c1c] leading-snug">
+                            ⚠ {ruleBlock}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="ds-callout mx-4 mb-3">
+                          <div className="ds-callout-label">Why this move</div>
+                          <div className="text-[9.5px] font-semibold tracking-wide opacity-50 mb-1">PIFO — Priority-In-First-Out</div>
+                          <div className="text-[12.5px] leading-relaxed">{selMove.reason}</div>
+                        </div>
+                      )
+                    })()}
 
                     {/* ── Inline edit form ─────────────────────────────────── */}
                     {editOpen && (() => {

@@ -80,6 +80,15 @@ export interface Container {
   size: string; grossKg: number; carrier: string; carrierName: string; consignee: string; vessel: string;
   terminal: string; hazmat: boolean; imdg: string | null; channel: string; status: string;
   hoursToLFD: number; dwellDays: number; priority: string; empty: boolean; whyHere: string; seal: string;
+  // ── optional expert attributes (additive — absence means unknown/N/A) ──────
+  isoType?: string;
+  reefer?: boolean;
+  tempSetPoint?: string;
+  tareKg?: number;
+  damageCode?: string;
+  hold?: "customs" | "quality" | "damage" | null;
+  highValue?: boolean;
+  ageDays?: number;
 }
 
 function buildContainers(): Container[] {
@@ -93,6 +102,7 @@ function buildContainers(): Container[] {
     "Block balanced: Zone B at 81% against an 85% ceiling, workload spread from A."
   ];
   ZONES.filter(z => !"RS".includes(z.id)).forEach(z => {
+    let damageAssigned = 0; // track damage-hold containers per zone (cap at 2 for Q)
     for (let b = 1; b <= z.blocks; b++) {
       for (let r = 1; r <= z.rows; r++) {
         for (let s = 1; s <= z.slots; s++) {
@@ -104,7 +114,23 @@ function buildContainers(): Container[] {
             const hoursToLFD = empty ? int(4, 60) : int(-18, 190);
             const channel = z.id === "C" ? pick(["naranja","rojo"]) : pick(CHANNELS);
             const imdg = z.id === "D" ? pick(["3","8","9","5.1"]) : null;
-            const whyRaw = pick(reasons).replace("{h}", String(Math.max(0, hoursToLFD))).replace("{z}", z.id).replace("{c}", imdg || "3");
+
+            // Zone-specific placement reason
+            const whyRaw = z.id === "F"
+              ? "Reefer slot: cold-chain integrity maintained at -18°C — plugged since gate-in."
+              : z.id === "Q"
+              ? "Quarantine hold: M&R inspection pending — cleared from active traffic."
+              : pick(reasons)
+                  .replace("{h}", String(Math.max(0, hoursToLFD)))
+                  .replace("{z}", z.id)
+                  .replace("{c}", imdg || "3");
+
+            const dwellDays = int(1, 26);
+
+            // Zone Q: first 2 containers get a damage hold
+            const giveDamage = z.id === "Q" && damageAssigned < 2;
+            if (giveDamage) damageAssigned++;
+
             out.push({
               id: makeId(carrier.code.slice(0,3)),
               zone: z.id, block: b, row: r, slot: s, tier: t,
@@ -117,8 +143,19 @@ function buildContainers(): Container[] {
               hazmat: z.id === "D", imdg,
               channel: empty ? "—" : channel,
               status: empty ? "IN_YARD" : pick(STATUSES),
-              hoursToLFD, dwellDays: int(1,26), priority: pick(["P1","P2","P2","P3","P3","P4"]),
-              empty, whyHere: whyRaw, seal: "AR" + int(200000,999999)
+              hoursToLFD, dwellDays, priority: pick(["P1","P2","P2","P3","P3","P4"]),
+              empty, whyHere: whyRaw, seal: "AR" + int(200000,999999),
+              // ── new optional fields ──────────────────────────────────────────
+              ageDays: dwellDays,
+              ...(z.id === "F"
+                ? { reefer: true, tempSetPoint: "-18°C" }
+                : {}),
+              ...(giveDamage
+                ? { damageCode: "DO-R-BT-ST", hold: "damage" as const }
+                : {}),
+              ...(!empty && rnd() < 0.04
+                ? { highValue: true }
+                : {}),
             });
           }
         }
@@ -251,7 +288,50 @@ function buildMoves(): Move[] {
   return out;
 }
 
-export const MOVES: Move[] = buildMoves();
+const _builtMoves = buildMoves()
+
+// ── DEMO: deliberately-illegal move — triggers Rule B (tier-4-row-1-only) ────
+// Destination "A-03-2-5-4": tier=4, row=2 → Rule B fires.
+// This move exists ONLY to demonstrate the hard-filter UI in Night Planner.
+// Remove or replace with a real move before using in production.
+const _demoContainer = CONTAINERS.find(c => c.zone === "A" && !c.empty && c.grossKg > 20000) ?? CONTAINERS[0]
+const DEMO_ILLEGAL_MOVE: Move = {
+  id: "MV-9001", seq: 97, type: "RESHUFFLE",
+  containerId: _demoContainer.id,
+  from: _demoContainer.address,
+  to: "A-03-2-5-4",   // tier=4, row=2 → Rule B: tier 4 not permitted beyond row 1
+  equipment: "RS-01", operator: "OP-114", operatorName: "R. Giménez",
+  estMin: 8.2, start: "13:45", end: "13:53", startMin: 825, endMin: 833,
+  state: "PLANNED", frozen: false, priority: "P2",
+  reason: "Pre-shift density stack — tier 4 for space saving.",
+  reason_text: null,
+}
+
+// ── DEMO: size-mismatch move — triggers Rule C (20ft cannot stack on 40ft) ───
+// Finds a ground-tier 40GP in Zone A and a 20GP mover at runtime, so the
+// demo works regardless of PRNG seed. Clearly commented as demo-only.
+const _40gpBelow = CONTAINERS.find(c => c.size === "40GP" && c.tier === 1 && c.zone === "A" && !c.empty)
+const _20gpMover = CONTAINERS.find(c => c.size === "20GP" && !c.empty && c.id !== _40gpBelow?.id)
+const DEMO_SIZE_MISMATCH_MOVE: Move | undefined = _40gpBelow && _20gpMover
+  ? {
+      id: "MV-9002", seq: 98, type: "RESHUFFLE",
+      containerId: _20gpMover.id,
+      from: _20gpMover.address,
+      // Destination: one tier above the 40GP container → Rule C fires
+      to: (() => { const p = _40gpBelow.address.split("-"); p[4] = String(_40gpBelow.tier + 1); return p.join("-") })(),
+      equipment: "RS-02", operator: "OP-207", operatorName: "M. Sosa",
+      estMin: 6.5, start: "14:00", end: "14:06", startMin: 840, endMin: 846,
+      state: "PLANNED", frozen: false, priority: "P3",
+      reason: "Density restack — short-side onto long-side for space efficiency.",
+      reason_text: null,
+    }
+  : undefined
+
+export const MOVES: Move[] = [
+  ..._builtMoves,
+  DEMO_ILLEGAL_MOVE,
+  ...(DEMO_SIZE_MISMATCH_MOVE ? [DEMO_SIZE_MISMATCH_MOVE] : []),
+]
 
 // ── Outbound retrieval planning step ─────────────────────────────────────────
 //

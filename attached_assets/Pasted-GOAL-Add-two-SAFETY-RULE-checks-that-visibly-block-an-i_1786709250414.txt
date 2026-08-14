@@ -1,0 +1,15 @@
+GOAL: Add two SAFETY RULE checks that visibly block an illegal move with an explanation. This demonstrates the "hard filter" concept. Small, self-contained, no engine change.
+
+STEP 1 — CHECK FIRST. Open src/screens/NightPlanner.tsx and src/components/yard/SlotStackView.tsx. Find where a move or a target slot's detail/reason is displayed. We will add a small pure helper that, given a proposed move, returns either null (allowed) or a block message (illegal). We are NOT changing how moves are generated — only surfacing a rule check in the UI where a move is shown.
+
+STEP 2 — ADD A PURE HELPER in src/lib/utils.ts (or a new src/lib/placement-rules.ts):
+  export function checkPlacementRules(move): string | null
+  Rule A (no-crush): if the move places a loaded/heavy container onto a lighter/empty one, return
+    "Blocked — no-crush rule: {heavyWeight} cannot stack on {lightWeight} empty."
+  Rule B (tier-4-row-1-only): if the destination address parses to tier 4 and row > 1, return
+    "Blocked — tier 4 permitted on row 1 only (reach-stacker tipping limit)."
+  Parse the tier/row from the address format used in your data (e.g. "A-02-2-4-1" → block=02, row=2, slot=4, tier=1 — CONFIRM the exact position order by reading how addresses are parsed elsewhere in the code before writing the parser). Return null if allowed.
+
+STEP 3 — SURFACE IT. Where a move/slot detail is displayed, call checkPlacementRules(); if it returns a message, show it in a red callout ("⚠ {message}") instead of/above the normal reason. Since the seed moves are all legal, ADD one deliberately-illegal demo move to the seed data (e.g. a heavy box targeting tier 4 row 2, or a loaded box onto an empty) so the block is visible in the demo. Clearly comment it as a demo rule-trigger.
+
+STEP 4 — VERIFY. Build. Confirm: (a) all existing legal moves still show their normal reason with no false blocks, (b) the one demo-illegal move shows the red block message, (c) no crash from address parsing. Test the parser against a normal address first to be sure the tier/row extraction is correct — a wrong parser would false-block legal moves.
