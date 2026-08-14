@@ -276,11 +276,13 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     { k:"Moves planned",    v:String(moves.length),        sub:"of 284 today",  red:false },
     { k:"Detention at risk",v:"$8.4k",                     sub:"next 72 h",     red:true  },
   ]
+  const inbounds  = moves.filter(m => m.type === "PLACE_INBOUND" || m.type === "RECEIVE_FROM_LANE").length
+  const outbounds = moves.filter(m => m.type === "LOAD_OUTBOUND").length
   const secondaryKpis = [
-    { k:"Machine-hours",    v:(totalMin/60).toFixed(1),    sub:"of 32.0",       red:false },
-    { k:"Truck turn P50",   v:"13.4′",                     sub:"target 15′",    red:false },
-    { k:"Job cycle P50",    v:"4.8′",                      sub:"target 5′",     red:false },
-    { k:"Exceptions",       v:String(exceptions.length),   sub:"unresolved",    red:true  },
+    { k:"Inbounds",              v:String(inbounds),           sub:"moves today",      red:false },
+    { k:"Outbounds",             v:String(outbounds),          sub:"moves today",      red:false },
+    { k:"Jockeys clocked in",    v:String(onShift.length),     sub:"on shift",         red:false },
+    { k:"Unresolved exceptions", v:String(exceptions.length),  sub:"need attention",   red:exceptions.length > 0 },
   ]
   const engineKpis = viewedPlan ? [
     { k:"Moves",     v:String(viewedPlan.moves.length),                                         sub:"in this plan",  red:false },

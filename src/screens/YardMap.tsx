@@ -202,13 +202,16 @@ export default function YardMap({ focus, onNavigate }: Props) {
   const zoneNames    = useMemo(() => Object.fromEntries(zones.map(z => [z.id, z.name])), [zones])
 
   // ── KPI values ────────────────────────────────────────────────────────────
-  const seedContainers = useMemo(() => containers.filter(c => !"RS".includes(c.zone)), [containers])
-  const totalCapacity  = useMemo(() => zones.filter(z => !"RS".includes(z.id)).reduce((s, z) => s + z.blocks * z.rows * z.slots * z.maxTiers, 0), [zones])
+  // Zones excluded from terminal capacity/occupancy math (transient or non-storage)
+  const EXCLUDED_ZONES = new Set(["R", "S", "Q"])
+
+  const seedContainers = useMemo(() => containers.filter(c => !EXCLUDED_ZONES.has(c.zone)), [containers])
+  const totalCapacity  = useMemo(() => zones.filter(z => !EXCLUDED_ZONES.has(z.id)).reduce((s, z) => s + z.blocks * z.rows * z.slots * z.maxTiers, 0), [zones])
   const occupancyPct   = totalCapacity > 0 ? Math.round(seedContainers.length / totalCapacity * 100) : 0
   const totalTEU       = useMemo(() => seedContainers.reduce((s, c) => s + (c.size.startsWith("40") ? 2 : 1), 0), [seedContainers])
   const avgTier        = seedContainers.length > 0 ? (seedContainers.reduce((s, c) => s + c.tier, 0) / seedContainers.length).toFixed(1) : "—"
-  const totalBlocks    = useMemo(() => zones.filter(z => !"RS".includes(z.id)).reduce((s, z) => s + z.blocks, 0), [zones])
-  const totalZones     = zones.filter(z => !"RS".includes(z.id)).length
+  const totalBlocks    = useMemo(() => zones.filter(z => !EXCLUDED_ZONES.has(z.id)).reduce((s, z) => s + z.blocks, 0), [zones])
+  const totalZones     = zones.filter(z => !EXCLUDED_ZONES.has(z.id)).length
 
   const selectedLayout  = blockLayouts.find(l => l.label === selectedBlockLabel) ?? null
   const selectedZoneDef = selectedLayout ? zones.find(z => z.id === selectedLayout.zone) : null
@@ -373,7 +376,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
           <span className="text-[11px] text-neutral-500">
             {isLive
               ? `${backendSlots.length} slots · ${backendContainers.length} containers · live yard`
-              : `${all.length} containers · ${ql ? `${all.filter(match).length} match "${q}"` : "7 zones · overlay: "+mode}`}
+              : `${all.length} containers · ${ql ? `${all.filter(match).length} match "${q}"` : `${totalZones} zones · overlay: `+mode}`}
           </span>
         </div>
 
