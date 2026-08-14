@@ -291,8 +291,8 @@ export default function LiveOps({ onNavigate }: Props) {
         {/* Primary row — always visible */}
         <div className="flex items-stretch">
           {([
-            { k: "Inbound containers",  v: String(inboundCnt),            sub: "moves today",       color: "#111827" },
-            { k: "Outbound containers", v: String(outboundCnt),           sub: "moves today",       color: "#111827" },
+            { k: "Inbound containers",  v: String(inboundCnt),            sub: "containers today",  color: "#111827" },
+            { k: "Outbound containers", v: String(outboundCnt),           sub: "containers today",  color: "#111827" },
             { k: "Operators available", v: String(opsAvail),              sub: `${opsAvail} of ${equipTotal} on shift`, color: opsAvail < equipTotal ? "#d97706" : "#111827" },
             { k: "Moves created",       v: String(movesTotal),            sub: "in shift plan",     color: "#111827" },
             { k: "Detention risk",      v: `$${detRiskK}k`,              sub: "next 72 h",         color: detRiskK > 5 ? "#dc2626" : "#d97706" },

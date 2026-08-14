@@ -323,8 +323,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   const outbounds   = allSteps.filter(s => s.operation === "Outbound staging and truck loading").length
   const equipAvail  = EQUIPMENT.filter(e => e.status === "available").length
   const primaryKpis = [
-    { k:"Inbound containers",  v:String(inbounds),           sub:"moves today",                                                                           red:false },
-    { k:"Outbound containers", v:String(outbounds),          sub:"moves today",                                                                           red:false },
+    { k:"Inbound containers",  v:String(inbounds),           sub:"containers today",                                                                      red:false },
+    { k:"Outbound containers", v:String(outbounds),          sub:"containers today",                                                                      red:false },
     { k:"Operators available", v:String(totalOperators),     sub:`${totalOperators} of ${totalOperators} on shift`,                                       red:false },
     { k:"Moves created",       v:String(totalSteps),         sub:"in shift plan",                                                                         red:false },
     { k:"Detention risk",      v:"$8.4k",                    sub:"next 72 h",                                                                             red:true  },
