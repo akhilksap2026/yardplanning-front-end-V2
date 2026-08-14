@@ -165,7 +165,108 @@ function buildContainers(): Container[] {
   return out;
 }
 
-export const CONTAINERS: Container[] = buildContainers();
+// Explicit seed containers for Zone F (Reefer / food-grade) and Zone Q (Quarantine / M&R).
+// The deterministic PRNG in buildContainers() produces zero-height stacks for these zones,
+// so we append a small realistic set here.
+const ZONE_F_CONTAINERS: Container[] = [
+  {
+    id: "MSCU3849207",
+    zone:"F", block:1, row:1, slot:1, tier:1,
+    address:"F-01-1-1-1", size:"40HC", grossKg:18400,
+    carrier:"MSCU", carrierName:"MSC", consignee:"Bosch Argentina",
+    vessel:"MSC LUCIA V.412E", terminal:"TRP Terminal 5",
+    hazmat:false, imdg:null, channel:"verde", status:"IN_YARD",
+    hoursToLFD:36, dwellDays:4, priority:"P2", empty:false,
+    whyHere:"Reefer zone: temperature-controlled cargo requires plug-in bay; set-point −18 °C.",
+    seal:"AR481293"
+  },
+  {
+    id: "MAEU5120473",
+    zone:"F", block:1, row:1, slot:2, tier:1,
+    address:"F-01-1-2-1", size:"40HC", grossKg:14200,
+    carrier:"MAEU", carrierName:"Maersk", consignee:"Denso Sudamérica",
+    vessel:"MAERSK SALINA V.238W", terminal:"Terminal 4 BACTSSA",
+    hazmat:false, imdg:null, channel:"verde", status:"IN_YARD",
+    hoursToLFD:52, dwellDays:3, priority:"P2", empty:false,
+    whyHere:"Reefer zone: food-grade pharmaceutical shipment; continuous monitoring active.",
+    seal:"AR620841"
+  },
+  {
+    id: "CMAU7733185",
+    zone:"F", block:1, row:2, slot:1, tier:1,
+    address:"F-01-2-1-1", size:"20GP", grossKg:11800,
+    carrier:"CMAU", carrierName:"CMA CGM", consignee:"Valeo BA",
+    vessel:"CMA CGM ANDES V.117N", terminal:"Exolgan Dock Sud",
+    hazmat:false, imdg:null, channel:"verde", status:"IN_YARD",
+    hoursToLFD:18, dwellDays:6, priority:"P1", empty:false,
+    whyHere:"Reefer zone: LFD in 18 h, pre-positioned for earliest retrieval window.",
+    seal:"AR715503"
+  },
+  {
+    id: "HLXU9016542",
+    zone:"F", block:2, row:1, slot:1, tier:1,
+    address:"F-02-1-1-1", size:"40HC", grossKg:22100,
+    carrier:"HLXU", carrierName:"Hapag-Lloyd", consignee:"ZF Pilar",
+    vessel:"SANTOS EXPRESS V.902", terminal:"Terminales Río de la Plata",
+    hazmat:false, imdg:null, channel:"verde", status:"IN_YARD",
+    hoursToLFD:72, dwellDays:2, priority:"P3", empty:false,
+    whyHere:"Reefer zone: frozen auto-parts requiring sub-zero storage per shipper instruction.",
+    seal:"AR344987"
+  },
+  {
+    id: "COSU2487316",
+    zone:"F", block:2, row:1, slot:2, tier:1,
+    address:"F-02-1-2-1", size:"40GP", grossKg:16500,
+    carrier:"COSU", carrierName:"COSCO", consignee:"Magna Rosario",
+    vessel:"MSC LUCIA V.412E", terminal:"TRP Terminal 5",
+    hazmat:false, imdg:null, channel:"naranja", status:"IN_YARD",
+    hoursToLFD:44, dwellDays:5, priority:"P2", empty:false,
+    whyHere:"Reefer zone: orange-channel inspection pending; held in temp-controlled bay during review.",
+    seal:"AR562104"
+  },
+];
+
+const ZONE_Q_CONTAINERS: Container[] = [
+  {
+    id: "MSCU1048579",
+    zone:"Q", block:1, row:1, slot:1, tier:1,
+    address:"Q-01-1-1-1", size:"40GP", grossKg:21300,
+    carrier:"MSCU", carrierName:"MSC", consignee:"Autopartes del Sur SA",
+    vessel:"CMA CGM ANDES V.117N", terminal:"Exolgan Dock Sud",
+    hazmat:false, imdg:null, channel:"rojo", status:"CUSTOMS_CONTROLLED",
+    hoursToLFD:96, dwellDays:11, priority:"P1", empty:false,
+    whyHere:"Quarantine hold: M&R inspection booked 10:00 — door seal damage reported at gate-in.",
+    seal:"AR839201"
+  },
+  {
+    id: "MAEU3674921",
+    zone:"Q", block:1, row:1, slot:2, tier:1,
+    address:"Q-01-1-2-1", size:"20GP", grossKg:9700,
+    carrier:"MAEU", carrierName:"Maersk", consignee:"Continental Arg.",
+    vessel:"MAERSK SALINA V.238W", terminal:"Terminal 4 BACTSSA",
+    hazmat:false, imdg:null, channel:"naranja", status:"CUSTOMS_CONTROLLED",
+    hoursToLFD:120, dwellDays:8, priority:"P2", empty:false,
+    whyHere:"Quarantine hold: awaiting SENASA phytosanitary clearance before release.",
+    seal:"AR473629"
+  },
+  {
+    id: "CMAU5890438",
+    zone:"Q", block:1, row:1, slot:3, tier:1,
+    address:"Q-01-1-3-1", size:"40HC", grossKg:2800,
+    carrier:"CMAU", carrierName:"CMA CGM", consignee:"—",
+    vessel:"SANTOS EXPRESS V.902", terminal:"Terminales Río de la Plata",
+    hazmat:false, imdg:null, channel:"—", status:"IN_YARD",
+    hoursToLFD:48, dwellDays:3, priority:"P3", empty:true,
+    whyHere:"M&R bay: empty unit with forklift pocket damage — awaiting structural inspection sign-off.",
+    seal:"AR610057"
+  },
+];
+
+export const CONTAINERS: Container[] = [
+  ...buildContainers(),
+  ...ZONE_F_CONTAINERS,
+  ...ZONE_Q_CONTAINERS,
+];
 
 // ── Vessel schedules ──────────────────────────────────────────────────────────
 
