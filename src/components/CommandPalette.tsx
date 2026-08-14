@@ -48,7 +48,7 @@ const KIND_COLOR: Record<ResultKind, string> = {
 }
 
 const SCREEN_LABEL: Record<string, string> = {
-  plan: "Night-before Plan",
+  plan: "Planner",
   yard: "Yard Map",
   gate: "Gate & Appointments",
   tower: "Control Tower",

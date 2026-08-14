@@ -425,7 +425,7 @@ export default function LiveOps({ onNavigate }: Props) {
                   className="flex items-center gap-2 px-5 py-2 border-t border-[#e5e7eb]"
                   style={{ background: "#f0f9ff" }}>
                   <span className="text-[11px] text-blue-700">
-                    {grp.g === "vessel" ? "→ Open in Night-before Plan"
+                    {grp.g === "vessel" ? "→ Open in Planner"
                     : grp.g === "gate"  ? "→ Open in Gate & Appointments"
                     : grp.g === "moves" ? "→ Open in Yard Map"
                     :                     "→ Open in Control Tower"}

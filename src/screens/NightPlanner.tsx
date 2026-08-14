@@ -146,7 +146,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         time: `${hh}:${mm}`,
         type: "PLAN_PUBLISHED", severity: "low", state: "replanned", auto: "Manual",
         title: `Plan P-2026-08-11 approved — ${allSteps.length} steps published`,
-        detail: `Yard Manager approved the night-before plan. ${allSteps.filter(s=>s.step_status==="Blocked").length} blocked, ${allSteps.length} total.`,
+        detail: `Yard Manager approved the planner. ${allSteps.filter(s=>s.step_status==="Blocked").length} blocked, ${allSteps.length} total.`,
         diff: { cancelled:0, added:0, reassigned:0, frozenKept:allSteps.filter(s=>s.step_status==="Blocked").length, deltaMin:0, adherence:0 },
       })
       await refresh(["events"])
@@ -478,7 +478,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       <div className="flex items-center gap-3 px-5 pt-3 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-base tracking-tight">Night-before plan</span>
+            <span className="font-semibold text-base tracking-tight">Planner</span>
             {planSource === "seed" && (
               <Badge variant={published ? "brand" : "muted"}>{published ? "PUBLISHED" : "DRAFT"}</Badge>
             )}

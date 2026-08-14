@@ -22,7 +22,7 @@ const PERSONAS: { id: Persona; name: string; sub: string; screens: Screen[] | "*
 const NAV_ITEMS: { id: Screen; group: string; name: string; crumb: string; alert?: boolean }[] = [
   { id: "liveops",  group: "Today's Operations", name: "Live Operations",     crumb: "Live Operations",     alert: true },
   { id: "tower",    group: "Today's Operations", name: "Control Tower",       crumb: "Control Tower",       alert: true },
-  { id: "plan",     group: "Today's Operations", name: "Night-before Plan",   crumb: "Night-before Plan"   },
+  { id: "plan",     group: "Today's Operations", name: "Planner",             crumb: "Planner"             },
   { id: "yard",     group: "Yard",               name: "Yard Map",            crumb: "Yard Map"            },
   { id: "gate",     group: "Movement",           name: "Gate & Appointments", crumb: "Gate & Appointments", alert: true },
   { id: "operator", group: "Movement",           name: "Operator Tablet",     crumb: "Operator Tablet"     },
@@ -31,7 +31,7 @@ const NAV_ITEMS: { id: Screen; group: string; name: string; crumb: string; alert
 const NAV_GROUPS = [...new Set(NAV_ITEMS.map(i => i.group))]
 
 const STORY = [
-  { screen: "plan"     as Screen, step: "Step 1 of 5", title: "Night-before plan — 96 moves, ranked",   persona: "Yard Manager · Martín R." },
+  { screen: "plan"     as Screen, step: "Step 1 of 5", title: "Planner — 96 moves, ranked",             persona: "Yard Manager · Martín R." },
   { screen: "yard"     as Screen, step: "Step 2 of 5", title: "Yard state at shift start",               persona: "Yard Manager · Martín R." },
   { screen: "gate"     as Screen, step: "Step 3 of 5", title: "Morning arrivals against the plan",       persona: "Gate & Yard Ops · Diego V." },
   { screen: "tower"    as Screen, step: "Step 4 of 5", title: "RS-03 fault — 14 moves replanned",        persona: "Yard Manager · Martín R." },
