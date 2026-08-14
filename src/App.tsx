@@ -8,8 +8,9 @@ import ControlTower from "@/screens/ControlTower"
 import OperatorTablet from "@/screens/OperatorTablet"
 import SettingsScreen from "@/screens/Settings"
 import CommandPalette from "@/components/CommandPalette"
+import LiveOps from "@/screens/LiveOps"
 
-type Screen  = "plan" | "yard" | "gate" | "tower" | "operator" | "settings"
+type Screen  = "plan" | "yard" | "gate" | "tower" | "operator" | "settings" | "liveops"
 type Persona = "manager" | "ops" | "operator"
 
 const PERSONAS: { id: Persona; name: string; sub: string; screens: Screen[] | "*" }[] = [
@@ -19,6 +20,7 @@ const PERSONAS: { id: Persona; name: string; sub: string; screens: Screen[] | "*
 ]
 
 const NAV_ITEMS: { id: Screen; group: string; name: string; crumb: string; alert?: boolean }[] = [
+  { id: "liveops",  group: "Today's Operations", name: "Live Operations",     crumb: "Live Operations",     alert: true },
   { id: "tower",    group: "Today's Operations", name: "Control Tower",       crumb: "Control Tower",       alert: true },
   { id: "plan",     group: "Today's Operations", name: "Night-before Plan",   crumb: "Night-before Plan"   },
   { id: "yard",     group: "Yard",               name: "Yard Map",            crumb: "Yard Map"            },
@@ -42,6 +44,7 @@ const ALL_SLICES: RefreshSlice[] = [
 
 // Nav icons (simple SVG-as-emoji stand-ins, replaced with clean Unicode symbols)
 const NAV_ICONS: Record<Screen, string> = {
+  liveops:  "◉",
   tower:    "⬡",
   plan:     "◈",
   yard:     "▦",
@@ -97,9 +100,10 @@ function AppShell() {
   }, [personaOpen])
 
   const BADGE_COUNT: Partial<Record<Screen, number>> = {
-    tower: events.filter(e => e.state === "awaiting").length || events.length,
-    plan:  moves.length,
-    gate:  visits.filter(v => ["IN_QUEUE", "APPROACHING", "EXPECTED"].includes(v.state)).length,
+    liveops: events.filter(e => e.severity === "high" || e.state === "awaiting").length,
+    tower:   events.filter(e => e.state === "awaiting").length || events.length,
+    plan:    moves.length,
+    gate:    visits.filter(v => ["IN_QUEUE", "APPROACHING", "EXPECTED"].includes(v.state)).length,
   }
 
   useEffect(() => {
@@ -145,7 +149,7 @@ function AppShell() {
 
   function navigate(target: string, f?: string) {
     const map: Record<string, Screen> = {
-      S1: "yard", S2: "gate", S4: "plan", S6: "operator", S7: "tower", SET: "settings",
+      S1: "yard", S2: "gate", S4: "plan", S6: "operator", S7: "tower", S8: "liveops", SET: "settings",
     }
     const s = (map[target] || target) as Screen
     if (!allowed(persona, s)) { setPersona("manager"); setScreen(s); setFocus(f || null); return }
@@ -546,7 +550,8 @@ function AppShell() {
                 <div style={{ fontSize: 12, color: "#6b7280" }}>Switch persona in the top bar to continue.</div>
               </div>
             </div>
-          ) : screen === "plan"     ? <NightPlanner  focus={focus} onNavigate={navigate} />
+          ) : screen === "liveops"  ? <LiveOps       onNavigate={navigate} />
+            : screen === "plan"     ? <NightPlanner  focus={focus} onNavigate={navigate} />
             : screen === "yard"     ? <YardMap        focus={focus} onNavigate={navigate} />
             : screen === "gate"     ? <GateConsole    focus={focus} onNavigate={navigate} />
             : screen === "tower"    ? <ControlTower   focus={focus} />

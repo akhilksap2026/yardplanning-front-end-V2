@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/modernist-5648be78-77d7-4015-8810-603a33e645f0/styles.css">
+  <script src="_ds/modernist-5648be78-77d7-4015-8810-603a33e645f0/_ds_bundle.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;height:100%;min-height:0;overflow:auto;font-family:var(--font-body);color:var(--color-text);background:var(--color-bg)">
+
+  <div style="display:flex;align-items:center;gap:16px;padding:12px 20px 10px;border-bottom:2px solid var(--color-divider);flex:none;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <span style="font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-0.015em">Live Operations</span>
+      <span style="font-size:11px;color:var(--color-neutral-700)">{{ shiftLine }}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:6px;padding:4px 10px;border:2px solid {{ shiftStatusColor }};background:{{ shiftStatusBg }}">
+      <span style="width:8px;height:8px;background:{{ shiftStatusColor }};border-radius:50%"></span>
+      <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:{{ shiftStatusColor }}">{{ shiftStatus }}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+      <span style="font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-neutral-600)">As of</span>
+      <div style="display:flex">
+        <sc-for list="{{ timeChips }}" as="t" hint-placeholder-count="6">
+          <button onClick="{{ t.onClick }}" style="font-size:11px;padding:5px 10px;border:1px solid var(--color-neutral-400);border-right:0;background:{{ t.bg }};color:{{ t.fg }};cursor:pointer;font-family:var(--font-body);font-weight:700;font-variant-numeric:tabular-nums">{{ t.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;border-bottom:2px solid var(--color-divider);flex:none">
+    <sc-for list="{{ vitals }}" as="k" hint-placeholder-count="6">
+      <div style="flex:1 1 140px;padding:11px 20px;border-right:1px solid var(--color-neutral-300);display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-neutral-600)">{{ k.k }}</span>
+        <div style="display:flex;align-items:baseline;gap:7px">
+          <span style="font-family:var(--font-heading);font-weight:800;font-size:20px;line-height:1;letter-spacing:-0.02em;color:{{ k.color }}">{{ k.v }}</span>
+          <span style="font-size:11px;color:var(--color-neutral-600)">{{ k.sub }}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display:flex;flex-direction:column;padding:10px 20px 12px;border-bottom:2px solid var(--color-divider);flex:none;background:var(--color-neutral-100)">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:6px">
+      <span style="font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-neutral-600)">Shift progress · planned throughput vs actual</span>
+      <span style="font-size:11px;color:var(--color-neutral-700)">{{ nowMarkerLabel }}</span>
+    </div>
+    <div style="display:flex;gap:6px;align-items:flex-end">
+      <sc-for list="{{ hourBars }}" as="h" hint-placeholder-count="8">
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;position:relative">
+          <sc-if value="{{ h.isNow }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:-4px;bottom:14px;left:50%;width:2px;background:var(--color-accent);transform:translateX(-50%)"></div>
+          </sc-if>
+          <div style="height:{{ h.plannedH }};background:var(--color-neutral-300);border:1px solid var(--color-neutral-400)"></div>
+          <div style="height:{{ h.actualH }};background:{{ h.color }}"></div>
+          <span style="font-size:9.5px;color:{{ h.labelColor }};text-align:center;font-variant-numeric:tabular-nums;font-weight:{{ h.labelWeight }}">{{ h.hour }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="font-size:10.5px;color:var(--color-neutral-700);margin-top:6px;line-height:1.4">Grey outline is plan · solid is actuals booked to the hour · the accent line is the as-of time.</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,60fr) minmax(0,40fr);flex:1 1 auto;min-height:0;overflow:hidden">
+
+    <div style="display:flex;flex-direction:column;min-height:0;overflow:auto;border-right:2px solid var(--color-divider)">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+        <div style="border-bottom:2px solid var(--color-divider)">
+          <div style="display:flex;align-items:baseline;gap:10px;padding:11px 20px 6px">
+            <span style="font-family:var(--font-heading);font-weight:800;font-size:14px;letter-spacing:-0.01em">{{ g.title }}</span>
+            <span style="font-size:11px;color:var(--color-neutral-700)">{{ g.line }}</span>
+            <span style="margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:{{ g.stateColor }}">{{ g.stateLabel }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="4">
+              <button onClick="{{ r.onClick }}" style="display:flex;align-items:stretch;gap:0;padding:0;border:0;border-top:1px solid var(--color-neutral-300);background:{{ r.rowBg }};cursor:pointer;font-family:var(--font-body);text-align:left;width:100%" style-hover="background:var(--color-neutral-200)">
+                <span style="width:5px;background:{{ r.mark }};flex:none"></span>
+                <span style="flex:1;padding:9px 16px;display:flex;gap:14px;align-items:baseline">
+                  <span style="font-family:var(--font-heading);font-weight:700;font-size:12px;font-variant-numeric:tabular-nums;letter-spacing:-0.005em;min-width:78px">{{ r.id }}</span>
+                  <span style="flex:1;display:flex;flex-direction:column;gap:2px">
+                    <span style="font-size:12px;font-weight:600">{{ r.what }}</span>
+                    <span style="font-size:10.5px;color:var(--color-neutral-700);line-height:1.4">{{ r.sub }}</span>
+                  </span>
+                  <span style="min-width:120px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-variant-numeric:tabular-nums">
+                    <span style="font-size:11.5px;font-weight:700">{{ r.planned }}</span>
+                    <span style="font-size:10.5px;color:{{ r.deltaColor }};font-weight:700">{{ r.deltaLabel }}</span>
+                  </span>
+                  <span style="min-width:90px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:{{ r.stateColor }};text-align:right">{{ r.state }}</span>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;flex-direction:column;min-height:0;overflow:auto">
+      <div style="padding:11px 16px 6px;border-bottom:1px solid var(--color-neutral-300);display:flex;align-items:baseline;gap:10px">
+        <span style="font-family:var(--font-heading);font-weight:800;font-size:14px;letter-spacing:-0.01em">Exceptions & next steps</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--color-neutral-700)">{{ excCount }} open · worst first</span>
+      </div>
+      <sc-for list="{{ exceptions }}" as="e" hint-placeholder-count="5">
+        <div style="border-bottom:1px solid var(--color-neutral-300);padding:10px 16px;background:{{ e.bg }}">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="width:6px;height:16px;background:{{ e.mark }}"></span>
+            <span style="font-family:var(--font-heading);font-weight:800;font-size:12px;font-variant-numeric:tabular-nums">{{ e.id }}</span>
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:{{ e.mark }}">{{ e.severity }}</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--color-neutral-700);font-variant-numeric:tabular-nums">{{ e.age }}</span>
+          </div>
+          <div style="font-size:12px;font-weight:600;margin-top:4px">{{ e.what }}</div>
+          <div style="font-size:11px;color:var(--color-neutral-700);margin-top:3px;line-height:1.45"><strong style="color:var(--color-text)">Why:</strong> {{ e.why }}</div>
+          <div style="font-size:11px;color:var(--color-neutral-700);margin-top:3px;line-height:1.45"><strong style="color:var(--color-text)">Next:</strong> {{ e.next }}</div>
+          <div style="display:flex;gap:8px;margin-top:6px;font-size:10.5px;color:var(--color-neutral-700)">
+            <span>owner · <strong style="color:var(--color-text)">{{ e.owner }}</strong></span>
+            <span>impact · <strong style="color:var(--color-text)">{{ e.impact }}</strong></span>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ hasExceptions }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:12px 16px;font-size:11px;color:var(--color-neutral-700);line-height:1.5">Every delay is tied to a planned entity and a named owner. Cleared exceptions move to the shift log.</div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const NOW_OPTIONS = [
+  { label: "06:00", t: 360 },
+  { label: "08:00", t: 480 },
+  { label: "10:00", t: 600 },
+  { label: "12:00", t: 720 },
+  { label: "14:00", t: 840 }
+];
+
+const ENTITIES = [
+  { g: "vessel", id: "MSC ARIES", what: "Discharge window · Berth 2", sub: "480 boxes · QC-3 + QC-4 · lashing crew 2", plannedStart: 480, plannedEnd: 840, actualStart: 502, actualEnd: null, blocking: "lashing gang", cause: "lashing crew short one hand — replacement en route", owner: "Berth Ops · M. Ruiz", impact: "22′ late start, 8 lifts under plan", next: "Replacement lasher on-site 10:15 · recover 4 lifts/hr" },
+  { g: "vessel", id: "COSCO FEN", what: "Loading window · Berth 4", sub: "312 boxes export · QC-1", plannedStart: 600, plannedEnd: 900, actualStart: 604, actualEnd: null, blocking: null, cause: null, owner: "Berth Ops · M. Ruiz", impact: "on plan", next: "Continue load, next bay 11:20" },
+
+  { g: "gate", id: "APT-0812", what: "Cruz del Sur · MRSU 447 210 3 export drop", sub: "carrier arrived 07:52 · seal AR 500 099 verified", plannedStart: 480, plannedEnd: 500, actualStart: 472, actualEnd: 494, blocking: null, cause: null, owner: "Gate · D. Vega", impact: "cleared 6′ early", next: "Booked to A-04 slot 7" },
+  { g: "gate", id: "APT-0830", what: "Andesmar · reefer MSKU 704 118 2 import pickup", sub: "cold-chain critical · plug window 20 min", plannedStart: 510, plannedEnd: 530, actualStart: 515, actualEnd: null, blocking: null, cause: null, owner: "Gate · D. Vega", impact: "reefer temp still in tolerance", next: "Move MV-0704 dispatched on release" },
+  { g: "gate", id: "APT-0900", what: "TransPampa · HLBU 480 991 0 import pickup", sub: "seal mismatch at gate — held", plannedStart: 540, plannedEnd: 560, actualStart: 548, actualEnd: null, blocking: "seal mismatch", cause: "physical AR 500 990 vs BL AR 500 991", owner: "Gate · D. Vega", impact: "held at bay 2 · 25′ elapsed", next: "Customs officer on-site 10:15 · verify or turn away" },
+  { g: "gate", id: "APT-0915", what: "TransAndina · dry pickup APLU 219 004 7", sub: "no-show past 30-min window", plannedStart: 555, plannedEnd: 575, actualStart: null, actualEnd: null, blocking: "no-show", cause: "driver reports mechanical breakdown 40 km out", owner: "CSR · P. Aguilar", impact: "slot forfeit · re-book fee", next: "Release slot to standby queue at 10:30" },
+  { g: "gate", id: "APT-0930", what: "Cruz del Sur · DG UN 1993 export drop", sub: "hazmat — rear placard missing at gate", plannedStart: 570, plannedEnd: 590, actualStart: 578, actualEnd: null, blocking: "placards missing", cause: "IMDG stop-condition — driver replacing", owner: "Gate · D. Vega", impact: "held · will impact DG block sequencing", next: "Driver returns with placards 10:20" },
+
+  { g: "moves", id: "MV-0641", what: "House-keep dig-out · A-02 slot 4", sub: "clear 3 rehandles ahead of MSC ARIES lift 09:20", plannedStart: 555, plannedEnd: 585, actualStart: 553, actualEnd: 584, blocking: null, cause: null, owner: "Ops · L. Ríos (RS-02)", impact: "on plan", next: "RS-02 released to next job" },
+  { g: "moves", id: "MV-0704", what: "Reefer plug-in · MSKU 704 118 2 → RF-03", sub: "cold-chain · 20-min service level", plannedStart: 530, plannedEnd: 550, actualStart: null, actualEnd: null, blocking: "gate delay", cause: "waiting on gate APT-0830 release", owner: "Ops · L. Ríos", impact: "cold-chain clock ticking", next: "Dispatch on gate release · target plug ≤ 10 min" },
+  { g: "moves", id: "MV-0712", what: "Stage export · A-04 → berth 4 lane", sub: "load window opens 10:00", plannedStart: 570, plannedEnd: 600, actualStart: 572, actualEnd: null, blocking: null, cause: null, owner: "Ops · J. Correa", impact: "on plan", next: "Two more units to stage before 10:00" },
+  { g: "moves", id: "MV-0728", what: "Rehandle stack A-07 slot 2", sub: "prep for 11:00 pickup", plannedStart: 600, plannedEnd: 630, actualStart: null, actualEnd: null, blocking: null, cause: null, owner: "Ops · L. Ríos", impact: "scheduled", next: "Waits on RS-02 finishing MV-0641" },
+
+  { g: "equip", id: "RS-02", what: "Reach-stacker · assigned Zone A", sub: "operator L. Ríos · shift 06:00–14:00", plannedStart: 360, plannedEnd: 840, actualStart: 360, actualEnd: null, blocking: null, cause: null, owner: "Ops · L. Ríos", impact: "running", next: "Next job MV-0728 at 10:00" },
+  { g: "equip", id: "RS-04", what: "Reach-stacker · assigned Zone D", sub: "hydraulic fault — 30-min repair", plannedStart: 360, plannedEnd: 840, actualStart: 360, actualEnd: null, blocking: "hydraulic fault", cause: "maintenance dispatched 09:20", owner: "Maint · A. Peña", impact: "Zone D moves paused", next: "ETA back in service 09:50 · MV-0731 reassigned to RS-06" },
+  { g: "equip", id: "QC-4", what: "Quay crane · MSC ARIES", sub: "planned lifts/hr 32 · actual 29", plannedStart: 480, plannedEnd: 840, actualStart: 505, actualEnd: null, blocking: "lashing", cause: "waiting on lashing gap", owner: "Berth Ops · M. Ruiz", impact: "3 lifts/hr under plan", next: "Recover once lasher on-site 10:15" }
+];
+
+const GROUP_META = {
+  vessel: { title: "Vessel windows", line: "berths, quay cranes and discharge / load windows" },
+  gate: { title: "Gate & appointments", line: "planned truck visits with appointment windows" },
+  moves: { title: "Yard moves", line: "planned moves from the night plan" },
+  equip: { title: "Equipment & crews", line: "assignments and availability" }
+};
+
+function fmt(mins) {
+  if (mins == null) return "—";
+  const h = Math.floor(mins / 60), m = ((mins % 60) + 60) % 60;
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+}
+
+class Component extends DCLogic {
+  state = { now: 600, focus: null };
+
+  classify(e, now) {
+    const started = e.actualStart != null && e.actualStart <= now;
+    const finished = e.actualEnd != null && e.actualEnd <= now;
+    const plannedByNow = e.plannedStart <= now;
+    let state, deltaMin;
+    if (finished) { state = "done"; deltaMin = e.actualEnd - e.plannedEnd; }
+    else if (started) { state = "in-progress"; deltaMin = e.actualStart - e.plannedStart; }
+    else if (plannedByNow && e.blocking) { state = "blocked"; deltaMin = now - e.plannedStart; }
+    else if (plannedByNow) { state = "late"; deltaMin = now - e.plannedStart; }
+    else { state = "scheduled"; deltaMin = 0; }
+    return { state, deltaMin };
+  }
+
+  renderVals() {
+    const now = this.state.now;
+    const shiftStart = 360, shiftEnd = 840;
+
+    const enriched = ENTITIES.map(e => {
+      const { state, deltaMin } = this.classify(e, now);
+      const stateColor = state === "done" ? "var(--color-neutral-700)"
+        : state === "in-progress" ? "var(--color-text)"
+        : state === "blocked" ? "var(--color-accent)"
+        : state === "late" ? "#b88400"
+        : "var(--color-neutral-500)";
+      const mark = state === "blocked" ? "var(--color-accent)"
+        : state === "late" ? "#b88400"
+        : state === "done" ? "var(--color-neutral-500)"
+        : state === "in-progress" ? "var(--color-text)"
+        : "var(--color-neutral-300)";
+      const deltaLabel = state === "scheduled" ? "starts " + fmt(e.plannedStart)
+        : deltaMin === 0 ? "on time"
+        : (deltaMin > 0 ? "+" : "") + deltaMin + "′";
+      const deltaColor = (state === "blocked" || state === "late" || (state !== "scheduled" && Math.abs(deltaMin) > 5))
+        ? "var(--color-accent-700)" : "var(--color-neutral-700)";
+      return { ...e, state, deltaMin, stateColor, mark, deltaLabel, deltaColor,
+        planned: fmt(e.plannedStart) + " – " + fmt(e.plannedEnd),
+        rowBg: this.state.focus === e.id ? "var(--color-neutral-200)" : "transparent",
+        onClick: () => this.setState({ focus: this.state.focus === e.id ? null : e.id })
+      };
+    });
+
+    // Group tallies
+    const groups = ["vessel", "gate", "moves", "equip"].map(g => {
+      const rows = enriched.filter(x => x.g === g);
+      const late = rows.filter(x => x.state === "blocked" || x.state === "late").length;
+      const done = rows.filter(x => x.state === "done").length;
+      const inProg = rows.filter(x => x.state === "in-progress").length;
+      const stateLabel = late > 0 ? late + " off plan" : (inProg + " in progress · " + done + " done");
+      const stateColor = late > 0 ? "var(--color-accent)" : "var(--color-neutral-700)";
+      return { ...GROUP_META[g], rows, stateLabel, stateColor };
+    });
+
+    // Overall vitals
+    const totals = enriched.length;
+    const onPlan = enriched.filter(e => e.state === "done" || (e.state === "in-progress" && Math.abs(e.deltaMin) <= 5) || e.state === "scheduled").length;
+    const offPlan = enriched.filter(e => e.state === "blocked" || e.state === "late").length;
+    const adherence = Math.round(onPlan / totals * 100);
+    const truckMoves = enriched.filter(e => e.g === "gate");
+    const yardMoves = enriched.filter(e => e.g === "moves");
+    const doneMoves = yardMoves.filter(e => e.state === "done").length;
+    const shiftPct = Math.max(0, Math.min(100, Math.round((now - shiftStart) / (shiftEnd - shiftStart) * 100)));
+
+    // Hour bars — planned vs actual moves booked to each hour
+    const HOUR_PLAN = [
+      { hour: "06", planned: 6, actual: 6 },
+      { hour: "07", planned: 9, actual: 8 },
+      { hour: "08", planned: 12, actual: 10 },
+      { hour: "09", planned: 14, actual: 11 },
+      { hour: "10", planned: 15, actual: null },
+      { hour: "11", planned: 13, actual: null },
+      { hour: "12", planned: 10, actual: null },
+      { hour: "13", planned: 8, actual: null }
+    ];
+    const maxBar = 16;
+    const nowHour = Math.floor(now / 60);
+    const hourBars = HOUR_PLAN.map(h => {
+      const hourN = parseInt(h.hour, 10);
+      const passed = hourN < nowHour;
+      const isNow = hourN === nowHour;
+      const actual = passed ? h.actual : (isNow ? Math.round((h.actual || h.planned) * ((now % 60) / 60)) : null);
+      const under = actual != null && actual < h.planned - 1;
+      return {
+        hour: h.hour,
+        plannedH: (h.planned / maxBar * 100).toFixed(1) + "%",
+        actualH: actual != null ? (actual / maxBar * 100).toFixed(1) + "%" : "0%",
+        color: under ? "var(--color-accent)" : "var(--color-neutral-800)",
+        isNow,
+        labelColor: isNow ? "var(--color-accent)" : "var(--color-neutral-600)",
+        labelWeight: isNow ? 800 : 500
+      };
+    });
+
+    // Exceptions — everything blocked or late, worst first
+    const exceptions = enriched
+      .filter(e => e.state === "blocked" || e.state === "late" || (e.state === "in-progress" && e.deltaMin > 15))
+      .sort((a, b) => b.deltaMin - a.deltaMin)
+      .map(e => ({
+        id: e.id,
+        severity: e.state === "blocked" ? "Blocked" : e.state === "late" ? "Late" : "Slipping",
+        mark: e.state === "blocked" ? "var(--color-accent)" : "#b88400",
+        bg: e.state === "blocked" ? "var(--color-accent-100)" : "transparent",
+        age: e.deltaMin + "′ off plan",
+        what: e.what,
+        why: e.cause || "Waiting on dependency",
+        next: e.next,
+        owner: e.owner,
+        impact: e.impact
+      }));
+
+    const shiftStatus = offPlan >= 3 ? "AT RISK" : offPlan >= 1 ? "ON WATCH" : "ON PLAN";
+    const shiftStatusColor = offPlan >= 3 ? "var(--color-accent)" : offPlan >= 1 ? "#b88400" : "var(--color-neutral-800)";
+    const shiftStatusBg = offPlan >= 3 ? "var(--color-accent-100)" : "transparent";
+
+    return {
+      shiftLine: "Day shift · " + fmt(shiftStart) + "–" + fmt(shiftEnd) + " · " + shiftPct + "% elapsed · " + doneMoves + " of " + yardMoves.length + " planned yard moves complete",
+      shiftStatus, shiftStatusColor, shiftStatusBg,
+      timeChips: NOW_OPTIONS.map(o => ({
+        label: o.label,
+        bg: this.state.now === o.t ? "var(--color-text)" : "transparent",
+        fg: this.state.now === o.t ? "var(--color-bg)" : "var(--color-text)",
+        onClick: () => this.setState({ now: o.t, focus: null })
+      })),
+      vitals: [
+        { k: "Plan adherence", v: adherence + "%", sub: onPlan + " of " + totals + " on plan", color: adherence >= 85 ? "var(--color-text)" : "var(--color-accent-700)" },
+        { k: "Off plan", v: offPlan, sub: "blocked or late", color: offPlan > 0 ? "var(--color-accent-700)" : "var(--color-text)" },
+        { k: "Trucks at gate", v: truckMoves.filter(e => e.state === "in-progress" || e.state === "blocked").length, sub: truckMoves.filter(e => e.state === "done").length + " cleared today" },
+        { k: "Yard moves done", v: doneMoves + " / " + yardMoves.length, sub: "shift target " + yardMoves.length },
+        { k: "Reach-stackers up", v: "5 / 6", sub: "RS-04 in repair", color: "var(--color-accent-700)" },
+        { k: "As of", v: fmt(now), sub: "manager view · pick a time above" }
+      ],
+      nowMarkerLabel: "now marker at " + fmt(now),
+      hourBars,
+      groups,
+      exceptions,
+      excCount: exceptions.length,
+      hasExceptions: exceptions.length > 0
+    };
+  }
+}
+</script>
+</body>
+</html>
