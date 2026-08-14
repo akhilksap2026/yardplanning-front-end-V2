@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react"
 import { useData } from "@/lib/DataContext"
 import type { Visit } from "@/data/yard-ops"
+import { CONTAINERS } from "@/data/yard-data"
 
 interface Props {
   onNavigate?: (target: string, focus?: string) => void
@@ -97,7 +98,8 @@ const MARK_COLOR: Record<string, string> = {
 export default function LiveOps({ onNavigate }: Props) {
   const { visits, moves, events } = useData()
   const [now,   setNow]   = useState(600)   // default 10:00
-  const [focus, setFocus] = useState<string | null>(null)
+  const [focus,     setFocus]     = useState<string | null>(null)
+  const [showMore,  setShowMore]  = useState(false)
 
   // ── Build gate entities from live visits ─────────────────────────────────
   const gateEntities = useMemo<Entity[]>(() => visits.map((v: Visit) => {
@@ -190,6 +192,14 @@ export default function LiveOps({ onNavigate }: Props) {
   const equipUp    = EQUIP_ENTITIES.filter(e => !e.blocking).length
   const equipTotal = EQUIP_ENTITIES.length
 
+  // ── KPI values (primary strip) ────────────────────────────────────────────
+  const inboundCnt  = visits.filter((v: Visit) => /inbound|drop/i.test(v.purpose)).length
+  const outboundCnt = visits.filter((v: Visit) => /outbound|pickup/i.test(v.purpose)).length
+  const opsAvail    = equipUp
+  const movesTotal  = moves.length
+  const detRiskK    = +(CONTAINERS.filter(c => !c.empty && c.hoursToLFD <= 72)
+    .reduce((s, c) => s + Math.max(0, (72 - c.hoursToLFD) * 125), 0) / 1000).toFixed(1)
+
   const shiftStatus      = offPlan >= 3 ? "AT RISK" : offPlan >= 1 ? "ON WATCH" : "ON PLAN"
   const shiftStatusColor = offPlan >= 3 ? "#dc2626"  : offPlan >= 1 ? "#d97706"  : "#111827"
   const shiftStatusBg    = offPlan >= 3 ? "#fef2f2"  : offPlan >= 1 ? "#fffbeb"  : "#f0fdf4"
@@ -221,6 +231,7 @@ export default function LiveOps({ onNavigate }: Props) {
   const entityExceptions = enriched
     .filter(e => e.state === "blocked" || e.state === "late" || (e.state === "in-progress" && e.deltaMin > 15))
     .sort((a, b) => b.deltaMin - a.deltaMin)
+  const unresolvedEx = entityExceptions.length
 
   // ── Row click → navigate ──────────────────────────────────────────────────
   function handleRowClick(e: Entity) {
@@ -276,23 +287,60 @@ export default function LiveOps({ onNavigate }: Props) {
       </div>
 
       {/* ── Vitals KPI strip ─────────────────────────────────────────────── */}
-      <div className="flex flex-wrap border-b-2 border-[#e5e7eb] flex-none bg-white">
-        {[
-          { k: "Plan adherence",     v: `${adherence}%`,                       sub: `${onPlanCnt} of ${totals} on plan`,                        color: adherence >= 85 ? "#111827" : "#dc2626" },
-          { k: "Off plan",           v: String(offPlan),                        sub: "blocked or late",                                          color: offPlan > 0 ? "#dc2626" : "#111827" },
-          { k: "Trucks at gate",     v: String(truckRows.filter(e => e.state === "in-progress" || e.state === "blocked").length), sub: `${truckRows.filter(e => e.state === "done").length} cleared today` },
-          { k: "Yard moves done",    v: `${doneMoves} / ${yardRows.length}`,    sub: `shift target ${yardRows.length}` },
-          { k: "Reach-stackers up",  v: `${equipUp} / ${equipTotal}`,          sub: equipUp < equipTotal ? `${equipTotal - equipUp} in repair` : "all available",  color: equipUp < equipTotal ? "#d97706" : "#111827" },
-          { k: "As of",              v: fmt(now),                               sub: "manager view" },
-        ].map(m => (
-          <div key={m.k} className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-0.5">
-            <span className="ds-label text-neutral-500">{m.k}</span>
-            <div className="flex items-baseline gap-2">
-              <span className="font-mono font-bold text-[24px] leading-none" style={{ color: m.color }}>{m.v}</span>
-              <span className="text-[11px] text-neutral-500">{m.sub}</span>
+      <div className="flex flex-col border-b-2 border-[#e5e7eb] flex-none bg-white">
+        {/* Primary row — always visible */}
+        <div className="flex items-stretch">
+          {([
+            { k: "Inbound containers",  v: String(inboundCnt),            sub: "moves today",       color: "#111827" },
+            { k: "Outbound containers", v: String(outboundCnt),           sub: "moves today",       color: "#111827" },
+            { k: "Operators available", v: String(opsAvail),              sub: `${opsAvail} of ${equipTotal} on shift`, color: opsAvail < equipTotal ? "#d97706" : "#111827" },
+            { k: "Moves created",       v: String(movesTotal),            sub: "in shift plan",     color: "#111827" },
+            { k: "Detention risk",      v: `$${detRiskK}k`,              sub: "next 72 h",         color: detRiskK > 5 ? "#dc2626" : "#d97706" },
+          ] as { k: string; v: string; sub: string; color?: string }[]).map((m, i, arr) => (
+            <div
+              key={m.k}
+              className="flex-1 px-5 py-2.5 flex flex-col gap-0.5"
+              style={{ borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : undefined }}
+            >
+              <span className="ds-label text-neutral-500">{m.k}</span>
+              <div className="flex items-baseline gap-2">
+                <span className="font-mono font-bold text-[24px] leading-none" style={{ color: m.color }}>{m.v}</span>
+                <span className="text-[11px] text-neutral-500">{m.sub}</span>
+              </div>
             </div>
+          ))}
+
+          {/* Toggle button — flush right, matching GateConsole style */}
+          <button
+            onClick={() => setShowMore(v => !v)}
+            className="flex-none flex items-center gap-1.5 px-4 text-[11px] font-semibold text-neutral-500 hover:text-neutral-800 transition-colors whitespace-nowrap"
+            style={{ borderLeft: "1px solid #e5e7eb" }}
+          >
+            {showMore ? "Fewer metrics ▲" : "More metrics ▼"}
+          </button>
+        </div>
+
+        {/* Hidden strip */}
+        {showMore && (
+          <div className="flex items-stretch border-t border-[#e5e7eb] bg-[#fafafa]">
+            {([
+              { k: "Equipment on yard",      v: `${equipUp} / ${equipTotal}`, sub: equipUp < equipTotal ? `${equipTotal - equipUp} in repair` : "all available", color: equipUp < equipTotal ? "#d97706" : "#111827" },
+              { k: "Unresolved exceptions",  v: String(unresolvedEx),          sub: "need attention",   color: unresolvedEx > 0 ? "#dc2626" : "#111827" },
+            ] as { k: string; v: string; sub: string; color?: string }[]).map((m, i) => (
+              <div
+                key={m.k}
+                className="px-5 py-2 flex flex-col gap-0.5"
+                style={{ borderRight: i === 0 ? "1px solid #e5e7eb" : undefined, minWidth: 180 }}
+              >
+                <span className="ds-label text-neutral-500">{m.k}</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono font-bold text-[20px] leading-none" style={{ color: m.color }}>{m.v}</span>
+                  <span className="text-[11px] text-neutral-500">{m.sub}</span>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
       {/* ── Hour chart ───────────────────────────────────────────────────── */}
