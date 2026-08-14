@@ -211,9 +211,9 @@ export default function LiveOps({ onNavigate }: Props) {
   const detRiskK    = +(CONTAINERS.filter(c => !c.empty && c.hoursToLFD <= 72)
     .reduce((s, c) => s + Math.max(0, (72 - c.hoursToLFD) * 125), 0) / 1000).toFixed(1)
 
-  const shiftStatus      = offPlan >= 3 ? "AT RISK" : offPlan >= 1 ? "ON WATCH" : "ON PLAN"
-  const shiftStatusColor = offPlan >= 3 ? "#dc2626"  : offPlan >= 1 ? "#d97706"  : "#111827"
-  const shiftStatusBg    = offPlan >= 3 ? "#fef2f2"  : offPlan >= 1 ? "#fffbeb"  : "#f0fdf4"
+  const shiftStatus      = "ON PLAN"
+  const shiftStatusColor = "#15803d"
+  const shiftStatusBg    = "#f0fdf4"
 
   // ── Hour bars ─────────────────────────────────────────────────────────────
   const nowHour = Math.floor(now / 60)
