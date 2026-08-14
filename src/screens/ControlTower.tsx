@@ -6,6 +6,7 @@ import { backendApi } from "@/lib/backend-api"
 import type { BackendDisruption, DisruptionType, BackendMove } from "@/lib/backend-api"
 import { computePlanDiff, slotAddressById, REASON_LABELS } from "@/lib/backend-adapters"
 import ContainerPicker from "@/components/ContainerPicker"
+import InventoryTab from "@/components/InventoryTab"
 
 interface Props {
   focus: string | null
@@ -52,7 +53,10 @@ type EngineDiffRow = { moveId:string; action:string; type:string; before:string;
 type EngineDiffStats = { cancelled:number; added:number; reassigned:number; frozenKept:number; deltaMin:number|string; adherence:number|string }
 
 export default function ControlTower({ focus, onNavigate }: Props) {
-  const { events, diffRows, backendConnected, activePlan, backendContainers, backendSlots, backendJockeys, createDisruption } = useData()
+  const { events, diffRows, backendConnected, activePlan, backendContainers, backendSlots, backendJockeys, createDisruption, containers, zones } = useData()
+
+  // ── Tab state ─────────────────────────────────────────────────────────────
+  const [tab, setTab] = useState<"events" | "inventory">("events")
 
   // ── Existing state ────────────────────────────────────────────────────────
   const [sel,   setSel]   = useState("")
@@ -226,6 +230,21 @@ export default function ControlTower({ focus, onNavigate }: Props) {
           </button>
         </div>
       </div>
+
+      {/* ── Tab bar ───────────────────────────────────────────────────────────── */}
+      <div className="flex flex-none border-b bg-white" style={{ borderColor: "#e5e7eb" }}>
+        {(["events", "inventory"] as const).map(k => (
+          <button key={k} onClick={() => setTab(k)}
+            className="text-[11.5px] px-4 py-2.5 font-bold transition-colors capitalize"
+            style={{ background: tab === k ? "#111827" : "transparent", color: tab === k ? "#fff" : "#374151" }}>
+            {k === "events" ? "Events & replans" : "Yard inventory"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "inventory" && <InventoryTab />}
+
+      {tab === "events" && <>
 
       {/* ── Replan banner ─────────────────────────────────────────────────────── */}
       {replanBanner && (
@@ -463,6 +482,8 @@ export default function ControlTower({ focus, onNavigate }: Props) {
           )}
         </div>
       </div>
+
+      </>}
     </div>
   )
 }
