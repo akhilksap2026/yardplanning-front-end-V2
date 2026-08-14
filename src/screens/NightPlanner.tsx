@@ -272,17 +272,19 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   }
 
   // ── Step 1: KPI data arrays ───────────────────────────────────────────────
+  const inbounds    = moves.filter(m => m.type === "PLACE_INBOUND" || m.type === "RECEIVE_FROM_LANE").length
+  const outbounds   = moves.filter(m => m.type === "LOAD_OUTBOUND").length
+  const equipAvail  = EQUIPMENT.filter(e => e.status === "available").length
   const primaryKpis = [
-    { k:"Moves planned",    v:String(moves.length),        sub:"of 284 today",  red:false },
-    { k:"Detention at risk",v:"$8.4k",                     sub:"next 72 h",     red:true  },
+    { k:"Inbound containers",  v:String(inbounds),           sub:"moves today",                                                                           red:false },
+    { k:"Outbound containers", v:String(outbounds),          sub:"moves today",                                                                           red:false },
+    { k:"Operators available", v:String(onShift.length),     sub:`${onShift.length} of ${OPERATORS.length} on shift`,                                     red:false },
+    { k:"Moves created",       v:String(moves.length),       sub:"in shift plan",                                                                         red:false },
+    { k:"Detention risk",      v:"$8.4k",                    sub:"next 72 h",                                                                             red:true  },
   ]
-  const inbounds  = moves.filter(m => m.type === "PLACE_INBOUND" || m.type === "RECEIVE_FROM_LANE").length
-  const outbounds = moves.filter(m => m.type === "LOAD_OUTBOUND").length
   const secondaryKpis = [
-    { k:"Inbounds",              v:String(inbounds),           sub:"moves today",      red:false },
-    { k:"Outbounds",             v:String(outbounds),          sub:"moves today",      red:false },
-    { k:"Jockeys clocked in",    v:String(onShift.length),     sub:"on shift",         red:false },
-    { k:"Unresolved exceptions", v:String(exceptions.length),  sub:"need attention",   red:exceptions.length > 0 },
+    { k:"Equipment on yard",     v:`${equipAvail} / ${EQUIPMENT.length}`, sub:equipAvail < EQUIPMENT.length ? `${EQUIPMENT.length - equipAvail} in maintenance` : "all available", red:equipAvail < EQUIPMENT.length },
+    { k:"Unresolved exceptions", v:String(exceptions.length),             sub:"need attention",                                                           red:exceptions.length > 0 },
   ]
   const engineKpis = viewedPlan ? [
     { k:"Moves",     v:String(viewedPlan.moves.length),                                         sub:"in this plan",  red:false },
