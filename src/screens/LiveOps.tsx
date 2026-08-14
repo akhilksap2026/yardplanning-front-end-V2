@@ -124,21 +124,20 @@ export default function LiveOps({ onNavigate }: Props) {
 
   // ── Build move entities from live moves ───────────────────────────────────
   const moveEntities = useMemo<Entity[]>(() => moves.slice(0, 8).map(m => {
-    const [wStart, wEnd] = (m.move?.window ?? "06:00-06:30").split("-").map(toMin)
-    const isDone   = m.move?.state === "DONE"
-    const isInProg = m.move?.state === "IN_PROGRESS" || m.move?.state === "ASSIGNED"
+    const isDone   = m.state === "DONE"
+    const isInProg = m.state === "IN_PROGRESS" || m.state === "ASSIGNED"
     return {
       g:            "moves",
       id:           m.id,
-      what:         `${m.type ?? "Move"} · ${m.move?.container ?? m.container ?? "—"}`,
-      sub:          m.move?.from && m.move?.to ? `${m.move.from} → ${m.move.to}` : "Route pending",
-      plannedStart: wStart ?? 360,
-      plannedEnd:   wEnd   ?? 390,
-      actualStart:  (isInProg || isDone) ? (wStart ?? 360) : null,
-      actualEnd:    isDone ? (wEnd ?? 390) : null,
+      what:         `${m.type} · ${m.containerId}`,
+      sub:          `${m.from} → ${m.to}`,
+      plannedStart: m.startMin,
+      plannedEnd:   m.endMin,
+      actualStart:  (isInProg || isDone) ? m.startMin : null,
+      actualEnd:    isDone ? m.endMin : null,
       blocking:     null,
       cause:        null,
-      owner:        `Ops · ${m.move?.assigned ?? "unassigned"}`,
+      owner:        `Ops · ${m.operatorName}`,
       impact:       isDone ? "Complete" : isInProg ? "In progress" : "Scheduled",
       next:         m.reason ?? "Execute per sequence",
     }
