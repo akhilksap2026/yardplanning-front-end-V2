@@ -58,6 +58,9 @@ export default function GateConsole({ focus, onNavigate }: Props) {
   const [transactions,    setTransactions]    = useState<BackendGateTransaction[]>([])
   const [txLoading,       setTxLoading]       = useState(false)
   const [showGateInForm,  setShowGateInForm]  = useState(false)
+  // GTX filter state
+  const [gtxChanFilter,  setGtxChanFilter]   = useState("all")
+  const [gtxDirFilter,   setGtxDirFilter]    = useState("all")
   const [gateInContId,    setGateInContId]    = useState<number | "">("")
   const [gateInPlate,     setGateInPlate]     = useState("")
   const [gateInDriver,    setGateInDriver]    = useState("")
@@ -183,6 +186,49 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     if (!inIso) return "—"
     const mins=Math.round((( outIso?new Date(outIso).getTime():Date.now())-new Date(inIso).getTime())/60_000)
     return `${mins}′${outIso?"":` (running)`}`
+  }
+
+  // ── Seed-derived GTX rows (always available, no backend needed) ──────────
+  const CHAN_COLOR: Record<string,[string,string]> = {
+    rojo:    ["#fef2f2","#dc2626"],
+    naranja: ["#fffbeb","#d97706"],
+    verde:   ["#f0fdf4","#16a34a"],
+  }
+  const STATE_STYLE: Record<string,[string,string]> = {
+    GATE_OUT:    ["#f3f4f6","#6b7280"],
+    SERVED:      ["#f0fdf4","#059669"],
+    AT_POSITION: ["#eff6ff","#2563eb"],
+    CHECKED_IN:  ["#fffbeb","#d97706"],
+    IN_QUEUE:    ["#fff7ed","#ea580c"],
+    APPROACHING: ["#faf5ff","#7c3aed"],
+    EXPECTED:    ["#f9fafb","#9ca3af"],
+  }
+  function stateLabel(s:string){return({GATE_OUT:"Completed",SERVED:"In yard",AT_POSITION:"At position",CHECKED_IN:"Checked in",IN_QUEUE:"In queue",APPROACHING:"Approaching",EXPECTED:"Expected"})[s]??s}
+  function dirFromPurpose(p:string){ return /drop|inbound/i.test(p)?"IN":/pickup|retrieval/i.test(p)?"OUT":"EMPTY" }
+
+  const seedGtxRows = visits.map(v => {
+    const cont = containers.find(c => c.id === v.container)
+    const ch = cont?.channel ?? "verde"
+    const dir = dirFromPurpose(v.purpose)
+    return { visit:v, cont, ch, dir }
+  }).sort((a,b) => {
+    const ta = a.visit.gateOut??a.visit.served??a.visit.atPosition??a.visit.checkIn??a.visit.queueIn??""
+    const tb = b.visit.gateOut??b.visit.served??b.visit.atPosition??b.visit.checkIn??b.visit.queueIn??""
+    return tb.localeCompare(ta)
+  })
+
+  const filteredGtxRows = seedGtxRows.filter(r =>
+    (gtxChanFilter==="all" || r.ch===gtxChanFilter) &&
+    (gtxDirFilter==="all"  || r.dir===gtxDirFilter)
+  )
+
+  const gtxKpis = {
+    total:   seedGtxRows.length,
+    verde:   seedGtxRows.filter(r=>r.ch==="verde").length,
+    naranja: seedGtxRows.filter(r=>r.ch==="naranja").length,
+    rojo:    seedGtxRows.filter(r=>r.ch==="rojo").length,
+    avgTurn: (seedGtxRows.filter(r=>r.visit.turn>0).reduce((s,r)=>s+r.visit.turn,0)/Math.max(1,seedGtxRows.filter(r=>r.visit.turn>0).length)).toFixed(1),
+    completed: seedGtxRows.filter(r=>r.visit.state==="GATE_OUT").length,
   }
 
   const pickableContainers = backendContainers.filter(c=>c.status==="in_transit"||c.status==="yard")
@@ -597,119 +643,253 @@ export default function GateConsole({ focus, onNavigate }: Props) {
 
       {/* ════════════════════ GATE TRANSACTIONS TAB ════════════════════ */}
       {tab==="gtx" && (
-        <div className="flex-1 min-h-0 overflow-auto flex flex-col bg-white">
-          {!backendConnected && (
-            <div className="px-5 py-6">
-              <div className="border border-[#e5e7eb] px-5 py-5 max-w-lg" style={{ background:"#f9fafb", borderRadius:5 }}>
-                <div className="font-semibold text-[15px] mb-1.5">Backend not available</div>
-                <div className="text-[12.5px] text-neutral-600 leading-relaxed">The planning engine is unreachable. Gate transactions require a live backend connection.</div>
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-[#f8f9fa]">
+
+          {/* ── Summary KPI strip ─────────────────────────────────────────── */}
+          <div className="flex flex-none border-b border-[#e5e7eb] bg-white">
+            {[
+              { k:"Visits today",  v:String(gtxKpis.total),     sub:"all states",        color:undefined },
+              { k:"Completed",     v:String(gtxKpis.completed), sub:"gate-out issued",   color:undefined },
+              { k:"Verde ✓",       v:String(gtxKpis.verde),     sub:"standard channel",  color:"#16a34a" },
+              { k:"Naranja !",     v:String(gtxKpis.naranja),   sub:"inspection routed", color:"#d97706" },
+              { k:"Rojo ✕",        v:String(gtxKpis.rojo),      sub:"customs controlled",color:"#dc2626" },
+              { k:"Avg turn",      v:`${gtxKpis.avgTurn}′`,     sub:"vs 15′ target",     color:parseFloat(gtxKpis.avgTurn)>15?"#dc2626":undefined },
+            ].map(m => (
+              <div key={m.k} className="flex-1 px-4 py-2.5 flex flex-col gap-0.5 border-r border-[#e5e7eb]">
+                <span className="ds-label text-neutral-500">{m.k}</span>
+                <span className="font-mono font-bold text-[20px] leading-none" style={{ color:m.color }}>{m.v}</span>
+                <span className="text-[10px] text-neutral-400">{m.sub}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Filter bar ────────────────────────────────────────────────── */}
+          <div className="flex items-center gap-3 px-5 py-2 border-b border-[#e5e7eb] bg-white flex-none">
+            <span className="text-[10.5px] font-semibold text-neutral-400 tracking-wide">CHANNEL</span>
+            {(["all","verde","naranja","rojo"] as const).map(ch => (
+              <button key={ch} onClick={()=>setGtxChanFilter(ch)}
+                className="text-[11px] px-2.5 py-1 font-semibold rounded capitalize transition-colors"
+                style={{
+                  background: gtxChanFilter===ch ? (ch==="all"?"#111827":CHAN_COLOR[ch]?.[0]??"#f3f4f6") : "#f3f4f6",
+                  color:      gtxChanFilter===ch ? (ch==="all"?"#fff":CHAN_COLOR[ch]?.[1]??"#374151") : "#6b7280",
+                  border:     `1px solid ${gtxChanFilter===ch ? (ch==="all"?"#111827":CHAN_COLOR[ch]?.[1]??"#d1d5db") : "#e5e7eb"}`,
+                }}>
+                {ch==="all"?"All channels":ch}
+              </button>
+            ))}
+            <span className="text-[10.5px] font-semibold text-neutral-400 tracking-wide ml-4">DIRECTION</span>
+            {(["all","IN","OUT","EMPTY"] as const).map(d => (
+              <button key={d} onClick={()=>setGtxDirFilter(d)}
+                className="text-[11px] px-2.5 py-1 font-semibold rounded transition-colors"
+                style={{
+                  background: gtxDirFilter===d?"#111827":"#f3f4f6",
+                  color:      gtxDirFilter===d?"#fff":"#6b7280",
+                  border:     `1px solid ${gtxDirFilter===d?"#111827":"#e5e7eb"}`,
+                }}>
+                {d==="all"?"All":d==="IN"?"Inbound":d==="OUT"?"Outbound":"Empty return"}
+              </button>
+            ))}
+            <span className="ml-auto text-[11px] text-neutral-400">{filteredGtxRows.length} of {seedGtxRows.length} visits</span>
+
+            {/* Backend gate-in button (only when connected) */}
+            {backendConnected && (
+              <button onClick={()=>setShowGateInForm(f=>!f)}
+                className="text-[11px] px-3 py-1.5 font-semibold"
+                style={{ background:"#111827", color:"#fff", borderRadius:5 }}>
+                {showGateInForm?"Cancel":"+ Gate in"}
+              </button>
+            )}
+          </div>
+
+          {/* ── Backend gate-in form (when connected) ─────────────────────── */}
+          {backendConnected && showGateInForm && (
+            <div className="mx-5 mt-3 border border-[#e5e7eb] px-5 py-4 flex-none bg-white" style={{ borderRadius:5 }}>
+              <div className="ds-label text-neutral-500 font-bold mb-3">Record gate in</div>
+              <div className="grid gap-3" style={{ gridTemplateColumns:"1fr 1fr" }}>
+                <div className="col-span-2">
+                  <label className="ds-label text-neutral-500 block mb-1">Container</label>
+                  <ContainerPicker containers={pickableContainers} value={gateInContId} onChange={(id)=>setGateInContId(id)} placeholder="Search container number…" />
+                </div>
+                <div>
+                  <label className="ds-label text-neutral-500 block mb-1">Truck plate</label>
+                  <input type="text" placeholder="e.g. AB 123 CD" value={gateInPlate} onChange={e=>setGateInPlate(e.target.value)}
+                    className="w-full border border-[#e5e7eb] px-2 py-1.5 text-[12px] font-mono" style={{ borderRadius:5 }} />
+                </div>
+                <div>
+                  <label className="ds-label text-neutral-500 block mb-1">Driver ref</label>
+                  <input type="text" placeholder="Driver ID or name" value={gateInDriver} onChange={e=>setGateInDriver(e.target.value)}
+                    className="w-full border border-[#e5e7eb] px-2 py-1.5 text-[12px]" style={{ borderRadius:5 }} />
+                </div>
+                <div className="col-span-2">
+                  <label className="ds-label text-neutral-500 block mb-1">Carrier ref</label>
+                  <input type="text" placeholder="Booking or carrier reference" value={gateInCarrier} onChange={e=>setGateInCarrier(e.target.value)}
+                    className="w-full border border-[#e5e7eb] px-2 py-1.5 text-[12px]" style={{ borderRadius:5 }} />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button onClick={handleGateIn} disabled={submittingGateIn}
+                  style={{ background:"#111827", color:"#fff", border:"none", borderRadius:5, fontSize:12, padding:"5px 14px", fontWeight:600, opacity:submittingGateIn?0.5:1 }}>
+                  {submittingGateIn?"Submitting…":"Submit gate in"}
+                </button>
+                <button style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:5, fontSize:12, padding:"5px 14px", fontWeight:600 }}
+                  onClick={()=>{ setShowGateInForm(false); setGateInContId(""); setGateInPlate(""); setGateInDriver(""); setGateInCarrier("") }}>
+                  Cancel
+                </button>
               </div>
             </div>
           )}
-          {backendConnected && (
-            <>
-              {turnaroundToast && (
-                <div className="mx-5 mt-3 px-4 py-3 text-[12px] font-semibold flex justify-between items-center"
-                  style={{ background:"#f0fdf4", border:"1px solid #059669", color:"#065f46", borderRadius:5 }}>
-                  <span>✓ {turnaroundToast}</span>
-                  <button onClick={()=>setTurnaroundToast(null)} className="text-[13px] hover:opacity-70" style={{ color:"#059669" }}>✕</button>
-                </div>
-              )}
-              {showGateInForm && (
-                <div className="mx-5 mt-3 border border-[#e5e7eb] px-5 py-4" style={{ background:"#f9fafb", borderRadius:5 }}>
-                  <div className="ds-label text-neutral-500 font-bold mb-3">Record gate in</div>
-                  <div className="grid gap-3" style={{ gridTemplateColumns:"1fr 1fr" }}>
-                    <div className="col-span-2">
-                      <label className="ds-label text-neutral-500 block mb-1">Container</label>
-                      <ContainerPicker containers={pickableContainers} value={gateInContId} onChange={(id)=>setGateInContId(id)} placeholder="Search container number…" />
-                    </div>
-                    <div>
-                      <label className="ds-label text-neutral-500 block mb-1">Truck plate</label>
-                      <input type="text" placeholder="e.g. AB 123 CD" value={gateInPlate} onChange={e=>setGateInPlate(e.target.value)}
-                        className="w-full border border-[#e5e7eb] px-2 py-1.5 text-[12px] font-mono" style={{ borderRadius:5 }} />
-                    </div>
-                    <div>
-                      <label className="ds-label text-neutral-500 block mb-1">Driver ref</label>
-                      <input type="text" placeholder="Driver ID or name" value={gateInDriver} onChange={e=>setGateInDriver(e.target.value)}
-                        className="w-full border border-[#e5e7eb] px-2 py-1.5 text-[12px]" style={{ borderRadius:5 }} />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="ds-label text-neutral-500 block mb-1">Carrier ref</label>
-                      <input type="text" placeholder="Booking or carrier reference" value={gateInCarrier} onChange={e=>setGateInCarrier(e.target.value)}
-                        className="w-full border border-[#e5e7eb] px-2 py-1.5 text-[12px]" style={{ borderRadius:5 }} />
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-3">
-                    <button onClick={handleGateIn} disabled={submittingGateIn}
-                      style={{ background:"#111827", color:"#fff", border:"none", borderRadius:5, fontSize:12, padding:"5px 14px", fontWeight:600, opacity:submittingGateIn?0.5:1 }}>
-                      {submittingGateIn?"Submitting…":"Submit gate in"}
-                    </button>
-                    <button style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:5, fontSize:12, padding:"5px 14px", fontWeight:600 }}
-                      onClick={()=>{ setShowGateInForm(false); setGateInContId(""); setGateInPlate(""); setGateInDriver(""); setGateInCarrier("") }}>
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-              {txLoading ? (
-                <div className="px-5 py-6 text-[12px] text-neutral-500">Loading transactions…</div>
-              ) : txGroups.length===0 ? (
-                <div className="px-5 py-6">
-                  <div className="border border-[#e5e7eb] px-5 py-5 max-w-md text-center" style={{ background:"#f9fafb", borderRadius:5 }}>
-                    <div className="font-bold text-[14px] mb-1">No gate transactions yet</div>
-                    <div className="text-[12px] text-neutral-500">Use "Gate in" above to record a truck arrival.</div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 min-h-0 overflow-auto mt-3">
-                  <table className="w-full border-collapse text-[12px]">
-                    <thead>
-                      <tr>{["CONTAINER","GATE IN","GATE OUT","TURNAROUND","TRUCK","DRIVER","CARRIER",""].map(h=>(
-                        <th key={h} className="ds-th text-left" style={{ paddingLeft:h==="CONTAINER"?"20px":undefined }}>{h}</th>
-                      ))}</tr>
-                    </thead>
-                    <tbody>
-                      {txGroups.map(g=>{
-                        const inTime=g.inTx?.actual_arrival??g.inTx?.created_at??null
-                        const outTime=g.outTx?.actual_departure??g.outTx?.created_at??null
-                        const hasIn=!!g.inTx; const hasOut=!!g.outTx
-                        const isRunning=hasIn&&!hasOut
-                        return (
-                          <tr key={g.key} className="border-b border-[#f3f4f6] hover:bg-[#f9fafb]" style={{ background:hasOut?"#fafafa":undefined }}>
-                            <td className="py-2 pl-5 pr-3" style={{ minHeight:38 }}>
-                              <div className="font-mono font-bold text-[11.5px]">{g.containerNumber}</div>
-                              {g.containerId&&<div className="text-[10px] text-neutral-400 font-mono">ID {g.containerId}</div>}
-                            </td>
-                            <td className="px-3 py-2 font-mono">
-                              {hasIn?<div><div className="font-semibold">{fmtTime(inTime)}</div><div className="text-[10px] text-neutral-400 font-mono">#{g.inTx!.id}</div></div>:<span className="text-neutral-400">—</span>}
-                            </td>
-                            <td className="px-3 py-2 font-mono">
-                              {hasOut?<div><div className="font-semibold">{fmtTime(outTime)}</div><div className="text-[10px] text-neutral-400 font-mono">#{g.outTx!.id}</div></div>:<span className="text-[11px] font-mono" style={{ color:isRunning?"#d97706":"#9ca3af", fontWeight:isRunning?600:400 }}>{isRunning?"In yard":"—"}</span>}
-                            </td>
-                            <td className="px-3 py-2 font-mono font-semibold" style={{ color:isRunning?"#d97706":undefined }}>{hasIn?fmtTurnaround(inTime,outTime):"—"}</td>
-                            <td className="px-3 py-2 font-mono">{g.inTx?.truck_license_plate??g.outTx?.truck_license_plate??"—"}</td>
-                            <td className="px-3 py-2">{g.inTx?.driver_ref??g.outTx?.driver_ref??"—"}</td>
-                            <td className="px-3 py-2">{g.inTx?.carrier_ref??g.outTx?.carrier_ref??"—"}</td>
-                            <td className="px-3 py-2">
-                              {isRunning&&g.containerId!=null&&(
-                                <div>
-                                  <div className="text-[8.5px] font-semibold text-neutral-400 mb-0.5 tracking-wide">Gate-out</div>
+
+          {/* ── Turnaround toast ──────────────────────────────────────────── */}
+          {turnaroundToast && (
+            <div className="mx-5 mt-3 px-4 py-3 text-[12px] font-semibold flex justify-between items-center flex-none"
+              style={{ background:"#f0fdf4", border:"1px solid #059669", color:"#065f46", borderRadius:5 }}>
+              <span>✓ {turnaroundToast}</span>
+              <button onClick={()=>setTurnaroundToast(null)} className="text-[13px] hover:opacity-70" style={{ color:"#059669" }}>✕</button>
+            </div>
+          )}
+
+          {/* ── Transaction log table ─────────────────────────────────────── */}
+          <div className="flex-1 min-h-0 overflow-auto">
+            <table className="w-full border-collapse text-[12px]">
+              <thead className="sticky top-0 z-10">
+                <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
+                  {["VISIT","CONTAINER","CHANNEL","DIRECTION","PURPOSE","QUEUE IN","CHECK IN","GATE OUT","TURN","TRUCK · DRIVER","CARRIER","LANE","STATUS"].map(h => (
+                    <th key={h} className="px-3 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap"
+                      style={{ borderBottom:"1px solid #e5e7eb" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredGtxRows.map(({ visit:v, ch }) => {
+                  const [chanBg, chanFg] = CHAN_COLOR[ch] ?? ["#f3f4f6","#6b7280"]
+                  const [stBg,  stFg]   = STATE_STYLE[v.state] ?? ["#f3f4f6","#6b7280"]
+                  const isLive  = v.state !== "GATE_OUT" && v.state !== "EXPECTED"
+                  const isExcl  = !!v.excl
+                  return (
+                    <tr key={v.id}
+                      className="border-b border-[#f3f4f6] transition-colors"
+                      style={{ background: v.state==="GATE_OUT" ? "#fafafa" : "#fff" }}
+                      onMouseEnter={e=>(e.currentTarget.style.background="#f0f9ff")}
+                      onMouseLeave={e=>(e.currentTarget.style.background=v.state==="GATE_OUT"?"#fafafa":"#fff")}>
+
+                      {/* Visit ID */}
+                      <td className="px-3 py-2.5 font-mono text-[11px] font-bold text-neutral-400 whitespace-nowrap">{v.id}</td>
+
+                      {/* Container */}
+                      <td className="px-3 py-2.5">
+                        <div className="font-mono font-bold text-[12px] text-neutral-900">{v.container}</div>
+                      </td>
+
+                      {/* Channel pill */}
+                      <td className="px-3 py-2.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold capitalize"
+                          style={{ background:chanBg, color:chanFg, border:`1px solid ${chanFg}30` }}>
+                          {ch==="verde"?"✓":ch==="naranja"?"!":"✕"} {ch}
+                        </span>
+                      </td>
+
+                      {/* Direction */}
+                      <td className="px-3 py-2.5">
+                        <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded"
+                          style={{ background: dirFromPurpose(v.purpose)==="IN"?"#eff6ff":dirFromPurpose(v.purpose)==="OUT"?"#faf5ff":"#f0fdf4", color: dirFromPurpose(v.purpose)==="IN"?"#1d4ed8":dirFromPurpose(v.purpose)==="OUT"?"#6d28d9":"#065f46" }}>
+                          {dirFromPurpose(v.purpose)==="IN"?"↓ Inbound":dirFromPurpose(v.purpose)==="OUT"?"↑ Outbound":"⇄ Empty"}
+                        </span>
+                      </td>
+
+                      {/* Purpose */}
+                      <td className="px-3 py-2.5 text-[11.5px] text-neutral-700 whitespace-nowrap">{v.purpose}</td>
+
+                      {/* Timestamps */}
+                      <td className="px-3 py-2.5 font-mono text-[11.5px] text-neutral-700">{v.queueIn??<span className="text-neutral-300">—</span>}</td>
+                      <td className="px-3 py-2.5 font-mono text-[11.5px] text-neutral-700">{v.checkIn??<span className="text-neutral-300">—</span>}</td>
+                      <td className="px-3 py-2.5 font-mono text-[11.5px]"
+                        style={{ color:v.gateOut?"#059669":isLive?"#d97706":"#9ca3af", fontWeight:v.gateOut?600:400 }}>
+                        {v.gateOut??( isLive ? <span style={{color:"#d97706"}}>running</span> : "—" )}
+                      </td>
+
+                      {/* Turn */}
+                      <td className="px-3 py-2.5 font-mono font-bold text-[12px]"
+                        style={{ color: v.turn===0?"#9ca3af":v.turn>15?"#dc2626":v.turn>10?"#d97706":"#059669" }}>
+                        {v.turn>0?`${v.turn}′`:"—"}
+                      </td>
+
+                      {/* Truck · Driver */}
+                      <td className="px-3 py-2.5 whitespace-nowrap">
+                        <div className="font-mono text-[11.5px] font-semibold">{v.plate}</div>
+                        <div className="text-[10.5px] text-neutral-500">{v.driver}</div>
+                      </td>
+
+                      {/* Carrier */}
+                      <td className="px-3 py-2.5 text-[11.5px] text-neutral-700 whitespace-nowrap">{v.carrier}</td>
+
+                      {/* Lane */}
+                      <td className="px-3 py-2.5 font-mono text-[11.5px] text-neutral-600">{v.lane}</td>
+
+                      {/* Status */}
+                      <td className="px-3 py-2.5">
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap"
+                            style={{ background:stBg, color:stFg }}>
+                            {stateLabel(v.state)}
+                          </span>
+                          {isExcl && (
+                            <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded"
+                              style={{ background:"#fef9c3", color:"#713f12", maxWidth:140 }}>
+                              ⚠ {v.excl}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+
+            {/* Backend transactions section — shown additionally when connected */}
+            {backendConnected && txGroups.length > 0 && (
+              <div className="mt-6 px-5 pb-4">
+                <div className="ds-label text-neutral-500 mb-3">LIVE ENGINE TRANSACTIONS</div>
+                <table className="w-full border-collapse text-[12px]">
+                  <thead>
+                    <tr>{["CONTAINER","GATE IN","GATE OUT","TURNAROUND","TRUCK","DRIVER","CARRIER",""].map(h=>(
+                      <th key={h} className="ds-th text-left">{h}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody>
+                    {txLoading
+                      ? <tr><td colSpan={8} className="px-3 py-4 text-neutral-400 text-[11px]">Loading…</td></tr>
+                      : txGroups.map(g=>{
+                          const inTime=g.inTx?.actual_arrival??g.inTx?.created_at??null
+                          const outTime=g.outTx?.actual_departure??g.outTx?.created_at??null
+                          const hasIn=!!g.inTx; const hasOut=!!g.outTx; const isRunning=hasIn&&!hasOut
+                          return (
+                            <tr key={g.key} className="border-b border-[#f3f4f6] hover:bg-[#f9fafb]">
+                              <td className="py-2 px-3"><div className="font-mono font-bold text-[11.5px]">{g.containerNumber}</div></td>
+                              <td className="px-3 py-2 font-mono">{hasIn?fmtTime(inTime):"—"}</td>
+                              <td className="px-3 py-2 font-mono" style={{ color:isRunning?"#d97706":undefined }}>{hasOut?fmtTime(outTime):isRunning?"In yard":"—"}</td>
+                              <td className="px-3 py-2 font-mono font-semibold" style={{ color:isRunning?"#d97706":undefined }}>{hasIn?fmtTurnaround(inTime,outTime):"—"}</td>
+                              <td className="px-3 py-2 font-mono">{g.inTx?.truck_license_plate??g.outTx?.truck_license_plate??"—"}</td>
+                              <td className="px-3 py-2">{g.inTx?.driver_ref??g.outTx?.driver_ref??"—"}</td>
+                              <td className="px-3 py-2">{g.inTx?.carrier_ref??g.outTx?.carrier_ref??"—"}</td>
+                              <td className="px-3 py-2">
+                                {isRunning&&g.containerId!=null&&(
                                   <button disabled={gateOutLoading===g.containerId} onClick={()=>handleGateOut(g.containerId!,inTime)}
-                                    style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:5, fontSize:10.5, padding:"3px 10px", fontWeight:600, whiteSpace:"nowrap", opacity:gateOutLoading===g.containerId?0.5:1 }}>
+                                    style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:5, fontSize:10.5, padding:"3px 10px", fontWeight:600 }}>
                                     {gateOutLoading===g.containerId?"…":"Gate out"}
                                   </button>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
-          )}
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
