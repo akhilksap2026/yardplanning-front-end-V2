@@ -306,6 +306,25 @@ export default function YardMap({ focus, onNavigate }: Props) {
     )
   }, [moves, scrubberMin])
 
+  // ── Zone-level stats for left panel ──────────────────────────────────────
+  const zoneStats = useMemo(() =>
+    zones
+      .filter(z => !EXCLUDED_ZONES.has(z.id))
+      .map(z => {
+        const cnt = containers.filter(c => c.zone === z.id).length
+        const cap = z.blocks * z.rows * z.slots * z.maxTiers
+        const pct = cap > 0 ? Math.round(cnt / cap * 100) : 0
+        const shortName = z.name.replace(/^Zone [A-Z] — /, "")
+        return { z, cnt, cap, pct, shortName }
+      }),
+    [zones, containers],
+  )
+
+  // ── Drawer mode ───────────────────────────────────────────────────────────
+  type DrawerMode = "zone" | "block" | "slot"
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("block")
+  const [drawerZone, setDrawerZone] = useState<string | null>(null)
+
   function lowestOccupancyInZone(zone: string): string {
     const zoneLayouts = blockLayouts.filter(l => l.zone === zone)
     if (!zoneLayouts.length) return "S-01"
@@ -364,21 +383,141 @@ export default function YardMap({ focus, onNavigate }: Props) {
     ? [["Occupied","#374151"],["Empty","#e5e7eb"],["Hazmat + occupied","#f97316"],["Hazmat empty","#fed7aa"]]
     : LEGENDS[mode]
 
-  return (
-    <div className="flex flex-col h-full min-h-0 overflow-auto bg-white text-neutral-900">
+  // ── Drawer content resolver ───────────────────────────────────────────────
+  function drawerContent() {
+    if (drawerMode === "zone" && drawerZone) {
+      const stat = zoneStats.find(s => s.z.id === drawerZone)
+      const zoneDef = zones.find(z => z.id === drawerZone)
+      const zoneContainers = containers
+        .filter(c => c.zone === drawerZone)
+        .sort((a, b) => a.hoursToLFD - b.hoursToLFD)
+        .slice(0, 20)
+      return (
+        <div className="flex flex-col flex-1 min-h-0 overflow-auto">
+          {/* Zone header */}
+          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none">
+            <div>
+              <div className="font-black text-[17px] tracking-tight">Zone {drawerZone}</div>
+              <div className="text-[11px] text-neutral-500 mt-0.5">{stat?.shortName}</div>
+            </div>
+            <button onClick={() => { setDrawerOpen(false); setDrawerZone(null) }}
+              className="text-neutral-400 hover:text-neutral-800 transition-colors"
+              style={{ width:28, height:28, borderRadius:"50%", background:"#f3f4f6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13 }}>
+              ✕
+            </button>
+          </div>
+          {/* Zone KPIs */}
+          <div className="grid grid-cols-2 gap-px border-b border-[#e5e7eb] flex-none" style={{ background:"#e5e7eb" }}>
+            {[
+              { k:"Containers", v:String(stat?.cnt ?? 0), sub:"on ground" },
+              { k:"Occupancy",  v:`${stat?.pct ?? 0}%`,   sub:`of ${stat?.cap ?? 0} slots`, red:(stat?.pct ?? 0) > 85 },
+              { k:"Blocks",     v:String(zoneDef?.blocks ?? "—"), sub:`${zoneDef?.rows} rows · ${zoneDef?.slots} slots` },
+              { k:"Max tiers",  v:String(zoneDef?.maxTiers ?? "—"), sub:"stack limit" },
+            ].map(m => (
+              <div key={m.k} className="px-4 py-3 bg-white flex flex-col gap-0.5">
+                <span className="ds-label text-neutral-500">{m.k}</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-black text-[20px] leading-none" style={{ color:('red' in m && m.red)?"#dc2626":undefined }}>{m.v}</span>
+                  <span className="text-[11px] text-neutral-500">{m.sub}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Container list */}
+          <div className="flex-1 overflow-auto">
+            <div className="px-4 pt-3 pb-1 ds-label text-neutral-400">CONTAINERS — sorted by LFD urgency</div>
+            {zoneContainers.map(c => (
+              <div key={c.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-[#f3f4f6] hover:bg-[#fafafa] transition-colors">
+                <div
+                  className="w-2.5 h-2.5 flex-none rounded-sm"
+                  style={{ background: containerColor({ status:c.status, hoursToLFD:c.hoursToLFD, channel:c.channel, dwellDays:c.dwellDays, priority:c.priority }, mode) }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-mono text-[12px] font-bold text-neutral-900">{c.id}</div>
+                  <div className="text-[10.5px] text-neutral-500 truncate">{c.consignee} · {c.vessel}</div>
+                </div>
+                <div className="text-right flex-none">
+                  <div className="text-[11px] font-mono" style={{ color: c.hoursToLFD < 24 ? "#dc2626" : c.hoursToLFD < 72 ? "#d97706" : "#6b7280" }}>
+                    {c.hoursToLFD < 0 ? "BREACHED" : `${c.hoursToLFD}h LFD`}
+                  </div>
+                  <div className="text-[10.5px] text-neutral-400 font-mono">{c.address}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
 
-      {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2.5 px-5 py-3 border-b border-[#e5e7eb] flex-none">
+    if (drawerMode === "slot" && selectedSlot && drawerSlotView()) {
+      return (
+        <div className="flex flex-col flex-1 min-h-0">
+          {/* Back to block */}
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-[#e5e7eb] flex-none bg-[#fafafa]">
+            <button onClick={() => { setSelectedSlot(null); setDrawerMode("block") }}
+              className="text-[11px] text-neutral-500 hover:text-neutral-900 transition-colors flex items-center gap-1">
+              ← Block {selectedBlockLabel ?? activeLiveBlock}
+            </button>
+            <span className="text-neutral-300 text-xs">›</span>
+            <span className="text-[11px] text-neutral-700 font-semibold">Bay {selectedSlot.col} · Row {selectedSlot.row}</span>
+            <button onClick={() => { setDrawerOpen(false); setSelectedSlot(null); setDrawerMode("block") }}
+              className="ml-auto text-neutral-400 hover:text-neutral-800 transition-colors"
+              style={{ width:24, height:24, borderRadius:"50%", background:"#f3f4f6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11 }}>
+              ✕
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-auto">{drawerSlotView()}</div>
+        </div>
+      )
+    }
+
+    if (drawerMode === "block" || (!drawerMode && selectedBlockLabel)) {
+      const label = isLive ? activeLiveBlock : selectedBlockLabel
+      const zoneDef = isLive ? activeLiveZoneDef : selectedZoneDef
+      if (!label || !zoneDef) return null
+      const viewContainers = isLive ? liveBlockViewContainers : selectedBlockViewContainers
+      return (
+        <div className="flex flex-col flex-1 min-h-0">
+          {/* Block header */}
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#e5e7eb] flex-none">
+            <div>
+              <div className="font-black text-[15px] tracking-tight">{label}</div>
+              <div className="text-[10.5px] text-neutral-500 mt-0.5">{zoneDef.name}</div>
+            </div>
+            <button onClick={() => { setDrawerOpen(false); setSelectedBlockLabel(null); setSelectedSlot(null) }}
+              className="text-neutral-400 hover:text-neutral-800 transition-colors"
+              style={{ width:26, height:26, borderRadius:"50%", background:"#f3f4f6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12 }}>
+              ✕
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-auto">
+            <BlockInteriorView
+              blockLabel={label} zoneName={zoneDef.name}
+              numCols={isLive ? liveBlockNumCols : zoneDef.slots}
+              numRows={isLive ? liveBlockNumRows : zoneDef.rows}
+              maxTiers={isLive ? liveBlockMaxTiers : zoneDef.maxTiers}
+              containers={viewContainers} mode={mode} searchQuery={q}
+              selectedSlot={selectedSlot}
+              onSlotClick={(col, row) => { setSelectedSlot({ col, row }); setDrawerMode("slot") }}
+              onBack={() => { setDrawerOpen(false); setSelectedBlockLabel(null); setSelectedSlot(null) }}
+            />
+          </div>
+        </div>
+      )
+    }
+    return null
+  }
+
+  return (
+    <div className="flex flex-col h-full min-h-0 bg-white text-neutral-900">
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          COMPACT TOOLBAR
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="flex items-center gap-2.5 px-4 py-2 border-b border-[#e5e7eb] flex-none bg-white">
 
         {/* Title */}
-        <div className="flex flex-col gap-0.5 mr-1.5">
-          <span className="font-black text-[19px] tracking-tight">Yard</span>
-          <span className="text-[11px] text-neutral-500">
-            {isLive
-              ? `${backendSlots.length} slots · ${backendContainers.length} containers · live yard`
-              : `${all.length} containers · ${ql ? `${all.filter(match).length} match "${q}"` : `${totalZones} zones · overlay: `+mode}`}
-          </span>
-        </div>
+        <span className="font-black text-[17px] tracking-tight mr-1">Yard</span>
 
         {/* Map / Dashboard toggle */}
         <div className="flex" style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden" }}>
@@ -391,9 +530,8 @@ export default function YardMap({ focus, onNavigate }: Props) {
           ))}
         </div>
 
-        {/* Step 1a: Data source toggle — compact switch */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-neutral-500">Source</span>
+        {/* Data source toggle */}
+        <div className="flex items-center gap-1.5">
           <button
             disabled={!backendConnected}
             title={!backendConnected ? "Backend unavailable" : undefined}
@@ -404,8 +542,8 @@ export default function YardMap({ focus, onNavigate }: Props) {
             <span className="inline-block h-3.5 w-3.5 bg-white shadow transition-transform flex-none"
               style={{ borderRadius: "50%", transform: dataSource === "live" ? "translateX(20px)" : "translateX(2px)" }} />
           </button>
-          <span className="text-[11px] text-neutral-700 font-medium">
-            {dataSource === "live" ? (backendConnected ? "Live yard" : "Engine offline") : "Seed data"}
+          <span className="text-[11px] text-neutral-600 font-medium">
+            {dataSource === "live" ? (backendConnected ? "Live" : "Offline") : "Seed"}
           </span>
         </div>
 
@@ -414,19 +552,19 @@ export default function YardMap({ focus, onNavigate }: Props) {
           <Input
             placeholder="Container, consignee, vessel, slot…"
             value={q} onChange={e => setQ(e.target.value)}
-            className="w-48 h-7 text-xs"
+            className="w-52 h-7 text-xs"
           />
         )}
 
-        {/* Step 1b: Color by dropdown */}
+        {/* Color-by dropdown — toolbar position */}
         {view==="map" && !isLive && (
           <div ref={colorDropdownRef} className="relative">
             <button
               onClick={() => setColorDropdownOpen(v => !v)}
-              className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 font-semibold transition-colors"
+              className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 font-semibold"
               style={{ border:"1px solid #e5e7eb", borderRadius:5, color:"#374151" }}
             >
-              Color by: <span className="capitalize">{COLOR_MODE_LABELS[mode]}</span>
+              Color: {COLOR_MODE_LABELS[mode]}
               <span style={{ fontSize:8, color:"#9ca3af" }}>{colorDropdownOpen?"▲":"▼"}</span>
             </button>
             {colorDropdownOpen && (
@@ -435,7 +573,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                 {(["status","lfd","channel","dwell","priority","rehandle"] as ColorMode[]).map(k => (
                   <button key={k} onClick={() => { setMode(k); setColorDropdownOpen(false) }}
                     className="w-full text-left px-3 py-2 text-[11px] transition-colors hover:bg-[#f9fafb]"
-                    style={{ fontWeight: mode===k ? 700 : 400, color: mode===k ? "#111827" : "#374151", background: mode===k ? "#f9fafb" : "transparent", borderBottom:"1px solid #f3f4f6" }}>
+                    style={{ fontWeight:mode===k?700:400, color:mode===k?"#111827":"#374151", background:mode===k?"#f9fafb":"transparent", borderBottom:"1px solid #f3f4f6" }}>
                     {COLOR_MODE_LABELS[k]}
                   </button>
                 ))}
@@ -444,259 +582,239 @@ export default function YardMap({ focus, onNavigate }: Props) {
           </div>
         )}
 
-        {/* Overlay toggles */}
-        {view==="map" && (
-          <div className="flex items-center gap-px">
-            {([
-              { key:"equip",  label:"Equipment", k:"E", on:showEquipment,  set:setShowEquipment  },
-              { key:"trails", label:"Trails",    k:"T", on:showTrails,     set:setShowTrails     },
-              { key:"heat",   label:"Heat",      k:"",  on:showCongestion, set:setShowCongestion },
-              { key:"plan",   label:"Planner",   k:"",  on:plannerMode,    set:setPlannerMode    },
-            ] as { key:string; label:string; k:string; on:boolean; set:(v:boolean)=>void }[]).map((t,i,arr)=>(
-              <button key={t.key} onClick={() => t.set(!t.on)}
-                title={t.k ? `Shortcut: ${t.k}` : undefined}
-                className="text-[10px] px-2 py-1.5 font-semibold transition-colors"
-                style={{ borderLeft:"1px solid #e5e7eb", borderTop:"1px solid #e5e7eb", borderBottom:"1px solid #e5e7eb", borderRight:i<arr.length-1?"none":"1px solid #e5e7eb", borderRadius:i===0?"5px 0 0 5px":i===arr.length-1?"0 5px 5px 0":0, background:t.on?"#16a34a":"transparent", color:t.on?"#fff":"#555" }}>
-                {t.label}{t.k ? ` [${t.k}]` : ""}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Breadcrumb */}
-        {view==="map" && zoomLevel !== "yard" && (
-          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 font-medium ml-1">
-            <button onClick={() => { setZoomLevel("yard"); setSelectedSlot(null); setDrawerOpen(false) }}
-              className="hover:text-neutral-900 transition-colors">Yard</button>
-            {(selectedBlockLabel || activeLiveBlock) && (
-              <>
-                <span className="text-neutral-300">›</span>
-                <button onClick={() => { setDrawerOpen(false); setSelectedSlot(null) }}
-                  className="hover:text-neutral-900 transition-colors">
-                  {selectedBlockLabel ?? activeLiveBlock}
-                </button>
-              </>
-            )}
-            {drawerOpen && selectedSlot && (
-              <>
-                <span className="text-neutral-300">›</span>
-                <span className="text-neutral-900">Bay {selectedSlot.col} · Row {selectedSlot.row}</span>
-              </>
-            )}
-          </div>
-        )}
+        {/* Status chip */}
+        <span className="ml-auto text-[11px] text-neutral-400">
+          {isLive
+            ? `${backendContainers.length} containers · live yard`
+            : ql
+              ? `${all.filter(match).length} of ${all.length} match`
+              : `${seedContainers.length} units · ${totalZones} zones`}
+        </span>
       </div>
 
-      {/* ── Map view — single relative wrapper for legend + drawer ──────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          MAP VIEW — 3-column layout: left panel | map | right drawer
+      ══════════════════════════════════════════════════════════════════════ */}
       {view==="map" && (
-        <div className="relative flex flex-col flex-1 min-h-0">
+        <div className="flex flex-1 min-h-0">
 
-          {/* SEED map content */}
-          {!isLive && (
-            <>
-              {/* KPI bar — no internal separator borders, use spacing */}
-              {zoomLevel === "yard" && (
-                <div className="flex flex-wrap flex-none">
-                  {([
-                    { k:"Occupancy",             v:`${occupancyPct}%`,           sub:`${seedContainers.length} of ${totalCapacity} slots · ceiling 85%`, red: occupancyPct > 85 },
-                    { k:"TEU on terminal",       v:String(totalTEU),             sub:`${seedContainers.length} units` },
-                    { k:"Avg stack height",      v:`${avgTier} tiers`,           sub:"across all blocks" },
-                    { k:"Blocks · Zones",        v:`${totalBlocks} · ${totalZones}`, sub:"in physical yard" },
-                    { k:"Detention at risk 72 h",v:"$8.4k",                     sub:"31 containers", red: true },
-                  ] as { k:string; v:string; sub:string; red?:boolean }[]).map(m => (
-                    <div key={m.k} className="flex-1 basis-36 px-5 py-3 flex flex-col gap-0.5">
-                      <span className="ds-label text-neutral-500">{m.k}</span>
-                      <div className="flex items-baseline gap-2">
-                        <span className={`font-black text-[20px] leading-none tracking-tight ${m.red?"text-[#dc2626]":""}`}>{m.v}</span>
-                        <span className="text-[11px] text-neutral-500">{m.sub}</span>
-                      </div>
+          {/* ── LEFT PANEL ─────────────────────────────────────────────────────── */}
+          <div className="w-56 flex-none border-r border-[#e5e7eb] flex flex-col bg-white overflow-y-auto">
+
+            {/* ── KPI summary ── */}
+            {!isLive && (
+              <div className="px-4 pt-3 pb-2 border-b border-[#e5e7eb]">
+                <div className="ds-label text-neutral-400 mb-2">TERMINAL</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { k:"Occupancy", v:`${occupancyPct}%`, red:occupancyPct>85 },
+                    { k:"TEU",       v:String(totalTEU),   red:false },
+                    { k:"Avg tier",  v:`${avgTier}`,       red:false },
+                    { k:"Detention", v:"$8.4k",            red:true  },
+                  ].map(m => (
+                    <div key={m.k} className="flex flex-col gap-0.5">
+                      <span className="text-[9.5px] font-semibold tracking-wide uppercase text-neutral-400">{m.k}</span>
+                      <span className="font-black text-[18px] leading-none" style={{ color:m.red?"#dc2626":undefined }}>{m.v}</span>
                     </div>
                   ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Zoom-level views (no slot level — slot is in drawer) */}
-              <div className="flex flex-1 min-h-0 overflow-hidden" style={{ transition:"opacity 200ms" }}>
-                {zoomLevel === "yard" && (
-                  <PhysicalYardMap
-                    layouts={blockLayouts} selectedBlock={null}
-                    onSelectBlock={label => { setSelectedBlockLabel(label); setZoomLevel("block"); setSelectedSlot(null); setDrawerOpen(false) }}
-                    zoneNames={zoneNames} equipment={equipmentPositions}
-                    showEquipment={showEquipment} moveTrails={moveTrails}
-                    showTrails={showTrails} congestionByBlock={congestionByBlock}
-                    showCongestion={showCongestion}
-                    activeMoveBlocks={scrubberMin !== null ? activeMoveBlocks : undefined}
-                  />
-                )}
-                {zoomLevel === "block" && selectedBlockLabel && selectedZoneDef && (
-                  <BlockInteriorView
-                    blockLabel={selectedBlockLabel} zoneName={selectedZoneDef.name}
-                    numCols={selectedZoneDef.slots} numRows={selectedZoneDef.rows} maxTiers={selectedZoneDef.maxTiers}
-                    containers={selectedBlockViewContainers} mode={mode} searchQuery={q}
-                    selectedSlot={selectedSlot}
-                    onSlotClick={(col, row) => { setSelectedSlot({ col, row }); setDrawerOpen(true) }}
-                    onBack={() => { setZoomLevel("yard"); setSelectedSlot(null); setSelectedBlockLabel(null); setDrawerOpen(false) }}
-                  />
+            {/* Live KPIs */}
+            {isLive && (
+              <div className="px-4 pt-3 pb-2 border-b border-[#e5e7eb]">
+                <div className="ds-label text-neutral-400 mb-2">LIVE YARD</div>
+                {[
+                  { k:"Slots", v:`${backendSlots.filter(s=>s.occupied_container_id!=null).length}/${backendSlots.length}` },
+                  { k:"Occupancy", v:backendSlots.length?Math.round(backendSlots.filter(s=>s.occupied_container_id!=null).length/backendSlots.length*100)+"%" : "—" },
+                ].map(m=>(
+                  <div key={m.k} className="flex justify-between items-baseline py-1">
+                    <span className="text-[10.5px] text-neutral-500">{m.k}</span>
+                    <span className="font-black text-[16px]">{m.v}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── Zone list ── */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="px-4 pt-3 pb-1.5">
+                <div className="ds-label text-neutral-400 mb-2">ZONES</div>
+                {zoneStats.map(s => {
+                  const isActive = drawerZone === s.z.id && drawerMode === "zone" && drawerOpen
+                  return (
+                    <button
+                      key={s.z.id}
+                      onClick={() => {
+                        setDrawerZone(s.z.id)
+                        setDrawerMode("zone")
+                        setSelectedSlot(null)
+                        setSelectedBlockLabel(null)
+                        setDrawerOpen(true)
+                      }}
+                      className="w-full text-left px-2.5 py-2 rounded mb-1 transition-colors"
+                      style={{ background: isActive ? "#f0f9ff" : "transparent", border: `1px solid ${isActive ? "#bae6fd" : "transparent"}` }}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-black text-[12px] text-neutral-900">{s.z.id}</span>
+                          <span className="text-[10px] text-neutral-400 truncate max-w-[90px]">{s.shortName}</span>
+                        </div>
+                        <span className="text-[10.5px] font-mono font-semibold flex-none"
+                          style={{ color: s.pct > 85 ? "#dc2626" : s.pct > 65 ? "#d97706" : "#374151" }}>
+                          {s.pct}%
+                        </span>
+                      </div>
+                      {/* Occupancy bar */}
+                      <div className="h-1 rounded-full overflow-hidden" style={{ background:"#f3f4f6" }}>
+                        <div className="h-1 rounded-full transition-all"
+                          style={{ width:`${Math.min(s.pct, 100)}%`, background: s.pct > 85 ? "#dc2626" : s.pct > 65 ? "#d97706" : "#6b7280" }} />
+                      </div>
+                      <div className="text-[9.5px] text-neutral-400 mt-1">{s.cnt} units · {s.z.blocks}bl {s.z.rows}row</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* ── Overlays ── */}
+            {!isLive && (
+              <div className="px-4 py-3 border-t border-[#e5e7eb]">
+                <div className="ds-label text-neutral-400 mb-2">OVERLAYS</div>
+                {([
+                  { label:"Equipment [E]", on:showEquipment,  set:setShowEquipment  },
+                  { label:"Move trails [T]", on:showTrails,   set:setShowTrails     },
+                  { label:"Heat map",      on:showCongestion, set:setShowCongestion },
+                  { label:"Planner",       on:plannerMode,    set:setPlannerMode    },
+                ] as {label:string;on:boolean;set:(v:boolean)=>void}[]).map(o => (
+                  <label key={o.label} className="flex items-center justify-between py-1 cursor-pointer">
+                    <span className="text-[11px] text-neutral-600">{o.label}</span>
+                    <button
+                      onClick={() => o.set(!o.on)}
+                      className="relative inline-flex h-4 w-7 items-center flex-none transition-colors"
+                      style={{ background: o.on ? "#111827" : "#d1d5db", borderRadius: 10 }}
+                    >
+                      <span className="inline-block h-3 w-3 bg-white shadow transition-transform flex-none"
+                        style={{ borderRadius:"50%", transform: o.on ? "translateX(14px)" : "translateX(2px)" }} />
+                    </button>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {/* ── Legend ── */}
+            <div className="px-4 py-3 border-t border-[#e5e7eb]">
+              <div className="ds-label text-neutral-400 mb-2">LEGEND · {isLive ? "LIVE" : mode.toUpperCase()}</div>
+              {legendItems.map(([label, color]) => (
+                <div key={label} className="flex items-center gap-2 py-0.5">
+                  <div className="w-2.5 h-2.5 rounded-sm flex-none" style={{ background:color, border:"1px solid rgba(0,0,0,0.12)" }} />
+                  <span className="text-[10.5px] text-neutral-600">{label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Time scrubber ── */}
+            {!isLive && (
+              <div className="px-4 py-3 border-t border-[#e5e7eb]" style={{ background:"#fafafa" }}>
+                <div className="ds-label text-neutral-400 mb-2">SHIFT TIMELINE</div>
+                <input type="range" min={360} max={1320} step={5}
+                  value={scrubberMin ?? 360}
+                  onChange={e => setScrubberMin(Number(e.target.value))}
+                  className="w-full accent-neutral-800 mb-1" />
+                <div className="flex justify-between items-center">
+                  <span className="text-[9.5px] text-neutral-400 tabular">06:00</span>
+                  {scrubberMin !== null ? (
+                    <button onClick={() => setScrubberMin(null)} className="text-[9.5px] text-neutral-400 hover:text-neutral-700">
+                      {String(Math.floor(scrubberMin/60)).padStart(2,"0")}:{String(scrubberMin%60).padStart(2,"0")} ✕
+                    </button>
+                  ) : <span className="text-[9.5px] text-neutral-400 tabular">22:00</span>}
+                </div>
+                {scrubberMin !== null && (
+                  <div className="text-[9.5px] text-amber-700 mt-1">{activeMoveBlocks.size} active block{activeMoveBlocks.size!==1?"s":""}</div>
                 )}
               </div>
-
-              {/* Time scrubber */}
-              {zoomLevel === "yard" && (
-                <div className="flex-none px-5 py-2.5 flex items-center gap-4" style={{ background:"#fafafa" }}>
-                  <span className="text-[10px] font-bold tracking-widest text-neutral-500 whitespace-nowrap">SHIFT TIMELINE</span>
-                  <span className="text-[10.5px] text-neutral-400 tabular whitespace-nowrap">06:00</span>
-                  <div className="flex-1 relative flex items-center">
-                    <input type="range" min={360} max={1320} step={5}
-                      value={scrubberMin ?? (6*60)}
-                      onChange={e => setScrubberMin(Number(e.target.value))}
-                      className="w-full accent-neutral-800" />
-                    {scrubberMin !== null && (
-                      <span className="absolute -top-5 text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-px whitespace-nowrap pointer-events-none"
-                        style={{ left:`${((scrubberMin-360)/(1320-360))*100}%`, transform:"translateX(-50%)", borderRadius:3 }}>
-                        {activeMoveBlocks.size} active block{activeMoveBlocks.size!==1?"s":""}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10.5px] text-neutral-400 tabular whitespace-nowrap">
-                    {scrubberMin !== null
-                      ? `${String(Math.floor(scrubberMin/60)).padStart(2,"0")}:${String(scrubberMin%60).padStart(2,"0")}`
-                      : "22:00"}
-                  </span>
-                  {scrubberMin !== null && (
-                    <button onClick={() => setScrubberMin(null)} className="text-[10px] text-neutral-400 hover:text-neutral-700 whitespace-nowrap">✕ reset</button>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* LIVE map content */}
-          {isLive && (
-            <>
-              {/* Live KPI bar */}
-              {zoomLevel === "yard" && (
-                <div className="flex flex-wrap flex-none">
-                  {[
-                    {k:"Total slots",   v:String(backendSlots.length),  sub:"in yard"},
-                    {k:"Occupied",      v:String(backendSlots.filter(s=>s.occupied_container_id!=null).length), sub:`of ${backendSlots.length}`},
-                    {k:"Occupancy",     v:backendSlots.length?Math.round(backendSlots.filter(s=>s.occupied_container_id!=null).length/backendSlots.length*100)+"%":"—", sub:"live"},
-                    {k:"Hazmat slots",  v:String(backendSlots.filter(s=>s.is_hazmat_approved).length), sub:"approved"},
-                    {k:"Reefer slots",  v:String(backendSlots.filter(s=>s.is_reefer_capable).length), sub:"capable"},
-                  ].map(m=>(
-                    <div key={m.k} className="flex-1 basis-36 px-5 py-3 flex flex-col gap-0.5">
-                      <span className="ds-label text-neutral-500">{m.k}</span>
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-black text-[20px] leading-none tracking-tight">{m.v}</span>
-                        <span className="text-[11px] text-neutral-500">{m.sub}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {backendSlots.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="bg-neutral-50 px-8 py-6 max-w-sm text-center" style={{ border:"1px solid #e5e7eb", borderRadius:5 }}>
-                    <div className="font-black text-[16px] mb-2">No slot data from backend</div>
-                    <div className="text-[12.5px] text-neutral-600 leading-relaxed">Backend connected but returned no yard slots. Check the planning engine.</div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-1 min-h-0 overflow-hidden" style={{ transition:"opacity 200ms" }}>
-                  {zoomLevel === "yard" && (
-                    <PhysicalYardMap
-                      layouts={liveBlockLayouts} selectedBlock={null}
-                      onSelectBlock={blk => { setLiveBlock(blk); setZoomLevel("block"); setSelectedSlot(null); setDrawerOpen(false) }}
-                      zoneNames={zoneNames} showEquipment={false} showTrails={false} showCongestion={false}
-                    />
-                  )}
-                  {zoomLevel === "block" && activeLiveBlock && (
-                    <BlockInteriorView
-                      blockLabel={activeLiveBlock} zoneName={activeLiveZoneDef?.name ?? activeLiveBlock}
-                      numCols={liveBlockNumCols} numRows={liveBlockNumRows} maxTiers={liveBlockMaxTiers}
-                      containers={liveBlockViewContainers} mode={mode} searchQuery={q}
-                      selectedSlot={selectedSlot}
-                      onSlotClick={(col, row) => { setSelectedSlot({ col, row }); setLiveRow(row); setDrawerOpen(true) }}
-                      onBack={() => { setZoomLevel("yard"); setSelectedSlot(null); setDrawerOpen(false) }}
-                    />
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ── Step 2: Floating legend ────────────────────────────────────── */}
-          <div className="absolute bottom-4 left-4 z-20" style={{ pointerEvents:"auto" }}>
-            <div className="bg-white/90 backdrop-blur-sm"
-              style={{ borderRadius:8, border:"1px solid rgba(0,0,0,0.08)", boxShadow:"0 2px 8px rgba(0,0,0,0.08)" }}>
-              <button onClick={() => setLegendExpanded(v => !v)}
-                className="flex items-center gap-2 px-3 py-2 text-[11px] font-semibold text-neutral-700 w-full">
-                <span style={{ fontSize:9 }}>{legendExpanded ? "▼" : "▶"}</span>
-                Legend
-                {!legendExpanded && (
-                  <span className="ml-1 text-[10px] font-normal text-neutral-400 capitalize">
-                    {isLive ? "live yard" : COLOR_MODE_LABELS[mode]}
-                  </span>
-                )}
-              </button>
-              {legendExpanded && (
-                <div className="px-3 pb-3 flex flex-col gap-1.5">
-                  {legendItems.map(([label, color]) => (
-                    <span key={label} className="flex items-center gap-2 text-[11px] text-neutral-600">
-                      <span className="w-2.5 h-2.5 flex-none inline-block"
-                        style={{ background:color, border:"1px solid rgba(0,0,0,0.12)", borderRadius:2 }} />
-                      {label}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* ── Step 3: Slide-out drawer (560px from right) ────────────────── */}
+          {/* ── CENTRE — map always at yard level ──────────────────────────────── */}
+          <div className="flex-1 relative min-w-0 flex flex-col">
+            {!isLive && (
+              <>
+                {backendSlots.length === 0 ? null : null /* seed always shows */}
+                <PhysicalYardMap
+                  layouts={blockLayouts}
+                  selectedBlock={selectedBlockLabel}
+                  onSelectBlock={label => {
+                    setSelectedBlockLabel(label)
+                    setDrawerMode("block")
+                    setDrawerZone(null)
+                    setSelectedSlot(null)
+                    setDrawerOpen(true)
+                  }}
+                  zoneNames={zoneNames}
+                  equipment={equipmentPositions}
+                  showEquipment={showEquipment}
+                  moveTrails={moveTrails}
+                  showTrails={showTrails}
+                  congestionByBlock={congestionByBlock}
+                  showCongestion={showCongestion}
+                  activeMoveBlocks={scrubberMin !== null ? activeMoveBlocks : undefined}
+                />
+              </>
+            )}
+
+            {isLive && backendSlots.length === 0 && (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="bg-neutral-50 px-8 py-6 max-w-sm text-center" style={{ border:"1px solid #e5e7eb", borderRadius:5 }}>
+                  <div className="font-black text-[16px] mb-2">No slot data from backend</div>
+                  <div className="text-[12.5px] text-neutral-600 leading-relaxed">Backend connected but returned no yard slots. Check the planning engine.</div>
+                </div>
+              </div>
+            )}
+
+            {isLive && backendSlots.length > 0 && (
+              <PhysicalYardMap
+                layouts={liveBlockLayouts}
+                selectedBlock={activeLiveBlock}
+                onSelectBlock={blk => {
+                  setLiveBlock(blk)
+                  setDrawerMode("block")
+                  setDrawerZone(null)
+                  setSelectedSlot(null)
+                  setDrawerOpen(true)
+                }}
+                zoneNames={zoneNames}
+                showEquipment={false}
+                showTrails={false}
+                showCongestion={false}
+              />
+            )}
+          </div>
+
+          {/* ── RIGHT DRAWER — flex sibling that slides in ─────────────────────── */}
           <div
-            className="absolute top-0 right-0 bottom-0 z-30 bg-white flex flex-col"
+            className="flex-none overflow-hidden border-l border-[#e5e7eb] flex flex-col bg-white"
             style={{
-              width: 560,
-              transform: drawerOpen ? "translateX(0)" : "translateX(560px)",
-              transition: "transform 250ms ease",
-              boxShadow: drawerOpen ? "-4px 0 24px rgba(0,0,0,0.12)" : "none",
+              width: drawerOpen ? 440 : 0,
+              transition: "width 260ms cubic-bezier(.4,0,.2,1)",
+              minWidth: 0,
             }}
           >
-            {/* Floating close button — always visible at top-right */}
-            <button
-              onClick={() => { setDrawerOpen(false); setSelectedSlot(null) }}
-              className="absolute top-3 right-3 z-10 text-neutral-400 hover:text-neutral-800 transition-colors"
-              style={{
-                width: 28, height: 28, borderRadius: "50%",
-                background: "#f3f4f6", border: "none",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 13, cursor: "pointer",
-              }}
-              title="Close"
-            >
-              ✕
-            </button>
-
-            {/* Slot stack view fills the drawer */}
-            <div className="flex flex-col flex-1 min-h-0">
-              {drawerOpen && selectedSlot
-                ? drawerSlotView()
-                : drawerOpen && (
-                  <div className="px-5 py-8 text-[12.5px] text-neutral-400 leading-relaxed">
-                    Click a slot in the block view to see the container stack at that position.
-                  </div>
-                )
-              }
+            {/* Fixed-width inner so content never reflows during animation */}
+            <div className="flex flex-col h-full min-h-0" style={{ width: 440 }}>
+              {drawerOpen ? drawerContent() : null}
             </div>
           </div>
+
         </div>
       )}
 
-      {/* ── Dashboard ─────────────────────────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          DASHBOARD VIEW (unchanged)
+      ══════════════════════════════════════════════════════════════════════ */}
       {view==="dash" && (
         <div className="flex-1 min-h-0 overflow-auto">
-          {/* Top KPI row — spacing only, no internal borders */}
           <div className="flex flex-wrap py-1">
             {[
               {k:"Truck turn P50",v:"13.8′",target:"15.0′",baseline:"31.4′",verdict:"WITHIN",red:false},
@@ -716,10 +834,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
               </div>
             ))}
           </div>
-
-          {/* Chart grid — subtle background instead of border */}
           <div className="grid min-h-80" style={{ gridTemplateColumns:"minmax(360px,1fr) minmax(320px,1fr)" }}>
-            {/* Left: turn + cycle charts */}
             <div className="px-5 py-4" style={{ borderRight:"1px solid #f3f4f6" }}>
               <div className="ds-label text-neutral-500 font-bold mb-3">Truck turn by hour</div>
               <div className="flex items-end gap-2 h-40">
@@ -732,7 +847,6 @@ export default function YardMap({ focus, onNavigate }: Props) {
                 ))}
               </div>
               <p className="text-[11px] text-neutral-500 mt-3 leading-relaxed">Grey is P90, solid is P50. The 08:00 hour breaches — inbound put-away competes with outbound loading.</p>
-
               <div className="mt-5 ds-label text-neutral-500 font-bold mb-2">Machine job cycle by move type</div>
               {cycleByType.map(r=>(
                 <div key={r.type} className="py-2.5">
@@ -743,8 +857,6 @@ export default function YardMap({ focus, onNavigate }: Props) {
                 </div>
               ))}
             </div>
-
-            {/* Right: capacity / forecast */}
             <div className="px-5 py-4">
               <div className="flex items-baseline gap-3 mb-4">
                 <div className="ds-label text-neutral-500 font-bold">
@@ -759,7 +871,6 @@ export default function YardMap({ focus, onNavigate }: Props) {
                   <button className="text-[10.5px] text-neutral-400 hover:text-neutral-700" onClick={() => setForecast(null)}>← seed data</button>
                 )}
               </div>
-
               {!forecast && capacity.map(c=>(
                 <div key={c.month} className="py-3">
                   <div className="flex justify-between text-[11.5px]">
@@ -773,7 +884,6 @@ export default function YardMap({ focus, onNavigate }: Props) {
                   <div className="text-[10.5px] text-neutral-500 mt-1.5">{c.breach?"breach — "+(c.required-c.available).toFixed(1)+" machine-hours short":"within available hours"}</div>
                 </div>
               ))}
-
               {forecast && (
                 <>
                   {forecast.first_over_capacity_day && (
@@ -806,7 +916,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
       {/* Planner toast */}
       {plannerToast && (
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-semibold text-green-900"
-          style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:6, boxShadow:"0 4px 12px rgba(0,0,0,0.10)", animation:"slideInRight 200ms ease-out" }}>
+          style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:6, boxShadow:"0 4px 12px rgba(0,0,0,0.10)" }}>
           <span style={{ color:"#16a34a", fontSize:16 }}>✓</span>
           {plannerToast}
         </div>
