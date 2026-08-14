@@ -1,0 +1,44 @@
+planningResults.json — normalized JSON fixture containing 154 planning steps across 39 containers, 6 operators, and 5 operation types (Putaway, Premarshal ahead of retrieval, Digout to clear an overstow, Outbound staging and truck loading, Discharge from vessel). Each step has a unified schema with container_id, operation, activity_status, step_status, planning_score, step_number, move_method, operator, origin (bay/row/tier/lat/lng), destination (bay/row/tier/lat/lng), estimated_start, estimated_end, actual_start, actual_end. It also includes pre-computed lookup objects: containers, operators, and operation_summary.
+planningData.ts — TypeScript module that imports the JSON and exports typed accessors. Key exports:
+allSteps: PlanningStep[] — flat array of every step
+containers — record keyed by container_id
+operators — record keyed by operator name
+operationSummary — record keyed by operation type
+stepsForContainer(id) — steps for one container, sorted by step_number
+stepsForOperator(name) — steps for one operator, sorted by estimated_start
+stepsByOperation(type) — filter by operation type
+stepsByStatus(status) — filter by Planned / Completed / Blocked
+geoSteps() — only steps with lat/lng coordinates
+stepsByBay() — Map keyed by bay number
+containerIds() — sorted list of all container IDs
+operatorNames() — sorted list of all operator names
+dashboardCounts() — returns { totalContainers, totalSteps, totalOperators, planned, completed, blocked }
+What I need you to do
+Ensure tsconfig.json has "resolveJsonModule": true and "esModuleInterop": true. Add them if missing.
+Search the entire codebase for any existing mock data, seed data, dummy data, sample data, or hardcoded container/operator/planning arrays. Look for:
+Hardcoded container IDs (patterns like TCLU, OOLU, MSCU, CMAU, HLXU followed by digits)
+Variables or files named mockData, seedData, dummyData, sampleData, fixtures, testData, or similar
+Hardcoded operator names, bay numbers, planning scores, or status values used directly in components
+Any inline arrays of objects that look like container records, task records, or operator records
+For every file found, replace the old data references with imports from src/data/planningData. Map the accessor to the screen's purpose:
+Dashboard or summary cards → use dashboardCounts()
+Container list or container detail → use containerIds() and stepsForContainer(id)
+Operator list, operator timeline, or task queue → use operatorNames() and stepsForOperator(name)
+Yard map or spatial view → use geoSteps() or stepsByBay()
+Filtered views by operation type → use stepsByOperation(type)
+Filtered views by status → use stepsByStatus(status)
+Any component that shows a count of containers, steps, or operators → derive it from dashboardCounts() so the number is consistent everywhere
+Adapt component rendering to the field names in the new schema. Key mappings if old field names differ:
+Container number/name/id → container_id
+Status → check both activity_status (activity-level) and step_status (step-level)
+Operator/jockey/driver → operator
+Location → origin.bay, origin.row, origin.tier, origin.lat, origin.lng (same structure for destination)
+Time fields → estimated_start, estimated_end, actual_start, actual_end (ISO strings or null)
+Score → planning_score (float or null)
+Delete all old mock data files after confirming every component renders correctly with the new imports.
+Do not create any new intermediate data transformations, local caches, or per-component copies of the data. Every component must import from src/data/planningData directly. This is the whole point — one source, consistent everywhere.
+Constraints
+This is a prototype/demo. Don't add error boundaries, loading states, or production hardening.
+Don't change the visual design or layout of any screen — only swap the data feeding into it.
+If a component currently shows fields that don't exist in the new schema, remove those fields from the UI rather than fabricating data.
+Keep all existing filtering, sorting, or grouping logic in components — just point it at the new accessor outputs instead of the old arrays

@@ -357,7 +357,13 @@ export default function OperatorTablet() {
                 <div className="px-4 py-4 border-b border-[#e5e7eb]">
                   <div className="ds-label text-neutral-500">Container</div>
                   <div className="font-mono font-semibold leading-none tracking-tight mt-1" style={{ fontSize:26 }}>{displayTask.container}</div>
-                  <div className="text-[14px] mt-1"><span className="font-mono">{displayTask.size}</span> · <span className="font-mono">{displayTask.weight}</span></div>
+                  {(displayTask.size || displayTask.weight) && (
+                    <div className="text-[14px] mt-1">
+                      {displayTask.size && <span className="font-mono">{displayTask.size}</span>}
+                      {displayTask.size && displayTask.weight && <span> · </span>}
+                      {displayTask.weight && <span className="font-mono">{displayTask.weight}</span>}
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2">
                   <div className="px-4 py-3 border-r border-b border-[#e5e7eb]">
@@ -372,10 +378,12 @@ export default function OperatorTablet() {
                 <div className="px-4 py-3 border-b border-[#e5e7eb]" style={{ background:"#fef2f2" }}>
                   <div className="text-[13px] leading-relaxed">{displayTask.reason}</div>
                 </div>
-                <div className="px-4 py-3 border-b border-[#e5e7eb] flex gap-2 items-start">
-                  <span className="w-1 self-stretch bg-[#dc2626]" />
-                  <span className="text-[13px] leading-relaxed">{displayTask.warn}</span>
-                </div>
+                {displayTask.warn && (
+                  <div className="px-4 py-3 border-b border-[#e5e7eb] flex gap-2 items-start">
+                    <span className="w-1 self-stretch bg-[#dc2626]" />
+                    <span className="text-[13px] leading-relaxed">{displayTask.warn}</span>
+                  </div>
+                )}
               </div>
             )}
 

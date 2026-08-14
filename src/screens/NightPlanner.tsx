@@ -9,6 +9,7 @@ import { adaptMoveForDisplay, REASON_LABELS } from "@/lib/backend-adapters"
 import { checkPlacementRules } from "@/lib/placement-rules"
 import { backendApi } from "@/lib/backend-api"
 import type { BackendPlanDetail } from "@/lib/backend-api"
+import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type PlanningStep } from "@/data/planningData"
 
 interface Props {
   focus: string | null
@@ -34,6 +35,29 @@ const PLAN_STATUS_VARIANT: Record<string, "brand" | "muted" | "amber" | "green" 
 
 type PlanSource = "seed" | "engine"
 
+// ── planningData display helpers ─────────────────────────────────────────────
+function fmtLoc(loc: PlanningStep["origin"]): string {
+  if (!loc || loc.bay == null) return "—"
+  if (loc.bay === "GATE / OFF-YARD") return "GATE"
+  return `Bay ${loc.bay} · R${loc.row ?? "?"} · T${loc.tier ?? "?"}`
+}
+function stepId(s: PlanningStep): string {
+  return `${s.container_id}-${s.step_number ?? 0}-${s.operation.slice(0,4)}`
+}
+function stepDur(s: PlanningStep): number {
+  if (!s.estimated_start || !s.estimated_end) return 2.5
+  return Math.round((new Date(s.estimated_end).getTime() - new Date(s.estimated_start).getTime()) / 60000 * 10) / 10
+}
+function fmtIso(iso: string | null | undefined): string {
+  if (!iso) return "—"
+  return iso.slice(11, 16)
+}
+function isoToMin(iso: string | null | undefined): number | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  return d.getUTCHours() * 60 + d.getUTCMinutes()
+}
+
 // Step 3: column definitions
 const ALL_COLS = ["SEQ","WINDOW","MOVE","ROUTE","ASSIGNED","EST"] as const
 type Col = typeof ALL_COLS[number]
@@ -48,7 +72,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   } = useData()
 
   // ── Existing state ────────────────────────────────────────────────────────
-  const [sel,          setSel]          = useState<string>(() => moves[8]?.id || "")
+  const [sel,          setSel]          = useState<string>(() => { const s = allSteps[0]; return s ? stepId(s) : "" })
   const [tab,          setTab]          = useState("detail")
   const [q,            setQ]            = useState("")
   const [filter,       setFilter]       = useState("ALL")
@@ -118,9 +142,9 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         id: "EV-PUB-" + String(Date.now()).slice(-6),
         time: `${hh}:${mm}`,
         type: "PLAN_PUBLISHED", severity: "low", state: "replanned", auto: "Manual",
-        title: `Plan P-2026-08-11 approved — ${moves.length} moves published`,
-        detail: `Yard Manager approved the night-before plan. ${moves.filter(m => m.frozen).length} moves frozen, ${moves.length} total.`,
-        diff: { cancelled:0, added:0, reassigned:0, frozenKept:moves.filter(m=>m.frozen).length, deltaMin:0, adherence:0 },
+        title: `Plan P-2026-08-11 approved — ${allSteps.length} steps published`,
+        detail: `Yard Manager approved the night-before plan. ${allSteps.filter(s=>s.step_status==="Blocked").length} blocked, ${allSteps.length} total.`,
+        diff: { cancelled:0, added:0, reassigned:0, frozenKept:allSteps.filter(s=>s.step_status==="Blocked").length, deltaMin:0, adherence:0 },
       })
       await refresh(["events"])
       setPublished(true)
@@ -157,30 +181,30 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
 
   // ── Focus handling ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (moves.length > 8 && !sel) setSel(moves[8].id)
-  }, [moves])
-
-  useEffect(() => {
     if (!focus) return
-    const m = moves.find(x => x.id === focus) || moves.find(x => x.containerId === focus)
-    if (m) { setSel(m.id); setTab("detail"); setFilter("ALL"); setQ("") }
+    const s = allSteps.find(x => x.container_id === focus || stepId(x) === focus)
+    if (s) { setSel(stepId(s)); setTab("detail"); setFilter("ALL"); setQ("") }
     else { setQ(focus); setFilter("ALL"); setSel(""); setTab("detail") }
-  }, [focus, moves])
+  }, [focus])
 
-  // ── Seed derived values ───────────────────────────────────────────────────
-  const types = ["ALL","RETRIEVE_STAGE","PLACE_INBOUND","RESHUFFLE","LOAD_OUTBOUND"]
-  const ql    = q.trim().toLowerCase()
-  const rows  = moves.filter(m =>
-    (filter === "ALL" || m.type === filter) &&
-    (!ql || (m.containerId+m.from+m.to+m.operatorName+m.equipment+m.type).toLowerCase().includes(ql))
+  // ── Seed derived values (planningData) ────────────────────────────────────
+  const OP_FILTER_TYPES = ["ALL","Putaway","Premarshal ahead of retrieval","Outbound staging and truck loading","Digout to clear an overstow","Discharge from vessel"]
+  const OP_LABELS: Record<string, string> = {
+    "ALL": "All",
+    "Putaway": "Put away",
+    "Premarshal ahead of retrieval": "Pre-marshal",
+    "Outbound staging and truck loading": "Load out",
+    "Digout to clear an overstow": "Digout",
+    "Discharge from vessel": "Discharge",
+  }
+  const ql           = q.trim().toLowerCase()
+  const planningRows = allSteps.filter(s =>
+    (filter === "ALL" || s.operation === filter) &&
+    (!ql || (s.container_id + fmtLoc(s.origin) + fmtLoc(s.destination) + (s.operator ?? "") + s.operation).toLowerCase().includes(ql))
   )
-  const selMoveRaw = moves.find(m => m.id === sel) || null
-  const selMove    = selMoveRaw
-    ? { ...selMoveRaw, ...(moveOverrides[selMoveRaw.id] || {}) }
-    : null
-  const onShift    = operators.filter(o => o.status === "on shift")
-  const totalMin   = moves.reduce((a,m) => a+m.estMin, 0)
-  const frozenCount = moves.filter(m => m.frozen).length
+  const selStep      = allSteps.find(s => stepId(s) === sel) ?? null
+  const onShift      = operators.filter(o => o.status === "on shift")
+  const frozenCount  = allSteps.filter(s => s.step_status === "Blocked").length
   const hotContainerIds = getHotContainers(CONTAINERS, 6)
 
   // ── Engine derived values ─────────────────────────────────────────────────
@@ -211,16 +235,28 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   type MoveRowData =
     | { source: "seed"; move: Move }
     | { source: "engine"; move: ReturnType<typeof adaptMoveForDisplay> }
+    | { source: "planning"; move: PlanningStep }
 
   function MoveRow({ m, isSelected, onClick }: { m: MoveRowData; isSelected: boolean; onClick: () => void }) {
-    const typeDisplay  = m.source === "seed" ? (TYPE_LABEL[m.move.type] ?? m.move.type) : m.move.typeLabel
-    const stateDisplay = m.source === "seed" ? (m.move.state ?? "").toLowerCase() : m.move.stateLabel.toLowerCase()
-    const isCompleted  = m.source === "seed"
-      ? (m.move.state === "done" || m.move.state === "complete" || m.move.state === "completed")
+    const typeDisplay  = m.source === "planning" ? m.move.operation
+      : m.source === "seed" ? (TYPE_LABEL[m.move.type] ?? m.move.type) : m.move.typeLabel
+    const stateDisplay = m.source === "planning" ? m.move.step_status.toLowerCase()
+      : m.source === "seed" ? (m.move.state ?? "").toLowerCase() : m.move.stateLabel.toLowerCase()
+    const isCompleted  = m.source === "planning" ? m.move.step_status === "Completed"
+      : m.source === "seed" ? (m.move.state === "done" || m.move.state === "complete" || m.move.state === "completed")
       : (m.move.status === "done" || m.move.status === "cancelled")
-    const frozen       = m.move.frozen
-    const windowStr    = m.source === "seed" ? `${m.move.start}–${m.move.end}` : `seq ${m.move.sequence_number}`
-    const isHot        = hotContainerIds.has(m.move.containerId)
+    const frozen       = m.source === "planning" ? m.move.step_status === "Blocked" : m.move.frozen
+    const windowStr    = m.source === "planning"
+      ? fmtIso(m.move.estimated_start) + "–" + fmtIso(m.move.estimated_end)
+      : m.source === "seed" ? `${m.move.start}–${m.move.end}` : `seq ${m.move.sequence_number}`
+    const containerId  = m.source === "planning" ? m.move.container_id : m.move.containerId
+    const seqNum       = m.source === "planning" ? (m.move.planned_step ?? m.move.step_number ?? 0) : m.move.seq
+    const fromStr      = m.source === "planning" ? fmtLoc(m.move.origin) : m.move.from
+    const toStr        = m.source === "planning" ? fmtLoc(m.move.destination) : m.move.to
+    const operatorName = m.source === "planning" ? (m.move.operator ?? "—") : m.move.operatorName
+    const equipLabel   = m.source === "planning" ? (m.move.move_method ?? "—") : m.move.equipment
+    const estMin       = m.source === "planning" ? stepDur(m.move) : m.move.estMin
+    const isHot        = m.source !== "planning" && hotContainerIds.has(containerId)
 
     return (
       <tr
@@ -229,57 +265,52 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         style={{
           background: isSelected ? "#fef3f2" : isHot ? "#fff8f5" : isCompleted ? "#fafafa" : undefined,
           borderBottom: "1px solid #f3f4f6",
-          minHeight: 44,    // Step 3: increased from 38
+          minHeight: 44,
         }}
       >
-        {/* SEQ */}
         {visibleCols.has("SEQ") && (
           <td className="py-2.5 pl-4 pr-2.5 font-mono text-[#9ca3af]" style={{ fontSize: 11, borderLeft: `3px solid ${isSelected ? "#dc2626" : isHot ? "#f97316" : frozen ? "#ccc" : "transparent"}` }}>
-            {String(m.move.seq).padStart(3,"0")}
+            {String(seqNum).padStart(3,"0")}
           </td>
         )}
-        {/* WINDOW */}
         {visibleCols.has("WINDOW") && (
           <td className="px-3 py-2.5 font-mono whitespace-nowrap" style={{ fontSize: 11 }}>{windowStr}</td>
         )}
-        {/* MOVE */}
         {visibleCols.has("MOVE") && (
           <td className="px-3 py-2.5" style={{ fontSize: 11 }}>
             <div className="font-bold">{typeDisplay}</div>
             <div className="text-[10px] text-[#9ca3af] font-mono">
               {isHot && <span title="Hot container" className="mr-1">🔥</span>}
-              {m.move.containerId}
+              {containerId}
             </div>
           </td>
         )}
-        {/* ROUTE */}
         {visibleCols.has("ROUTE") && (
-          <td className="px-3 py-2.5 font-mono text-[#374151] whitespace-nowrap" style={{ fontSize: 11 }}>{m.move.from} → {m.move.to}</td>
+          <td className="px-3 py-2.5 font-mono text-[#374151] whitespace-nowrap" style={{ fontSize: 11 }}>{fromStr} → {toStr}</td>
         )}
-        {/* ASSIGNED */}
         {visibleCols.has("ASSIGNED") && (
           <td className="px-3 py-2.5 whitespace-nowrap" style={{ fontSize: 11 }}>
-            <div>{m.move.operatorName}</div>
-            <div className="text-[10px] text-[#9ca3af]">{m.move.equipment} · {stateDisplay}</div>
+            <div>{operatorName}</div>
+            <div className="text-[10px] text-[#9ca3af]">{equipLabel} · {stateDisplay}</div>
           </td>
         )}
-        {/* EST */}
         {visibleCols.has("EST") && (
-          <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ fontSize: 11 }}>{m.move.estMin.toFixed(1)}′</td>
+          <td className="px-3 py-2.5 text-right font-mono font-semibold" style={{ fontSize: 11 }}>{estMin.toFixed(1)}′</td>
         )}
       </tr>
     )
   }
 
-  // ── Step 1: KPI data arrays ───────────────────────────────────────────────
-  const inbounds    = moves.filter(m => m.type === "PLACE_INBOUND" || m.type === "RECEIVE_FROM_LANE").length
-  const outbounds   = moves.filter(m => m.type === "LOAD_OUTBOUND").length
+  // ── Step 1: KPI data arrays (planningData) ───────────────────────────────
+  const { totalSteps, totalOperators } = dashboardCounts()
+  const inbounds    = allSteps.filter(s => s.operation === "Putaway" || s.operation === "Discharge from vessel").length
+  const outbounds   = allSteps.filter(s => s.operation === "Outbound staging and truck loading").length
   const equipAvail  = EQUIPMENT.filter(e => e.status === "available").length
   const primaryKpis = [
     { k:"Inbound containers",  v:String(inbounds),           sub:"moves today",                                                                           red:false },
     { k:"Outbound containers", v:String(outbounds),          sub:"moves today",                                                                           red:false },
-    { k:"Operators available", v:String(onShift.length),     sub:`${onShift.length} of ${OPERATORS.length} on shift`,                                     red:false },
-    { k:"Moves created",       v:String(moves.length),       sub:"in shift plan",                                                                         red:false },
+    { k:"Operators available", v:String(totalOperators),     sub:`${totalOperators} of ${totalOperators} on shift`,                                       red:false },
+    { k:"Moves created",       v:String(totalSteps),         sub:"in shift plan",                                                                         red:false },
     { k:"Detention risk",      v:"$8.4k",                    sub:"next 72 h",                                                                             red:true  },
   ]
   const secondaryKpis = [
@@ -593,12 +624,12 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             {/* Table toolbar */}
             <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[#e5e7eb] flex-none">
               <Input placeholder="Filter container, slot, operator…" value={q} onChange={e => setQ(e.target.value)} className="w-48 h-7 text-xs" />
-              {/* Type filter */}
+              {/* Operation filter */}
               <div style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden", display:"flex" }}>
-                {types.map(t => (
+                {OP_FILTER_TYPES.map(t => (
                   <button key={t} onClick={() => setFilter(t)} className="text-[10.5px] px-2 py-1 font-semibold transition-colors"
                     style={{ background: filter===t ? "#111827":"transparent", color: filter===t ? "#fff":"#374151" }}>
-                    {t === "ALL" ? "All" : TYPE_LABEL[t]}
+                    {OP_LABELS[t] ?? t}
                   </button>
                 ))}
               </div>
@@ -623,7 +654,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                 )}
               </div>
               <span className="ml-auto text-[11px] text-[#9ca3af]">
-                <span className="font-mono">{rows.length}</span> of <span className="font-mono">{moves.length}</span> · <span className="font-mono">{frozenCount}</span> frozen
+                <span className="font-mono">{planningRows.length}</span> of <span className="font-mono">{allSteps.length}</span> · <span className="font-mono">{frozenCount}</span> blocked
               </span>
             </div>
 
@@ -641,10 +672,10 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.length === 0 ? (
-                    <tr><td colSpan={visibleCols.size} className="px-4 py-4 text-[11px] text-[#9ca3af]">No moves match {q ? `"${q}"` : "this filter"}.</td></tr>
-                  ) : rows.map(m => (
-                    <MoveRow key={m.id} m={{ source:"seed", move:m }} isSelected={m.id===sel} onClick={() => { setSel(m.id); setTab("detail") }} />
+                  {planningRows.length === 0 ? (
+                    <tr><td colSpan={visibleCols.size} className="px-4 py-4 text-[11px] text-[#9ca3af]">No steps match {q ? `"${q}"` : "this filter"}.</td></tr>
+                  ) : planningRows.map((s, i) => (
+                    <MoveRow key={`pr-${i}`} m={{ source:"planning", move:s }} isSelected={stepId(s)===sel} onClick={() => { setSel(stepId(s)); setTab("detail") }} />
                   ))}
                 </tbody>
               </table>
@@ -661,217 +692,57 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
               </TabsList>
 
               <TabsContent value="detail" className="flex-1 overflow-auto">
-                {selMove ? (
+                {selStep ? (
                   <div>
-                    {/* Move header */}
+                    {/* Step header */}
                     <div className="px-4 pt-3 pb-3 flex items-start justify-between gap-2">
                       <div>
-                        <div className="ds-label"><span className="font-mono">{selMove.id}</span> · seq <span className="font-mono">{selMove.seq}</span></div>
-                        <div className="font-semibold text-base mt-1 tracking-tight">{TYPE_LABEL[selMove.type]}</div>
-                        <div className="text-[12px] mt-1 font-mono text-[#374151]">{selMove.containerId}</div>
-                        <div className="text-[12px] font-mono text-[#9ca3af]">{selMove.from} → {selMove.to}</div>
+                        <div className="ds-label">
+                          <span className="font-mono">{selStep.container_id}</span>
+                          {selStep.planned_step != null && <> · step <span className="font-mono">{selStep.planned_step}</span></>}
+                        </div>
+                        <div className="font-semibold text-base mt-1 tracking-tight">{selStep.operation}</div>
+                        <div className="text-[12px] mt-1 font-mono text-[#374151]">{fmtLoc(selStep.origin)}</div>
+                        <div className="text-[12px] font-mono text-[#9ca3af]">→ {fmtLoc(selStep.destination)}</div>
                       </div>
-                      {!editOpen && !published && (
-                        <button
-                          onClick={() => {
-                            setEditEquip(selMove.equipment)
-                            const op = OPERATORS.find(o => o.equipment === selMove.equipment) || OPERATORS[0]
-                            setEditOpId(selMove.operator || op.id)
-                            setEditStart(selMove.start)
-                            setEditEnd(selMove.end)
-                            setEditTo(selMove.to)
-                            setEditOpen(true)
-                          }}
-                          className="flex-none flex items-center gap-1 text-[11px] font-medium text-[#374151] px-2 py-1 mt-0.5"
-                          style={{ border:"1px solid #e5e7eb", borderRadius:5, background:"#fff", whiteSpace:"nowrap" }}
-                          title="Edit assignment"
-                        >
-                          <span style={{ fontSize:12 }}>✎</span> Edit
-                        </button>
-                      )}
                     </div>
 
-                    {/* Step 4: WHY THIS MOVE / HARD-RULE BLOCK — always visible */}
-                    {(() => {
-                      const ruleBlock = checkPlacementRules(selMove, CONTAINERS)
-                      return ruleBlock ? (
-                        <div className="mx-4 mb-3 px-4 py-3"
-                          style={{ background:"#fef2f2", border:"1px solid #fca5a5", borderRadius:6 }}>
-                          <div className="text-[9.5px] font-bold tracking-widest text-[#b91c1c] mb-1.5 uppercase">
-                            Hard rule — move blocked
-                          </div>
-                          <div className="text-[12.5px] font-semibold text-[#b91c1c] leading-snug">
-                            ⚠ {ruleBlock}
-                          </div>
+                    {/* WHY THIS MOVE callout */}
+                    {selStep.step_status === "Blocked" ? (
+                      <div className="mx-4 mb-3 px-4 py-3"
+                        style={{ background:"#fef2f2", border:"1px solid #fca5a5", borderRadius:6 }}>
+                        <div className="text-[9.5px] font-bold tracking-widest text-[#b91c1c] mb-1.5 uppercase">
+                          Step blocked
                         </div>
-                      ) : (
-                        <div className="ds-callout mx-4 mb-3">
-                          <div className="ds-callout-label">Why this move</div>
-                          <div className="text-[9.5px] font-semibold tracking-wide opacity-50 mb-1">PIFO — Priority-In-First-Out</div>
-                          <div className="text-[12.5px] leading-relaxed">{selMove.reason}</div>
+                        <div className="text-[12.5px] font-semibold text-[#b91c1c] leading-snug">
+                          ⚠ Activity status: {selStep.activity_status ?? "Unknown"}
                         </div>
-                      )
-                    })()}
-
-                    {/* ── Inline edit form ─────────────────────────────────── */}
-                    {editOpen && (() => {
-                      const machineOps = OPERATORS.filter(o => o.equipment === editEquip)
-                      const selectedOp = OPERATORS.find(o => o.id === editOpId)
-                      return (
-                        <div className="mx-4 mb-3 rounded-lg" style={{ border:"1px solid #e5e7eb", background:"#fafafa" }}>
-                          <div className="px-3 pt-3 pb-2 flex items-center justify-between">
-                            <span className="text-[11px] font-bold tracking-wider text-[#374151] uppercase">Edit assignment</span>
-                            <button
-                              onClick={() => setEditOpen(false)}
-                              className="text-[#9ca3af] hover:text-[#374151] text-[13px] leading-none"
-                              style={{ padding:"2px 5px" }}
-                            >✕</button>
-                          </div>
-
-                          {/* Machine */}
-                          <div className="px-3 pb-2">
-                            <label className="text-[10.5px] text-[#9ca3af] font-medium block mb-1">Machine</label>
-                            <select
-                              value={editEquip}
-                              onChange={e => {
-                                setEditEquip(e.target.value)
-                                const first = OPERATORS.find(o => o.equipment === e.target.value)
-                                if (first) setEditOpId(first.id)
-                              }}
-                              className="w-full text-[12px] font-mono px-2 py-1.5 rounded"
-                              style={{ border:"1px solid #e5e7eb", background:"#fff", color:"#374151" }}
-                            >
-                              {EQUIPMENT.map(eq => (
-                                <option key={eq.id} value={eq.id}>
-                                  {eq.id} — {eq.type} ({eq.status})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Operator */}
-                          <div className="px-3 pb-2">
-                            <label className="text-[10.5px] text-[#9ca3af] font-medium block mb-1">Operator</label>
-                            {machineOps.length > 0 ? (
-                              <select
-                                value={editOpId}
-                                onChange={e => setEditOpId(e.target.value)}
-                                className="w-full text-[12px] font-mono px-2 py-1.5 rounded"
-                                style={{ border:"1px solid #e5e7eb", background:"#fff", color:"#374151" }}
-                              >
-                                {machineOps.map(op => (
-                                  <option key={op.id} value={op.id}>
-                                    {op.name} · {op.id} ({op.status})
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <div className="text-[11.5px] text-[#9ca3af] px-2 py-1.5 rounded font-mono"
-                                style={{ border:"1px solid #e5e7eb", background:"#f9fafb" }}>
-                                No operators certified for {editEquip}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Window */}
-                          <div className="px-3 pb-2">
-                            <label className="text-[10.5px] text-[#9ca3af] font-medium block mb-1">Window</label>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={editStart}
-                                onChange={e => setEditStart(e.target.value)}
-                                placeholder="HH:MM"
-                                className="flex-1 text-[12px] font-mono px-2 py-1.5 rounded text-center"
-                                style={{ border:"1px solid #e5e7eb", background:"#fff", color:"#374151" }}
-                              />
-                              <span className="text-[11px] text-[#9ca3af]">→</span>
-                              <input
-                                type="text"
-                                value={editEnd}
-                                onChange={e => setEditEnd(e.target.value)}
-                                placeholder="HH:MM"
-                                className="flex-1 text-[12px] font-mono px-2 py-1.5 rounded text-center"
-                                style={{ border:"1px solid #e5e7eb", background:"#fff", color:"#374151" }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Target location */}
-                          <div className="px-3 pb-2">
-                            <label className="text-[10.5px] text-[#9ca3af] font-medium block mb-1">Target location</label>
-                            <input
-                              type="text"
-                              value={editTo}
-                              onChange={e => setEditTo(e.target.value)}
-                              placeholder="e.g. A-03-1-9-3"
-                              className="w-full text-[12px] font-mono px-2 py-1.5 rounded"
-                              style={{ border:"1px solid #e5e7eb", background:"#fff", color:"#374151" }}
-                            />
-                            <div className="text-[10px] text-[#9ca3af] mt-1">Current: <span className="font-mono">{selMove.to}</span></div>
-                          </div>
-
-                          {/* Actions */}
-                          <div className="px-3 pb-3 pt-1 flex gap-2">
-                            <button
-                              onClick={() => {
-                                const op = OPERATORS.find(o => o.id === editOpId)
-                                setMoveOverrides(prev => ({
-                                  ...prev,
-                                  [sel]: {
-                                    ...prev[sel],
-                                    equipment: editEquip,
-                                    operator: editOpId,
-                                    operatorName: op?.name || editOpId,
-                                    start: editStart,
-                                    end: editEnd,
-                                    to: editTo,
-                                  }
-                                }))
-                                setEditOpen(false)
-                              }}
-                              className="flex-1 text-[12px] font-semibold py-1.5 rounded text-white"
-                              style={{ background:"#111827" }}
-                            >
-                              Save changes
-                            </button>
-                            <button
-                              onClick={() => {
-                                setMoveOverrides(prev => ({
-                                  ...prev,
-                                  [sel]: { ...prev[sel], passed: true }
-                                }))
-                                setEditOpen(false)
-                              }}
-                              className="flex-none text-[12px] font-semibold px-3 py-1.5 rounded"
-                              style={{ border:"1px solid #dc2626", color:"#dc2626", background:"#fff5f5" }}
-                            >
-                              Pass move
-                            </button>
-                          </div>
+                      </div>
+                    ) : (
+                      <div className="ds-callout mx-4 mb-3">
+                        <div className="ds-callout-label">Why this step</div>
+                        <div className="text-[12.5px] leading-relaxed">
+                          {selStep.operator_pickup ?? selStep.operation}
                         </div>
-                      )
-                    })()}
+                      </div>
+                    )}
 
                     {/* Key-value detail rows */}
-                    {(() => {
-                      const isPassed = !!(moveOverrides[sel]?.passed)
-                      return [
-                        ["Machine / operator", selMove.equipment+" · "+selMove.operatorName],
-                        ["Window", selMove.start+"–"+selMove.end+" ("+selMove.estMin.toFixed(1)+"′)"],
-                        ["Travel / lift / set-down", (selMove.estMin*0.45).toFixed(1)+" / "+(selMove.estMin*0.3).toFixed(1)+" / "+(selMove.estMin*0.25).toFixed(1)],
-                        ["Order priority", selMove.priority],
-                        ["State", isPassed ? "passed" : (selMove.frozen ? selMove.state.toLowerCase()+" · frozen" : selMove.state.toLowerCase())],
-                        ["Weight snapshot", "WS-2026-08-10#a41f9c"],
-                      ].map(([k,v]) => (
-                        <div key={k} className="flex justify-between gap-3 px-4 py-2 border-b border-[#f3f4f6] text-[11.5px]">
-                          <span className="text-[#9ca3af]">{k}</span>
-                          <span className={`font-semibold font-mono text-right ${k==="State" && isPassed ? "text-[#9ca3af] line-through" : ""}`}>{v}</span>
-                        </div>
-                      ))
-                    })()}
+                    {[
+                      ["Operator",      selStep.operator ?? "—"],
+                      ["Move method",   selStep.move_method ?? "—"],
+                      ["Window",        fmtIso(selStep.estimated_start) + "–" + fmtIso(selStep.estimated_end) + " (" + stepDur(selStep).toFixed(1) + "′)"],
+                      ["Step status",   selStep.step_status],
+                      ["Activity",      selStep.activity_status ?? "—"],
+                      ["Score",         selStep.planning_score != null ? String(selStep.planning_score) : "—"],
+                    ].map(([k,v]) => (
+                      <div key={k} className="flex justify-between gap-3 px-4 py-2 border-b border-[#f3f4f6] text-[11.5px]">
+                        <span className="text-[#9ca3af]">{k}</span>
+                        <span className="font-semibold font-mono text-right">{v}</span>
+                      </div>
+                    ))}
 
-                    {/* Step 4: Hard constraints — accordion, default closed */}
+                    {/* Hard constraints accordion */}
                     <AccordionHeader label="Hard constraints" open={constraintsOpen} onToggle={() => setConstraintsOpen(v => !v)} />
                     <div style={{ overflow:"hidden", maxHeight: constraintsOpen ? 300 : 0, transition:"max-height 200ms ease" }}>
                       {[
@@ -879,25 +750,25 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                         ["C3","Row depth within machine reach","PASS"],
                         ["C4","Gross weight against capacity chart","PASS"],
                         ["C9","Operator certified for cargo class","PASS"],
-                        ["C12","Destination zone below utilisation ceiling",selMove.to[0]==="C"?"AT CEILING":"PASS"],
+                        ["C12","Destination zone below utilisation ceiling","PASS"],
                       ].map(([id,label,verdict]) => (
                         <div key={id} className="flex gap-2 items-baseline px-4 py-1.5 text-[11.5px]">
                           <span className="w-6 font-bold font-mono text-[#9ca3af]">{id}</span>
                           <span className="flex-1 text-[#374151] leading-tight">{label}</span>
-                          <span className={`text-[10px] font-bold tracking-wider ${verdict==="AT CEILING"?"text-[#dc2626]":"text-[#9ca3af]"}`}>{verdict}</span>
+                          <span className="text-[10px] font-bold tracking-wider text-[#9ca3af]">{verdict}</span>
                         </div>
                       ))}
                     </div>
 
-                    {/* Step 4: Move history — accordion, default closed */}
-                    <AccordionHeader label="Move history" open={moveHistoryOpen} onToggle={() => setMoveHistoryOpen(v => !v)} />
+                    {/* Step history accordion */}
+                    <AccordionHeader label="Step history" open={moveHistoryOpen} onToggle={() => setMoveHistoryOpen(v => !v)} />
                     <div style={{ overflow:"hidden", maxHeight: moveHistoryOpen ? 200 : 0, transition:"max-height 200ms ease" }}>
                       {[
-                        ["22:14","Sequenced by engine","auto"],
-                        ["22:18","Weight snapshot locked","auto"],
-                        ["05:48","Reviewed by dispatcher","manual"],
+                        [fmtIso(selStep.estimated_start), "Planned by engine", "auto"],
+                        ...(selStep.actual_start ? [[fmtIso(selStep.actual_start), "Actual start recorded", "system"]] : []),
+                        ...(selStep.actual_end   ? [[fmtIso(selStep.actual_end),   "Actual end recorded",   "system"]] : []),
                       ].map(([time,event,src]) => (
-                        <div key={time} className="flex items-baseline gap-3 px-4 py-1.5 text-[11.5px] border-b border-[#f9fafb]">
+                        <div key={time+event} className="flex items-baseline gap-3 px-4 py-1.5 text-[11.5px] border-b border-[#f9fafb]">
                           <span className="font-mono text-[#9ca3af] w-10">{time}</span>
                           <span className="flex-1 text-[#374151]">{event}</span>
                           <span className="text-[10px] text-[#9ca3af]">{src}</span>
@@ -907,7 +778,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                   </div>
                 ) : (
                   <div className="px-4 py-4 text-[12.5px] leading-relaxed text-[#374151]">
-                    {focus || q || "This container"} has no move in plan P-2026-08-11 — {moves.length} of 897 containers are moved today.
+                    {focus || q || "This container"} has no step in plan P-2026-08-11 — {allSteps.length} steps planned today.
                   </div>
                 )}
               </TabsContent>
@@ -1055,28 +926,37 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     <div key={h} className="flex-1 font-mono text-[9px] text-[#9ca3af] border-l border-[#e5e7eb] px-1 py-1">{h}</div>
                   ))}
                 </div>
-                {onShift.map(op => (
-                  <div key={op.id} className="contents">
-                    <div className="px-4 py-1 text-[11.5px] border-b border-[#e5e7eb] flex justify-between gap-2">
-                      <span className="font-semibold">{op.name}</span>
-                      <span className="text-[#9ca3af]">{op.equipment}</span>
+                {operatorNames().map(opName => {
+                  const opSteps = stepsForOperator(opName)
+                  return (
+                    <div key={opName} className="contents">
+                      <div className="px-4 py-1 text-[11.5px] border-b border-[#e5e7eb] flex justify-between gap-2">
+                        <span className="font-semibold">{opName}</span>
+                        <span className="text-[#9ca3af]">{opSteps.length} steps</span>
+                      </div>
+                      <div className="relative h-8 border-b border-[#e5e7eb] border-l border-[#e5e7eb]">
+                        {opSteps.map((s, gi) => {
+                          const startMin = isoToMin(s.estimated_start)
+                          const endMin   = isoToMin(s.estimated_end)
+                          if (startMin == null || endMin == null) return null
+                          const sid = stepId(s)
+                          return (
+                            <div key={`g-${gi}`}
+                              onClick={() => { setSel(sid); setTab("detail") }}
+                              title={`${s.container_id} · ${s.operation} · ${fmtIso(s.estimated_start)}–${fmtIso(s.estimated_end)}`}
+                              className="absolute top-2 h-3 cursor-pointer hover:opacity-80"
+                              style={{
+                                left: (Math.max(0, startMin - 360) / 480 * 100).toFixed(2) + "%",
+                                width: Math.max(0.5, (endMin - startMin) / 480 * 100).toFixed(2) + "%",
+                                background: sid === sel ? "#dc2626" : s.step_status === "Blocked" ? "#9ca3af" : "#111827",
+                              }}
+                            />
+                          )
+                        })}
+                      </div>
                     </div>
-                    <div className="relative h-8 border-b border-[#e5e7eb] border-l border-[#e5e7eb]">
-                      {moves.filter(m => m.operator === op.id).map(m => (
-                        <div key={m.id}
-                          onClick={() => { setSel(m.id); setTab("detail") }}
-                          title={m.id+" "+TYPE_LABEL[m.type]+" "+m.start+"–"+m.end}
-                          className="absolute top-2 h-3 cursor-pointer hover:opacity-80"
-                          style={{
-                            left: ((m.startMin-360)/480*100).toFixed(2)+"%",
-                            width: Math.max(0.5,(m.endMin-m.startMin)/480*100).toFixed(2)+"%",
-                            background: m.id===sel ? "#dc2626" : m.frozen ? "#9ca3af" : "#111827",
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>

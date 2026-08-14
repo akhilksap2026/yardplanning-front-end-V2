@@ -1,0 +1,67 @@
+Phase 2 — Apply these nomenclature changes after I confirm
+
+Once I say "go ahead", apply the following display-label changes. Do NOT rename any data fields in the JSON or TypeScript types. Do NOT change operator/driver names. Do NOT change container IDs. Do NOT change any actual data values in planningResults.json. Only change what the user sees on screen — display labels, tooltips, column headers, card titles, legend text, and filter option labels.
+
+Move method display labels
+
+Wherever the app displays the move_method field value to users, map it to a more specific display label based on context. Use this logic:
+
+Raw move_method value	Display as	When / Context
+Crane lift	Pick from Stack	When operation is Retrieval or Premarshal ahead of retrieval AND it's the first crane lift step for that container in that activity
+Crane lift	Stack Container	When operation is Putaway AND it's the last crane lift step, OR when it's a reaccommodation step putting a container back
+Crane lift	Reaccommodate	When operation is Digout to clear an overstow — these are moves to clear overstowing containers and place them back
+Crane lift	Reshuffle	When operation is Premarshal ahead of retrieval AND step_number > 1 AND it's not the primary pick (i.e., intermediate crane lifts within the premarshal sequence)
+Crane lift	Crane Move	Fallback if none of the above match
+Yard-truck haul	Drive	All cases
+Move to staging	Move to Staging	All cases (just title-case it)
+Inspection	Confirm Location	When it's the final step of a Putaway operation
+Inspection	Inspect Container	All other cases
+
+Create a utility function (e.g., getDisplayMoveMethod(step)) that takes a planning step and returns the correct display string. Use this function everywhere the app renders move_method. Do not scatter this logic across components — one function, used everywhere.
+
+Operation display labels
+Raw operation value	Display as
+Premarshal ahead of retrieval	Pre-Marshal
+Digout to clear an overstow	Digout
+Outbound staging and truck loading	Outbound
+Discharge from vessel	Vessel Discharge
+Putaway	Putaway (no change)
+
+Same pattern: create a utility function getDisplayOperation(operation) and use it everywhere.
+
+Equipment type badge
+
+Add a visual badge or icon indicator on task cards and operator timeline entries showing the equipment involved. Derive it from the raw move_method:
+
+Raw move_method	Equipment badge
+Crane lift	🏗️ Crane
+Yard-truck haul	🚛 Yard Truck
+Move to staging	🚛 Yard Truck
+Inspection	👁️ Manual
+
+Create a utility function getEquipmentType(step) that returns { icon: string, label: string }. Render this as a small badge or tag next to the move method label wherever tasks are shown. Keep it subtle — a small colored tag, not a large element.
+
+Extra movement flag
+
+Steps where operation is Premarshal ahead of retrieval or Digout to clear an overstow are extra movements — they are reshuffles/rehandles, not directly productive. Wherever these steps appear in task lists, operator timelines, or activity detail views, add a small visual indicator — a tag, dot, or subtle background tint — that distinguishes them from productive moves (Putaway, Outbound, Vessel Discharge).
+
+If there's a dashboard or summary view, add a Rehandle Ratio metric: count of extra-movement steps divided by total steps, shown as a percentage. Label it "Rehandle Ratio" with a brief tooltip "Ratio of reshuffle/digout moves to total moves — lower is better".
+
+Status labels
+
+Keep Planned, Completed, Blocked as-is. But ensure the colors are consistent everywhere they appear:
+
+Planned → blue/indigo
+Completed → green
+Blocked → red/amber
+
+If any component uses different colors for the same status, fix it so they match.
+
+Constraints
+Do NOT touch planningResults.json or planningData.ts — all changes are display-layer only.
+Do NOT change operator/driver names — Aaliyah Thompson, Tomas Silva, Deshawn Carter, Marcus Reyes, Priya Nair, Kayla Nguyen stay exactly as they are.
+Do NOT change container IDs — TCLU, OOLU, MSCU, CMAU, HLXU prefixes and numbers stay as-is.
+Do NOT change any actual data values, step counts, planning scores, timestamps, bay/row/tier numbers, or coordinates.
+Do NOT change the layout or visual design of any screen beyond adding the equipment badge and extra-movement indicator.
+Put all display-mapping functions in one file (e.g., src/utils/displayLabels.ts or similar) so the mappings are maintained in one place.
+This is a prototype. Don't add error handling, loading states, or production hardening.
