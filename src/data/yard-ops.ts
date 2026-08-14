@@ -79,7 +79,7 @@ export const OPERATOR_TASKS = allSteps
     id:        `MV-${1028 + i}`,
     seq:       `${s.planned_step ?? s.step_number ?? i + 1} of ${allSteps.filter(x => x.operator === s.operator).length}`,
     type:      s.operation,
-    container: s.container_id,
+    container: s.container_id ?? "",
     from:      _fmtLoc(s.origin),
     to:        _fmtLoc(s.destination),
     est:       _stepDur(s),

@@ -18,12 +18,12 @@ type DisplayTask = {
   id: string | number
   seq: number
   container: string
-  size: string
-  weight: string
+  size?: string
+  weight?: string
   from: string
   to: string
   reason: string
-  warn: string
+  warn?: string
   est: number
 }
 
@@ -81,16 +81,17 @@ export default function OperatorTablet() {
       }
     }
     if (!backendConnected && seedTask) {
+      const s = seedTask as any
       return {
         id:        seedTask.id,
         seq:       parseInt(seedTask.seq) || 0,
-        container: seedTask.container,
-        size:      seedTask.size,
-        weight:    seedTask.weight,
+        container: seedTask.container ?? "",
+        size:      s.size,
+        weight:    s.weight,
         from:      seedTask.from,
         to:        seedTask.to,
         reason:    seedTask.reason,
-        warn:      seedTask.warn,
+        warn:      s.warn,
         est:       Number(seedTask.est),
       }
     }
@@ -128,8 +129,8 @@ export default function OperatorTablet() {
         if (match) setTimeout(() => go(3), 800)
       } finally { setScanning(false) }
     } else if (!backendConnected && seedTask) {
-      const match = scanInput.trim().toUpperCase() === seedTask.container.toUpperCase()
-      setScanResult({ match, scanned: scanInput.trim(), expected: seedTask.container })
+      const match = scanInput.trim().toUpperCase() === (seedTask.container ?? "").toUpperCase()
+      setScanResult({ match, scanned: scanInput.trim(), expected: seedTask.container ?? "" })
       if (match) setTimeout(() => go(3), 800)
     }
   }
@@ -315,7 +316,7 @@ export default function OperatorTablet() {
                     const isCurrent = i===queueIdx
                     const fromShort = task.from.split("-").slice(0,2).join("-")
                     const toShort   = task.to.split("-").slice(0,2).join("-")
-                    const cnShort   = task.container.slice(0,4)
+                    const cnShort   = (task.container ?? "").slice(0,4)
                     return (
                       <button key={task.id}
                         onClick={()=>{

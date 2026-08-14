@@ -249,7 +249,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     const operatorName = m.source === "planning" ? (m.move.operator ?? "—") : m.move.operatorName
     const equipLabel   = m.source === "planning" ? getDisplayMoveMethod(m.move) : m.move.equipment
     const estMin       = m.source === "planning" ? stepDur(m.move) : m.move.estMin
-    const isHot        = m.source !== "planning" && hotContainerIds.has(containerId)
+    const isHot        = m.source !== "planning" && hotContainerIds.has(containerId ?? "")
     const isExtra      = m.source === "planning" && isExtraMovement(m.move.operation)
     const equipBadge   = m.source === "planning" ? getEquipmentType(m.move) : null
     const statusStyle  = m.source === "planning" ? getStatusStyle(m.move.step_status) : null
