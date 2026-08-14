@@ -169,19 +169,8 @@ export default function LiveOps({ onNavigate }: Props) {
   }), [allEntities, now, focus])
 
   // ── Groups ────────────────────────────────────────────────────────────────
-  // State sort order: green/on-plan first, red/blocked last
-  const STATE_ORDER: Record<string, number> = {
-    "done":        0,
-    "in-progress": 1,
-    "scheduled":   2,
-    "late":        3,
-    "blocked":     4,
-  }
   const groups = useMemo(() => ["vessel","gate","moves","equip"].map(g => {
-    const rows   = enriched
-      .filter(x => x.g === g)
-      .slice()
-      .sort((a, b) => (STATE_ORDER[a.state] ?? 5) - (STATE_ORDER[b.state] ?? 5))
+    const rows   = enriched.filter(x => x.g === g)
     const late   = rows.filter(x => x.state === "blocked" || x.state === "late").length
     const done   = rows.filter(x => x.state === "done").length
     const inProg = rows.filter(x => x.state === "in-progress").length
@@ -211,9 +200,9 @@ export default function LiveOps({ onNavigate }: Props) {
   const detRiskK    = +(CONTAINERS.filter(c => !c.empty && c.hoursToLFD <= 72)
     .reduce((s, c) => s + Math.max(0, (72 - c.hoursToLFD) * 125), 0) / 1000).toFixed(1)
 
-  const shiftStatus      = "ON PLAN"
-  const shiftStatusColor = "#15803d"
-  const shiftStatusBg    = "#f0fdf4"
+  const shiftStatus      = offPlan >= 3 ? "AT RISK" : offPlan >= 1 ? "ON WATCH" : "ON PLAN"
+  const shiftStatusColor = offPlan >= 3 ? "#dc2626"  : offPlan >= 1 ? "#d97706"  : "#111827"
+  const shiftStatusBg    = offPlan >= 3 ? "#fef2f2"  : offPlan >= 1 ? "#fffbeb"  : "#f0fdf4"
 
   // ── Hour bars ─────────────────────────────────────────────────────────────
   const nowHour = Math.floor(now / 60)
