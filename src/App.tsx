@@ -548,7 +548,7 @@ function AppShell() {
             </div>
           ) : screen === "plan"     ? <NightPlanner  focus={focus} onNavigate={navigate} />
             : screen === "yard"     ? <YardMap        focus={focus} onNavigate={navigate} />
-            : screen === "gate"     ? <GateConsole    focus={focus} />
+            : screen === "gate"     ? <GateConsole    focus={focus} onNavigate={navigate} />
             : screen === "tower"    ? <ControlTower   focus={focus} />
             : screen === "operator" ? <OperatorTablet />
             : screen === "settings" ? <SettingsScreen />

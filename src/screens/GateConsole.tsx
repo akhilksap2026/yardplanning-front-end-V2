@@ -6,8 +6,12 @@ import { backendApi } from "@/lib/backend-api"
 import type { BackendGateTransaction } from "@/lib/backend-api"
 import ContainerPicker from "@/components/ContainerPicker"
 import { computeRehandleCost } from "@/lib/utils"
+import GateInspection from "@/components/gate/GateInspection"
 
-interface Props { focus: string | null }
+interface Props {
+  focus: string | null
+  onNavigate?: (target: string, focus?: string) => void
+}
 
 const STEPS = ["EXPECTED","APPROACHING","IN_QUEUE","CHECKED_IN","AT_POSITION","SERVED","GATE_OUT"]
 
@@ -36,7 +40,7 @@ const VISIT_COL_LABELS: Record<VisitCol, string> = {
   PURPOSE: "PURPOSE", CONTAINER: "CONTAINER", APPT: "APPT", EXCLUSION: "EXCLUSION",
 }
 
-export default function GateConsole({ focus }: Props) {
+export default function GateConsole({ focus, onNavigate }: Props) {
   const { visits, lanes, appointments, refresh, backendConnected, backendContainers, containers } = useData()
 
   // ── Existing state ────────────────────────────────────────────────────────
@@ -259,13 +263,16 @@ export default function GateConsole({ focus }: Props) {
           <span className="text-[11px] text-neutral-500">Clock starts at queue geofence · stops at barrier release · exclusions recorded per visit</span>
         </div>
         <div className="flex ml-3" style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden" }}>
-          {([["visits","Live visits"],["gtx","Gate transactions"],["appts","Appointments"]] as const).map(([k,label])=>(
-            <button key={k} onClick={()=>setTab(k)}
-              className="text-[11.5px] px-3 py-1.5 font-bold transition-colors"
-              style={{ background:tab===k?"#111827":"transparent", color:tab===k?"#fff":"#374151" }}>
-              {label}
-            </button>
-          ))}
+          {(["visits","gtx","appts","inspection"] as const).map(k => {
+            const label = k==="visits"?"Live visits":k==="gtx"?"Gate transactions":k==="appts"?"Appointments":"Inspection"
+            return (
+              <button key={k} onClick={()=>setTab(k)}
+                className="text-[11.5px] px-3 py-1.5 font-bold transition-colors"
+                style={{ background:tab===k?"#111827":"transparent", color:tab===k?"#fff":"#374151" }}>
+                {label}
+              </button>
+            )
+          })}
         </div>
         <div className="ml-auto">
           {tab==="gtx"&&backendConnected ? (
@@ -760,6 +767,13 @@ export default function GateConsole({ focus }: Props) {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ════════════════════ INSPECTION TAB ════════════════════ */}
+      {tab === "inspection" && (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <GateInspection onNavigate={onNavigate} />
         </div>
       )}
     </div>

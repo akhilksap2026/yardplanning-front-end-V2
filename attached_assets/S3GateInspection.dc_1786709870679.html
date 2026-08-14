@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/modernist-5648be78-77d7-4015-8810-603a33e645f0/styles.css">
+  <script src="_ds/modernist-5648be78-77d7-4015-8810-603a33e645f0/_ds_bundle.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;height:100%;min-height:0;overflow:auto;font-family:var(--font-body);color:var(--color-text);background:var(--color-bg)">
+
+  <div style="display:flex;align-items:center;gap:18px;padding:14px 20px 12px;border-bottom:2px solid var(--color-divider);flex:none">
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <span style="font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-0.015em">Gate Inspection</span>
+      <span style="font-size:11px;color:var(--color-neutral-700)">Pre-entry check — exterior, seal, documents, cargo-specific compliance · every finding is recorded on the EIR</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <span style="font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-neutral-600)">Queue</span>
+      <sc-for list="{{ queue }}" as="q" hint-placeholder-count="3">
+        <button onClick="{{ q.onClick }}" style="font-size:11.5px;padding:5px 10px;border:1px solid {{ q.border }};background:{{ q.bg }};color:{{ q.fg }};cursor:pointer;font-family:var(--font-body);font-weight:700;display:inline-flex;align-items:center;gap:6px">
+          <span style="width:6px;height:6px;background:{{ q.dot }};display:inline-block"></span>{{ q.label }}
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:0;padding:8px 20px;border-bottom:1px solid var(--color-neutral-300);flex:none;background:var(--color-neutral-100)">
+    <span style="font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-right:12px">Progress</span>
+    <sc-for list="{{ progress }}" as="p" hint-placeholder-count="5">
+      <div style="display:flex;align-items:center;gap:8px;padding-right:14px;margin-right:14px;border-right:1px solid var(--color-neutral-300)">
+        <span style="width:18px;height:18px;background:{{ p.bg }};border:1px solid {{ p.border }};color:{{ p.fg }};font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-heading)">{{ p.n }}</span>
+        <span style="font-size:11px;font-weight:600;color:{{ p.textColor }}">{{ p.label }}</span>
+      </div>
+    </sc-for>
+    <span style="margin-left:auto;font-size:11px;color:var(--color-neutral-700);font-variant-numeric:tabular-nums">{{ completeCount }} / {{ totalCount }} complete</span>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;border-bottom:2px solid var(--color-divider);flex:none">
+    <sc-for list="{{ header }}" as="h" hint-placeholder-count="6">
+      <div style="flex:1 1 150px;padding:11px 20px;border-right:1px solid var(--color-neutral-300);display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-neutral-600)">{{ h.k }}</span>
+        <span style="font-family:var(--font-heading);font-weight:800;font-size:16px;line-height:1.15;letter-spacing:-0.01em;color:{{ h.color }}">{{ h.v }}</span>
+        <span style="font-size:10.5px;color:var(--color-neutral-600)">{{ h.sub }}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) clamp(320px,30vw,420px);flex:1 1 auto;min-height:0;overflow:hidden">
+
+    <div style="display:flex;flex-direction:column;min-height:0;overflow:auto;border-right:2px solid var(--color-divider)">
+      <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="5">
+        <div style="border-bottom:2px solid var(--color-divider)">
+          <div style="display:flex;align-items:baseline;gap:12px;padding:12px 20px 6px">
+            <span style="font-size:10px;letter-spacing:0.11em;text-transform:uppercase;color:var(--color-neutral-600);font-weight:700">{{ sec.step }}</span>
+            <span style="font-family:var(--font-heading);font-weight:800;font-size:15px;letter-spacing:-0.01em">{{ sec.title }}</span>
+            <span style="font-size:10.5px;color:var(--color-neutral-700)">{{ sec.hint }}</span>
+            <span style="margin-left:auto;font-size:10.5px;font-weight:700;color:{{ sec.stateColor }}">{{ sec.stateLabel }}</span>
+          </div>
+
+          <sc-if value="{{ sec.hasDiagram }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:16px;padding:6px 20px 12px;align-items:flex-start">
+              <div style="flex:0 0 240px">
+                <div style="font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:5px">Tap surface to log damage</div>
+                <div style="position:relative;border:1px solid var(--color-neutral-500);background:#fff;padding:10px;height:200px">
+                  <sc-for list="{{ sec.surfaces }}" as="sf" hint-placeholder-count="6">
+                    <button onClick="{{ sf.onClick }}" title="{{ sf.title }}" style="position:absolute;left:{{ sf.left }};top:{{ sf.top }};width:{{ sf.w }};height:{{ sf.h }};background:{{ sf.bg }};border:1px solid {{ sf.border }};cursor:pointer;font-size:9.5px;font-weight:700;color:{{ sf.fg }};letter-spacing:0.05em;display:flex;align-items:flex-end;justify-content:flex-start;padding:2px 4px;font-family:var(--font-body)">{{ sf.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                <sc-for list="{{ sec.findings }}" as="f" hint-placeholder-count="3">
+                  <div style="display:flex;gap:10px;align-items:baseline;padding:6px 8px;border-left:3px solid {{ f.mark }};background:{{ f.bg }}">
+                    <span style="font-size:10.5px;letter-spacing:0.06em;font-weight:700;color:{{ f.markText }};width:70px">{{ f.surface }}</span>
+                    <span style="flex:1;font-size:11.5px">{{ f.note }}</span>
+                    <span style="font-size:10.5px;color:var(--color-neutral-700)">{{ f.severity }}</span>
+                  </div>
+                </sc-for>
+                <div style="font-size:11px;color:var(--color-neutral-700);margin-top:4px;line-height:1.5">{{ sec.diagramNote }}</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ sec.hasChecks }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;padding:0 20px 12px">
+              <sc-for list="{{ sec.checks }}" as="c" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--color-neutral-300)">
+                  <div style="flex:1">
+                    <div style="font-size:12px;font-weight:600">{{ c.label }}</div>
+                    <div style="font-size:10.5px;color:var(--color-neutral-700)">{{ c.hint }}</div>
+                  </div>
+                  <sc-if value="{{ c.hasValue }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-family:var(--font-heading);font-variant-numeric:tabular-nums;font-weight:700;font-size:13px;color:{{ c.valueColor }};min-width:74px;text-align:right">{{ c.value }}</span>
+                  </sc-if>
+                  <div style="display:flex">
+                    <sc-for list="{{ c.opts }}" as="o" hint-placeholder-count="3">
+                      <button onClick="{{ o.onClick }}" style="font-size:10.5px;padding:5px 10px;border:1px solid {{ o.border }};border-right:0;background:{{ o.bg }};color:{{ o.fg }};cursor:pointer;font-family:var(--font-body);font-weight:700;letter-spacing:0.02em">{{ o.label }}</button>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+              <sc-if value="{{ sec.hasNote }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:11px;color:var(--color-neutral-700);margin-top:6px;line-height:1.5">{{ sec.footNote }}</div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;flex-direction:column;min-height:0;overflow:auto">
+      <div style="padding:14px 16px 10px">
+        <div style="font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-neutral-600)">Inspection summary</div>
+        <div style="font-family:var(--font-heading);font-weight:800;font-size:22px;letter-spacing:-0.02em;margin-top:2px;color:{{ verdictColor }}">{{ verdict }}</div>
+        <div style="font-size:11.5px;color:var(--color-neutral-700);margin-top:3px">{{ verdictSub }}</div>
+      </div>
+
+      <div style="border-top:2px solid var(--color-divider)">
+        <sc-for list="{{ summary }}" as="row" hint-placeholder-count="5">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--color-neutral-300);font-size:11.5px">
+            <span style="width:6px;height:22px;background:{{ row.mark }};flex:none"></span>
+            <span style="flex:1">{{ row.k }}</span>
+            <span style="font-weight:600;color:{{ row.color }}">{{ row.v }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="padding:12px 16px 6px;font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-neutral-600)">Photo evidence</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:0 16px 12px">
+        <sc-for list="{{ photos }}" as="p" hint-placeholder-count="8">
+          <div style="aspect-ratio:1;background:{{ p.bg }};border:1px solid {{ p.border }};display:flex;align-items:flex-end;padding:4px;font-size:9.5px;color:{{ p.fg }};font-weight:600;letter-spacing:0.03em">{{ p.label }}</div>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ hasOpenExceptions }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:10px 16px;background:var(--color-accent-100);border-top:2px solid var(--color-accent);border-bottom:1px solid var(--color-accent)">
+          <div style="font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-accent-800);font-weight:700">Open exceptions ({{ exceptionCount }})</div>
+          <sc-for list="{{ exceptions }}" as="e" hint-placeholder-count="2">
+            <div style="font-size:11.5px;margin-top:5px;color:var(--color-accent-800);line-height:1.45"><strong>{{ e.k }}</strong> — {{ e.v }}</div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <div style="padding:12px 16px 6px;font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--color-neutral-600)">Sign-off</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 10px">
+        <div style="border:1px solid var(--color-neutral-400);padding:6px 8px">
+          <div style="font-size:10px;color:var(--color-neutral-600);letter-spacing:0.05em">Inspector</div>
+          <div style="font-size:12px;font-weight:700">{{ inspector }}</div>
+          <div style="height:1px;background:var(--color-text);margin-top:12px"></div>
+          <div style="font-size:9.5px;color:var(--color-neutral-600);margin-top:2px">signed on tablet · 06:14</div>
+        </div>
+        <div style="border:1px solid var(--color-neutral-400);padding:6px 8px">
+          <div style="font-size:10px;color:var(--color-neutral-600);letter-spacing:0.05em">Driver</div>
+          <div style="font-size:12px;font-weight:700">{{ driver }}</div>
+          <div style="height:1px;background:{{ driverSigColor }};margin-top:12px"></div>
+          <div style="font-size:9.5px;color:{{ driverSigColor }};margin-top:2px">{{ driverSigLabel }}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;padding:6px 16px 18px;margin-top:auto">
+        <sc-if value="{{ hasDecision }}" hint-placeholder-val="{{ false }}">
+          <div style="border-left:3px solid {{ decisionColor }};background:{{ decisionBg }};padding:8px 10px;margin-bottom:2px">
+            <div style="font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:{{ decisionColor }};font-weight:700">Decision recorded</div>
+            <div style="font-size:12px;font-weight:700;margin-top:2px">{{ decisionLabel }}</div>
+          </div>
+        </sc-if>
+        <button class="{{ decideAccept.cls }}" onClick="{{ decideAccept.onClick }}" style="font-size:12px;padding:9px 12px;justify-content:flex-start">{{ decideAccept.label }}</button>
+        <button class="btn btn-secondary" onClick="{{ decideHold.onClick }}" style="font-size:12px;padding:9px 12px;justify-content:flex-start">{{ decideHold.label }}</button>
+        <button class="btn btn-ghost" onClick="{{ decideReject.onClick }}" style="font-size:12px;padding:9px 12px;justify-content:flex-start;color:var(--color-accent-800)">Reject at gate — turn away</button>
+        <div style="font-size:11px;color:var(--color-neutral-700);line-height:1.5;margin-top:4px">{{ actionNote }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1600,&quot;height&quot;:940},&quot;focus&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onNavigate&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(target:string,focus?:string)=&gt;void&quot;}}">
+const QUEUE = [
+  { id: "V-2045", plate: "AC 421 QN", carrier: "Andesmar", driver: "L. Fernández", container: "MSKU 704 118 2", type: "Reefer 40′ HC", cargo: "Fresh berries (perishable)", purpose: "Import drop", seal: "AR 421 887", docSeal: "AR 421 887", setpoint: "-0.5 °C", temp: "-0.7 °C", hazmat: null, driverPPE: true, chocks: true },
+  { id: "V-2046", plate: "AB 219 KP", carrier: "Cruz del Sur", driver: "H. Molina", container: "TCLU 552 003 4", type: "Dry 20′", cargo: "General DG — UN 1993 Class 3", purpose: "Export pickup", seal: "AR 500 214", docSeal: "AR 500 214", setpoint: null, temp: null, hazmat: { un: "UN 1993", class: "3 (Flammable liquid)", placards: "missing rear", declaration: true }, driverPPE: false, chocks: true },
+  { id: "V-2047", plate: "AD 018 LM", carrier: "TransPampa", driver: "J. Salinas", container: "HLBU 480 991 0", type: "Dry 40′", cargo: "Auto parts", purpose: "Import drop", seal: "AR 500 990", docSeal: "AR 500 991", setpoint: null, temp: null, hazmat: null, driverPPE: true, chocks: true }
+];
+
+const INSPECTOR = "D. Vega · Gate Ops";
+
+const SURFACES_L = [
+  { id: "roof", label: "ROOF", left: "10%", top: "6%", w: "80%", h: "18%" },
+  { id: "front", label: "FRONT", left: "10%", top: "28%", w: "18%", h: "44%" },
+  { id: "leftpanel", label: "LEFT PANEL", left: "30%", top: "28%", w: "40%", h: "44%" },
+  { id: "rear", label: "REAR / DOORS", left: "72%", top: "28%", w: "18%", h: "44%" },
+  { id: "chassis", label: "CHASSIS", left: "10%", top: "76%", w: "80%", h: "18%" }
+];
+
+class Component extends DCLogic {
+  state = {
+    idx: 0,
+    // per-visit findings keyed by container
+    findings: {
+      "MSKU 704 118 2": [{ surface: "REAR / DOORS", note: "Dent 15×20 cm above right cam bar", severity: "Minor · noted" }],
+      "TCLU 552 003 4": [],
+      "HLBU 480 991 0": [{ surface: "LEFT PANEL", note: "Scrape 40 cm — pre-existing per prior EIR", severity: "Pre-existing" }]
+    },
+    // step decisions keyed by visit + step
+    d: {
+      "V-2045": { exterior: "recorded", seal: "match", docs: "cleared", reefer: "in-tolerance", safety: "ok" },
+      "V-2046": { exterior: "recorded", seal: "match", docs: "cleared", hazmat: "placards-missing", safety: "ppe-missing" },
+      "V-2047": { exterior: "recorded", seal: "mismatch", docs: "pending", safety: "ok" }
+    },
+    decision: {}
+  };
+
+  recordDecision(kind, target) {
+    const v = this.cur();
+    this.setState(s => ({ decision: { ...s.decision, [v.id]: kind } }));
+    if (kind === "admit" && this.props.onNavigate) this.props.onNavigate(target || "S2", v.container);
+    // advance to next un-decided visit
+    setTimeout(() => {
+      const s = this.state;
+      const nextIdx = QUEUE.findIndex((q, i) => i > this.state.idx && !s.decision[q.id]);
+      if (nextIdx >= 0) this.setState({ idx: nextIdx });
+    }, 400);
+  }
+
+  cur() { return QUEUE[this.state.idx]; }
+  d() { return this.state.d[this.cur().id] || {}; }
+  setD(k, v) {
+    const id = this.cur().id;
+    this.setState(s => ({ d: { ...s.d, [id]: { ...(s.d[id] || {}), [k]: v } } }));
+  }
+
+  optBtn(currentVal, val, label, tone) {
+    const active = currentVal === val;
+    const color = tone === "danger" ? "var(--color-accent)" : tone === "warn" ? "#b88400" : "var(--color-text)";
+    return {
+      label,
+      bg: active ? color : "transparent",
+      fg: active ? "#fff" : color,
+      border: color,
+      onClick: () => this.setD(this._currentKey, val)
+    };
+  }
+
+  buildOpts(key, currentVal, opts) {
+    this._currentKey = key;
+    return opts.map(([val, label, tone]) => this.optBtn(currentVal, val, label, tone));
+  }
+
+  renderVals() {
+    const v = this.cur();
+    const d = this.d();
+    const findings = this.state.findings[v.container] || [];
+
+    const sealMatch = v.seal === v.docSeal;
+    const reeferOk = v.setpoint && Math.abs(parseFloat(v.temp) - parseFloat(v.setpoint)) < 0.5;
+
+    const surfaces = SURFACES_L.map(sf => {
+      const hit = findings.find(f => f.surface === sf.label);
+      return {
+        ...sf, title: sf.label + (hit ? " · " + hit.note : ""),
+        bg: hit ? "var(--color-accent-100)" : "var(--color-neutral-100)",
+        border: hit ? "var(--color-accent)" : "var(--color-neutral-500)",
+        fg: hit ? "var(--color-accent-800)" : "var(--color-neutral-700)",
+        onClick: () => {
+          this.setState(s => {
+            const cur = s.findings[v.container] || [];
+            if (cur.find(x => x.surface === sf.label)) {
+              return { findings: { ...s.findings, [v.container]: cur.filter(x => x.surface !== sf.label) } };
+            }
+            return { findings: { ...s.findings, [v.container]: [...cur, { surface: sf.label, note: "Damage noted on " + sf.label.toLowerCase(), severity: "Minor · noted" }] } };
+          });
+        }
+      };
+    });
+
+    const sections = [
+      {
+        step: "01",
+        title: "Exterior condition",
+        hint: "Walk-around · roof, panels, doors, chassis",
+        hasDiagram: true, hasChecks: false,
+        surfaces,
+        findings: findings.map(f => ({
+          ...f,
+          mark: f.severity.includes("Pre") ? "var(--color-neutral-500)" : "var(--color-accent)",
+          markText: f.severity.includes("Pre") ? "var(--color-neutral-800)" : "var(--color-accent-800)",
+          bg: f.severity.includes("Pre") ? "var(--color-neutral-200)" : "var(--color-accent-100)"
+        })),
+        diagramNote: findings.length ? "Findings above are attached to the EIR with photo evidence. Pre-existing marks reference the prior interchange." : "No damage recorded. Photo the four faces and continue.",
+        stateLabel: findings.length + " finding" + (findings.length === 1 ? "" : "s"),
+        stateColor: findings.length ? "var(--color-accent-700)" : "var(--color-neutral-700)"
+      },
+      {
+        step: "02",
+        title: "Seal integrity",
+        hint: "Compare physical bolt seal against booking / BL",
+        hasDiagram: false, hasChecks: true,
+        checks: [
+          {
+            label: "Physical seal on right door", hint: "Number stamped on bolt · verify intact",
+            hasValue: true, value: v.seal, valueColor: "var(--color-text)", opts: this.buildOpts("seal", d.seal, [["match", "Matches", ""], ["mismatch", "Does not match", "danger"], ["broken", "Broken / tampered", "danger"]])
+          },
+          {
+            label: "Seal on document (BL / booking)", hint: "As stated by shipper",
+            hasValue: true, value: v.docSeal, valueColor: sealMatch ? "var(--color-text)" : "var(--color-accent-700)", opts: []
+          }
+        ],
+        hasNote: true,
+        footNote: sealMatch ? "Numbers match. Continue to documents." : "Mismatch — hold at gate, notify shift lead and CSR. Do not break seal without customs presence.",
+        stateLabel: d.seal === "match" ? "Match" : d.seal === "mismatch" ? "Mismatch" : d.seal === "broken" ? "Broken" : "Pending",
+        stateColor: d.seal === "match" ? "var(--color-text)" : "var(--color-accent-700)"
+      },
+      {
+        step: "03",
+        title: "Documents",
+        hint: "Booking / BL, driver ID, transport order, customs release",
+        hasDiagram: false, hasChecks: true,
+        checks: [
+          { label: "Booking / BL matches container", hint: "Container number, size/type, party", hasValue: false, opts: this.buildOpts("docBL", d.docBL || d.docs, [["ok", "OK", ""], ["issue", "Issue", "danger"]]) },
+          { label: "Driver ID and transport order", hint: "Photo ID + carrier assignment", hasValue: false, opts: this.buildOpts("docId", d.docId || d.docs, [["ok", "OK", ""], ["issue", "Issue", "danger"]]) },
+          { label: "Customs / release status", hint: "AFIP release or export permit on file", hasValue: false, opts: this.buildOpts("docCustoms", d.docCustoms || d.docs, [["ok", "Released", ""], ["hold", "Held", "warn"]]) }
+        ],
+        stateLabel: d.docs === "cleared" ? "Cleared" : "Pending",
+        stateColor: d.docs === "cleared" ? "var(--color-text)" : "var(--color-neutral-700)"
+      },
+      v.setpoint ? {
+        step: "04",
+        title: "Reefer — cold-chain check",
+        hint: "Perishable · setpoint, return-air, genset, fuel",
+        hasDiagram: false, hasChecks: true,
+        checks: [
+          { label: "Setpoint on box", hint: "Booked temperature", hasValue: true, value: v.setpoint, valueColor: "var(--color-text)", opts: [] },
+          { label: "Return-air reading", hint: "Tolerance ±0.5 °C", hasValue: true, value: v.temp, valueColor: reeferOk ? "var(--color-text)" : "var(--color-accent-700)", opts: this.buildOpts("reefer", d.reefer, [["in-tolerance", "In tolerance", ""], ["out", "Out of tolerance", "danger"]]) },
+          { label: "Genset / clip-on", hint: "Running, fuel > 40%", hasValue: true, value: "Running · 68%", valueColor: "var(--color-text)", opts: [] },
+          { label: "Data logger present", hint: "USDA / partial-load trip", hasValue: false, opts: this.buildOpts("logger", d.logger || "ok", [["ok", "Present", ""], ["na", "N/A", ""]]) }
+        ],
+        hasNote: true,
+        footNote: reeferOk ? "Cold chain is intact. Prioritize this visit for a plug-in slot within 20 minutes of gate-in." : "Out of tolerance — quarantine to reefer row and page cold-chain lead.",
+        stateLabel: reeferOk ? "In tolerance" : "Out of tolerance",
+        stateColor: reeferOk ? "var(--color-text)" : "var(--color-accent-700)"
+      } : v.hazmat ? {
+        step: "04",
+        title: "Hazmat — dangerous-goods check",
+        hint: v.hazmat.un + " · Class " + v.hazmat.class,
+        hasDiagram: false, hasChecks: true,
+        checks: [
+          { label: "UN number & class on declaration", hint: "Matches shipping papers", hasValue: true, value: v.hazmat.un, valueColor: "var(--color-text)", opts: this.buildOpts("dgDecl", d.dgDecl || "ok", [["ok", "Matches", ""], ["issue", "Mismatch", "danger"]]) },
+          { label: "Placards on all four sides", hint: "Front, rear, both sides — legible", hasValue: true, value: v.hazmat.placards, valueColor: "var(--color-accent-700)", opts: this.buildOpts("placards", d.placards || "missing", [["ok", "All present", ""], ["missing", "Missing", "danger"]]) },
+          { label: "Segregation compatibility", hint: "Row / block accepts this class", hasValue: false, opts: this.buildOpts("segreg", d.segreg || "ok", [["ok", "OK", ""], ["issue", "Conflict", "danger"]]) },
+          { label: "Emergency response info (ERG)", hint: "In cab, in language of transit", hasValue: false, opts: this.buildOpts("erg", d.erg || "ok", [["ok", "Present", ""], ["missing", "Missing", "danger"]]) }
+        ],
+        hasNote: true,
+        footNote: d.placards === "ok" ? "Cleared for entry — assign to DG block, not general dry stack." : "Rear placard missing — driver must replace before entry. This is a stop-condition under IMDG / ADR.",
+        stateLabel: d.placards === "ok" ? "Compliant" : "Non-compliant",
+        stateColor: d.placards === "ok" ? "var(--color-text)" : "var(--color-accent-700)"
+      } : null,
+      {
+        step: v.setpoint || v.hazmat ? "05" : "04",
+        title: "Safety equipment & PPE",
+        hint: "Driver readiness before crossing the yard",
+        hasDiagram: false, hasChecks: true,
+        checks: [
+          { label: "Driver PPE — hi-vis + hard hat + safety boots", hint: "Visible before barrier release", hasValue: false, opts: this.buildOpts("ppe", d.ppe || (v.driverPPE ? "ok" : "missing"), [["ok", "OK", ""], ["missing", "Missing", "danger"]]) },
+          { label: "Wheel chocks in cab", hint: "Required when uncoupling", hasValue: false, opts: this.buildOpts("chocks", d.chocks || "ok", [["ok", "Present", ""], ["missing", "Missing", "warn"]]) },
+          { label: "Twist-locks & pins", hint: "Secured on chassis", hasValue: false, opts: this.buildOpts("twistlocks", d.twistlocks || "ok", [["ok", "OK", ""], ["issue", "Loose", "danger"]]) },
+          v.hazmat ? { label: "Fire extinguisher in cab", hint: "Charged, in date · DG requirement", hasValue: false, opts: this.buildOpts("extinguisher", d.extinguisher || "ok", [["ok", "OK", ""], ["missing", "Missing", "danger"]]) } : null
+        ].filter(Boolean),
+        stateLabel: (d.ppe === "missing" || !v.driverPPE) ? "PPE gap" : "OK",
+        stateColor: (d.ppe === "missing" || !v.driverPPE) ? "var(--color-accent-700)" : "var(--color-text)"
+      }
+    ].filter(Boolean);
+
+    // Verdict + exceptions
+    const exceptions = [];
+    if (!sealMatch) exceptions.push({ k: "Seal mismatch", v: "Physical AR " + v.seal.split(" ").slice(-1) + " vs document — hold, escalate to customs." });
+    if (v.hazmat && v.hazmat.placards !== "ok") exceptions.push({ k: "Placards missing", v: v.hazmat.placards + " — driver replaces before entry." });
+    if (v.setpoint && !reeferOk) exceptions.push({ k: "Cold-chain out of tolerance", v: "Return-air " + v.temp + " vs setpoint " + v.setpoint });
+    if (!v.driverPPE) exceptions.push({ k: "Driver PPE", v: "Hi-vis vest missing — issue at gate before release." });
+
+    const verdict = exceptions.length === 0 ? "Ready to admit" : exceptions.length === 1 ? "Admit with note" : "Hold at gate";
+    const verdictColor = exceptions.length === 0 ? "var(--color-text)" : exceptions.length === 1 ? "#b88400" : "var(--color-accent-700)";
+    const verdictSub = exceptions.length === 0
+      ? "All five checks clear. Issue gate pass and route to " + (v.setpoint ? "reefer row" : v.hazmat ? "DG block" : "assigned lane") + "."
+      : exceptions.length + " open exception" + (exceptions.length === 1 ? "" : "s") + " — resolve before barrier release.";
+
+    const dotFor = id => {
+      const dec = this.state.decision[id];
+      if (dec === "admit") return "#0ea678";
+      if (dec === "hold") return "#b88400";
+      if (dec === "reject") return "var(--color-accent)";
+      return "var(--color-neutral-500)";
+    };
+
+    // Progress across the sections list (built below); count sections whose stateColor is neutral (done) vs accent (open)
+    const stepDefs = [
+      { n: "01", label: "Exterior", done: true },
+      { n: "02", label: "Seal", done: d.seal === "match" },
+      { n: "03", label: "Documents", done: d.docs === "cleared" },
+      v.setpoint ? { n: "04", label: "Reefer", done: reeferOk } : v.hazmat ? { n: "04", label: "Hazmat", done: d.placards === "ok" } : null,
+      { n: v.setpoint || v.hazmat ? "05" : "04", label: "Safety", done: v.driverPPE }
+    ].filter(Boolean);
+    const completeCount = stepDefs.filter(s => s.done).length;
+
+    const decision = this.state.decision[v.id];
+
+    return {
+      queue: QUEUE.map((q, i) => ({
+        label: q.id + " · " + q.type.split(" ")[0],
+        onClick: () => this.setState({ idx: i }),
+        bg: i === this.state.idx ? "var(--color-text)" : "transparent",
+        fg: i === this.state.idx ? "var(--color-bg)" : "var(--color-text)",
+        border: "var(--color-neutral-400)",
+        dot: dotFor(q.id)
+      })),
+      progress: stepDefs.map(sd => ({
+        n: sd.n, label: sd.label,
+        bg: sd.done ? "var(--color-text)" : "transparent",
+        border: sd.done ? "var(--color-text)" : "var(--color-neutral-500)",
+        fg: sd.done ? "var(--color-bg)" : "var(--color-neutral-700)",
+        textColor: sd.done ? "var(--color-text)" : "var(--color-neutral-700)"
+      })),
+      completeCount, totalCount: stepDefs.length,
+      inspector: INSPECTOR,
+      driver: v.driver + " · " + v.plate,
+      driverSigColor: decision ? "var(--color-text)" : "var(--color-neutral-500)",
+      driverSigLabel: decision ? "signed at gate · 06:14" : "awaiting signature",
+      hasDecision: !!decision,
+      decisionLabel: decision === "admit" ? "Admitted — routed to " + (v.setpoint ? "reefer row" : v.hazmat ? "DG block" : "assigned lane") : decision === "hold" ? "Held at inspection bay" : decision === "reject" ? "Rejected at gate — turned away" : "",
+      decisionColor: decision === "admit" ? "#0ea678" : decision === "hold" ? "#b88400" : "var(--color-accent)",
+      decisionBg: decision === "admit" ? "#e6f5ef" : decision === "hold" ? "#fff4d6" : "var(--color-accent-100)",
+      header: [
+        { k: "Visit", v: v.id, sub: v.plate + " · " + v.carrier },
+        { k: "Container", v: v.container, sub: v.type },
+        { k: "Cargo", v: v.cargo, sub: v.purpose },
+        { k: "Seal (physical)", v: v.seal, sub: sealMatch ? "matches BL" : "≠ BL " + v.docSeal, color: sealMatch ? "var(--color-text)" : "var(--color-accent-700)" },
+        v.setpoint ? { k: "Reefer", v: v.temp + " / " + v.setpoint, sub: reeferOk ? "in tolerance" : "out of tolerance", color: reeferOk ? "var(--color-text)" : "var(--color-accent-700)" }
+        : v.hazmat ? { k: "Hazmat", v: v.hazmat.un, sub: "Class " + v.hazmat.class, color: "var(--color-accent-700)" }
+        : { k: "Class", v: "Standard dry", sub: "no cold-chain / DG" },
+        { k: "Inspection clock", v: "04′ 12″", sub: "target 06′00″" }
+      ],
+      sections,
+      verdict, verdictColor, verdictSub,
+      summary: [
+        { k: "Exterior", v: findings.length ? findings.length + " finding(s)" : "Clean", mark: findings.length ? "var(--color-accent)" : "var(--color-neutral-500)", color: "var(--color-text)" },
+        { k: "Seal", v: sealMatch ? "Match" : "Mismatch", mark: sealMatch ? "var(--color-neutral-800)" : "var(--color-accent)", color: sealMatch ? "var(--color-text)" : "var(--color-accent-700)" },
+        { k: "Documents", v: d.docs === "cleared" ? "Cleared" : "Pending", mark: d.docs === "cleared" ? "var(--color-neutral-800)" : "var(--color-neutral-500)", color: "var(--color-text)" },
+        v.setpoint ? { k: "Reefer", v: reeferOk ? "In tolerance" : "Out of tolerance", mark: reeferOk ? "var(--color-neutral-800)" : "var(--color-accent)", color: reeferOk ? "var(--color-text)" : "var(--color-accent-700)" }
+        : v.hazmat ? { k: "Hazmat", v: v.hazmat.placards === "ok" ? "Compliant" : "Placards missing", mark: v.hazmat.placards === "ok" ? "var(--color-neutral-800)" : "var(--color-accent)", color: v.hazmat.placards === "ok" ? "var(--color-text)" : "var(--color-accent-700)" }
+        : { k: "Cargo class", v: "Standard dry", mark: "var(--color-neutral-500)", color: "var(--color-text)" },
+        { k: "Safety / PPE", v: v.driverPPE ? "OK" : "Gap", mark: v.driverPPE ? "var(--color-neutral-800)" : "var(--color-accent)", color: v.driverPPE ? "var(--color-text)" : "var(--color-accent-700)" }
+      ],
+      photos: [
+        { label: "FRONT", bg: "var(--color-neutral-300)", border: "var(--color-neutral-500)", fg: "var(--color-neutral-800)" },
+        { label: "LEFT", bg: "var(--color-neutral-300)", border: "var(--color-neutral-500)", fg: "var(--color-neutral-800)" },
+        { label: "RIGHT", bg: "var(--color-neutral-300)", border: "var(--color-neutral-500)", fg: "var(--color-neutral-800)" },
+        { label: "REAR", bg: "var(--color-neutral-300)", border: "var(--color-neutral-500)", fg: "var(--color-neutral-800)" },
+        { label: "SEAL", bg: "var(--color-neutral-300)", border: "var(--color-neutral-500)", fg: "var(--color-neutral-800)" },
+        { label: "ROOF", bg: "var(--color-neutral-300)", border: "var(--color-neutral-500)", fg: "var(--color-neutral-800)" },
+        v.setpoint ? { label: "DISPLAY", bg: "var(--color-accent-100)", border: "var(--color-accent)", fg: "var(--color-accent-800)" } : { label: "CHASSIS", bg: "var(--color-neutral-300)", border: "var(--color-neutral-500)", fg: "var(--color-neutral-800)" },
+        v.hazmat ? { label: "PLACARDS", bg: "var(--color-accent-100)", border: "var(--color-accent)", fg: "var(--color-accent-800)" } : { label: "DOCS", bg: "var(--color-neutral-300)", border: "var(--color-neutral-500)", fg: "var(--color-neutral-800)" }
+      ],
+      hasOpenExceptions: exceptions.length > 0,
+      exceptionCount: exceptions.length,
+      exceptions,
+      decideAccept: {
+        label: exceptions.length === 0 ? "Admit — issue gate pass" : "Admit with note",
+        cls: exceptions.length === 0 ? "btn btn-primary" : "btn btn-secondary",
+        onClick: () => this.recordDecision("admit", "S2")
+      },
+      decideHold: { label: "Hold — park at inspection bay", onClick: () => this.recordDecision("hold") },
+      decideReject: { onClick: () => this.recordDecision("reject") },
+      actionNote: exceptions.length === 0
+        ? "On admit, the EIR is written and the visit moves to lane assignment."
+        : "Each exception is stamped to the EIR — nothing is silently cleared. Driver signs on the tablet."
+    };
+  }
+}
+</script>
+</body>
+</html>
