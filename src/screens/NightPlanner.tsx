@@ -10,7 +10,7 @@ import { checkPlacementRules } from "@/lib/placement-rules"
 import { backendApi } from "@/lib/backend-api"
 import type { BackendPlanDetail } from "@/lib/backend-api"
 import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type PlanningStep } from "@/data/planningData"
-import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, isExtraMovement, getStatusStyle } from "@/utils/displayLabels"
+import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, isExtraMovement, getStatusStyle, getDisplayContainerId, isAnonymousContainer, generateWhyText } from "@/utils/displayLabels"
 
 interface Props {
   focus: string | null
@@ -43,7 +43,9 @@ function fmtLoc(loc: PlanningStep["origin"]): string {
   return `Bay ${loc.bay} · R${loc.row ?? "?"} · T${loc.tier ?? "?"}`
 }
 function stepId(s: PlanningStep): string {
-  return `${s.container_id}-${s.step_number ?? 0}-${s.operation.slice(0,4)}`
+  // Use a stable unique key even when container_id is null (53 anonymous steps)
+  const cid = s.container_id ?? `anon-${s.step_number ?? 0}`
+  return `${cid}-${s.step_number ?? 0}-${s.operation.slice(0,4)}`
 }
 function stepDur(s: PlanningStep): number {
   if (!s.estimated_start || !s.estimated_end) return 2.5
@@ -240,7 +242,9 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       : (m.move.status === "done" || m.move.status === "cancelled")
     const frozen       = m.source === "planning" ? m.move.step_status === "Blocked" : m.move.frozen
     const windowStr    = m.source === "planning"
-      ? fmtIso(m.move.estimated_start) + "–" + fmtIso(m.move.estimated_end)
+      ? (m.move.estimated_start
+          ? fmtIso(m.move.estimated_start) + "–" + fmtIso(m.move.estimated_end)
+          : m.move.step_status === "Completed" ? "✓ done" : "not scheduled")
       : m.source === "seed" ? `${m.move.start}–${m.move.end}` : `seq ${m.move.sequence_number}`
     const containerId  = m.source === "planning" ? m.move.container_id : m.move.containerId
     const seqNum       = m.source === "planning" ? (m.move.planned_step ?? m.move.step_number ?? 0) : m.move.seq
@@ -275,9 +279,12 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         {visibleCols.has("MOVE") && (
           <td className="px-3 py-2.5" style={{ fontSize: 11 }}>
             <div className="font-bold">{typeDisplay}</div>
-            <div className="text-[10px] text-[#9ca3af] font-mono">
+            <div className="text-[10px] font-mono" style={{
+              color: m.source === "planning" && isAnonymousContainer(m.move) ? "#d1d5db" : "#9ca3af",
+              fontStyle: m.source === "planning" && isAnonymousContainer(m.move) ? "italic" : undefined,
+            }}>
               {isHot && <span title="Hot container" className="mr-1">🔥</span>}
-              {containerId}
+              {m.source === "planning" ? getDisplayContainerId(m.move) : containerId}
             </div>
           </td>
         )}
@@ -709,7 +716,9 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     {/* Step header */}
                     <div className="px-4 pt-3 pb-3">
                       <div className="ds-label flex items-center gap-2">
-                        <span className="font-mono">{selStep.container_id}</span>
+                        <span className={`font-mono${isAnonymousContainer(selStep) ? " italic text-[#9ca3af]" : ""}`}>
+                           {getDisplayContainerId(selStep)}
+                         </span>
                         {selStep.planned_step != null && <span className="text-[#9ca3af]">· step <span className="font-mono">{selStep.planned_step}</span></span>}
                         {/* Equipment badge */}
                         {(() => {
@@ -752,7 +761,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                       <div className="ds-callout mx-4 mb-3">
                         <div className="ds-callout-label">Why this step</div>
                         <div className="text-[12.5px] leading-relaxed">
-                          {selStep.operator_pickup ?? getDisplayOperation(selStep.operation)}
+                          {generateWhyText(selStep)}
                         </div>
                       </div>
                     )}
@@ -761,8 +770,16 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     {[
                       ["Operator",    selStep.operator ?? "—"],
                       ["Move method", getDisplayMoveMethod(selStep)],
-                      ["Window",      fmtIso(selStep.estimated_start) + "–" + fmtIso(selStep.estimated_end) + " (" + stepDur(selStep).toFixed(1) + "′)"],
-                      ["Score",       selStep.planning_score != null ? String(selStep.planning_score) : "—"],
+                      ["Window",      selStep.estimated_start
+                        ? fmtIso(selStep.estimated_start) + "–" + fmtIso(selStep.estimated_end) + " (" + stepDur(selStep).toFixed(1) + "′)"
+                        : selStep.step_status === "Completed" ? "Completed · no window recorded"
+                        : selStep.step_status === "Blocked"   ? "Blocked · not scheduled"
+                        : "Not yet scheduled"],
+                      ["Score",       selStep.planning_score != null
+                        ? selStep.planning_score.toFixed(2)
+                        : selStep.move_method === "Inspection" ? "N/A · inspection step"
+                        : selStep.step_status === "Completed"  ? "N/A · completed"
+                        : "—"],
                     ].map(([k,v]) => (
                       <div key={k} className="flex justify-between gap-3 px-4 py-2 border-b border-[#f3f4f6] text-[11.5px]">
                         <span className="text-[#9ca3af]">{k}</span>
@@ -808,9 +825,10 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     <AccordionHeader label="Step history" open={moveHistoryOpen} onToggle={() => setMoveHistoryOpen(v => !v)} />
                     <div style={{ overflow:"hidden", maxHeight: moveHistoryOpen ? 200 : 0, transition:"max-height 200ms ease" }}>
                       {[
-                        [fmtIso(selStep.estimated_start), "Planned by engine", "auto"],
+                        ...(selStep.estimated_start ? [[fmtIso(selStep.estimated_start), "Planned by engine", "auto"]] : []),
                         ...(selStep.actual_start ? [[fmtIso(selStep.actual_start), "Actual start recorded", "system"]] : []),
                         ...(selStep.actual_end   ? [[fmtIso(selStep.actual_end),   "Actual end recorded",   "system"]] : []),
+                        ...(selStep.estimated_start == null ? [["—", "No window recorded for this step", "engine"]] : []),
                       ].map(([time,event,src]) => (
                         <div key={time+event} className="flex items-baseline gap-3 px-4 py-1.5 text-[11.5px] border-b border-[#f9fafb]">
                           <span className="font-mono text-[#9ca3af] w-10">{time}</span>
@@ -987,7 +1005,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                           return (
                             <div key={`g-${gi}`}
                               onClick={() => { setSel(sid); setTab("detail") }}
-                              title={`${s.container_id} · ${s.operation} · ${fmtIso(s.estimated_start)}–${fmtIso(s.estimated_end)}`}
+                              title={`${getDisplayContainerId(s)} · ${getDisplayOperation(s.operation)} · ${fmtIso(s.estimated_start)}–${fmtIso(s.estimated_end)}`}
                               className="absolute top-2 h-3 cursor-pointer hover:opacity-80"
                               style={{
                                 left: (Math.max(0, startMin - 360) / 480 * 100).toFixed(2) + "%",

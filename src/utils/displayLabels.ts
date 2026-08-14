@@ -114,3 +114,75 @@ export const STATUS_COLORS: Record<string, StatusStyle> = {
 export function getStatusStyle(status: string | null | undefined): StatusStyle {
   return STATUS_COLORS[status ?? ""] ?? { bg: "#f3f4f6", text: "#6b7280", border: "#e5e7eb" }
 }
+
+// ── Container ID display ─────────────────────────────────────────────────────
+
+/**
+ * Returns the container_id if present, otherwise a contextual anonymous label
+ * derived from the operation type. Never returns null or an empty string.
+ */
+export function getDisplayContainerId(step: PlanningStep): string {
+  if (step.container_id) return step.container_id
+  switch (step.operation) {
+    case "Premarshal ahead of retrieval":
+      return "Blocking unit"
+    case "Digout to clear an overstow":
+      return "Overstow unit"
+    case "Discharge from vessel":
+      return "Vessel unit"
+    default:
+      return "Untracked unit"
+  }
+}
+
+/** True when the container ID was synthesised (no real ID in the data). */
+export function isAnonymousContainer(step: PlanningStep): boolean {
+  return step.container_id == null
+}
+
+// ── WHY callout generation ────────────────────────────────────────────────────
+
+/**
+ * Returns the operator_pickup text if present, otherwise generates a
+ * contextual explanation from the available step fields. Always returns a
+ * non-empty string — never falls back to a raw operation key.
+ */
+export function generateWhyText(step: PlanningStep): string {
+  if (step.operator_pickup) return step.operator_pickup
+
+  const method = getDisplayMoveMethod(step)
+  const cid    = step.container_id ?? null
+
+  const fmtBay = (bay: number | string | null | undefined): string => {
+    if (bay == null) return "yard"
+    if (bay === "GATE / OFF-YARD") return "the gate"
+    return `Bay ${bay}`
+  }
+  const from = fmtBay(step.origin?.bay)
+  const to   = fmtBay(step.destination?.bay)
+
+  switch (step.operation) {
+    case "Premarshal ahead of retrieval":
+      return cid
+        ? `${method} ${cid} from ${from} to ${to} to open retrieval path for target container`
+        : `${method} blocking unit from ${from} to ${to} — intermediate reshuffle to clear access`
+    case "Digout to clear an overstow":
+      return cid
+        ? `${method} ${cid} from ${from} to ${to} to clear overstow blocking the outbound container`
+        : `${method} overstow unit from ${from} to ${to} — must be cleared before target can be retrieved`
+    case "Outbound staging and truck loading":
+      return cid
+        ? `${method} ${cid} from ${from} to ${to} — staged for outbound truck loading`
+        : `${method} unit from ${from} to ${to} for outbound truck loading`
+    case "Discharge from vessel":
+      return cid
+        ? `Discharge ${cid} from vessel and deliver to ${to}`
+        : `Discharge vessel unit — container ID not yet assigned; deliver to ${to}`
+    case "Putaway":
+      return cid
+        ? `Put away ${cid} from ${from} to assigned storage slot at ${to}`
+        : `Put away inbound unit from ${from} to assigned slot at ${to}`
+    default:
+      return `${getDisplayOperation(step.operation)} — ${method} from ${from} to ${to}`
+  }
+}
