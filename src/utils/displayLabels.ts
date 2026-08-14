@@ -16,9 +16,9 @@ import type { PlanningStep } from "@/data/planningData"
 
 const OPERATION_DISPLAY: Record<string, string> = {
   "Premarshal ahead of retrieval":       "Pre-Marshal",
-  "Digout to clear an overstow":         "Digout",
-  "Outbound staging and truck loading":  "Outbound",
-  "Discharge from vessel":               "Vessel Discharge",
+  "Digout to clear an overstow":         "Extra Move",
+  "Outbound staging and truck loading":  "Retrieval/Stage",
+  "Discharge from vessel":               "Putaway D&H",
   "Putaway":                             "Putaway",
 }
 
