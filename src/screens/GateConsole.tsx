@@ -305,7 +305,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
       {/* Header */}
       <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
         <div className="flex flex-col gap-1">
-          <span className="font-semibold text-[15px] tracking-tight">Gate</span>
+          <span className="font-semibold text-[15px] tracking-tight">Gate & Appointments</span>
           <span className="text-[11px] text-neutral-500">Clock starts at queue geofence · stops at barrier release · exclusions recorded per visit</span>
         </div>
         <div className="flex ml-3" style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden" }}>
@@ -353,7 +353,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           ))}
           <button onClick={()=>setKpiExpanded(v=>!v)}
             className="flex items-center gap-1.5 px-4 text-[11px] text-[#6b7280] hover:text-[#374151] hover:bg-[#f9fafb] transition-colors"
-            style={{ borderLeft:"1px solid #e5e7eb", whiteSpace:"nowrap" }}>
+            style={{ whiteSpace:"nowrap" }}>
             {kpiExpanded?"Fewer metrics ▲":"More metrics ▼"}
           </button>
         </div>
@@ -657,7 +657,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
             ].map(m => (
               <div key={m.k} className="flex-1 px-4 py-2.5 flex flex-col gap-0.5 border-r border-[#e5e7eb]">
                 <span className="ds-label text-neutral-500">{m.k}</span>
-                <span className="font-mono font-bold text-[20px] leading-none" style={{ color:m.color }}>{m.v}</span>
+                <span className="font-mono font-bold text-[24px] leading-none" style={{ color:m.color }}>{m.v}</span>
                 <span className="text-[10px] text-neutral-400">{m.sub}</span>
               </div>
             ))}

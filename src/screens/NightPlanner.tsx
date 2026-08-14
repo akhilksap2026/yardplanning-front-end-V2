@@ -566,7 +566,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             <button
               onClick={() => setKpiExpanded(v => !v)}
               className="flex items-center gap-1.5 px-4 text-[11px] text-[#6b7280] hover:text-[#374151] hover:bg-[#f9fafb] transition-colors"
-              style={{ borderLeft: "1px solid #e5e7eb", whiteSpace: "nowrap" }}
+              style={{ whiteSpace: "nowrap" }}
             >
               {kpiExpanded ? "Fewer metrics ▲" : "More metrics ▼"}
             </button>

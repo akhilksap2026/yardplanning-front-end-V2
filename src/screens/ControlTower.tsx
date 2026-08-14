@@ -154,7 +154,12 @@ export default function ControlTower({ focus, onNavigate }: Props) {
   const activeDiffRows  = engineDiffRows??diffRows
   const activeDiffStats = engineDiffStats??(selEvent?selEvent.diff:null)
 
-  if (!selEvent) return null
+  if (!selEvent) return (
+    <div className="flex flex-col h-full min-h-0 items-center justify-center bg-[#f8f9fa]">
+      <div className="text-[13px] font-semibold text-neutral-500">No events to display</div>
+      <div className="text-[11px] text-neutral-400 mt-1">Events will appear here as operations progress.</div>
+    </div>
+  )
 
   // ── Step 1: Category label for current filter ─────────────────────────────
   const catLabel = cat==="ALL" ? "All events" : cat
@@ -214,7 +219,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4 px-5 pt-3 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
         <div className="flex flex-col gap-1">
-          <span className="font-semibold text-[19px] tracking-tight">Tower</span>
+          <span className="font-semibold text-[15px] tracking-tight">Control Tower</span>
           <span className="text-[11px] text-neutral-500">Every event that matters — equipment, customs, detention, appointments, yard audit — with the replan diff attached</span>
         </div>
         <div className="ml-auto flex gap-2">

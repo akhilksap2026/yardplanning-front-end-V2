@@ -517,7 +517,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
       <div className="flex items-center gap-2.5 px-4 py-2 border-b border-[#e5e7eb] flex-none bg-white">
 
         {/* Title */}
-        <span className="font-black text-[17px] tracking-tight mr-1">Yard</span>
+        <span className="font-black text-[15px] tracking-tight mr-1">Yard Map</span>
 
         {/* Map / Dashboard toggle */}
         <div className="flex" style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden" }}>
@@ -613,8 +613,8 @@ export default function YardMap({ focus, onNavigate }: Props) {
                     { k:"Detention", v:"$8.4k",            red:true  },
                   ].map(m => (
                     <div key={m.k} className="flex flex-col gap-0.5">
-                      <span className="text-[9.5px] font-semibold tracking-wide uppercase text-neutral-400">{m.k}</span>
-                      <span className="font-black text-[18px] leading-none" style={{ color:m.red?"#dc2626":undefined }}>{m.v}</span>
+                      <span className="ds-label text-neutral-400">{m.k}</span>
+                      <span className="font-black text-[22px] leading-none" style={{ color:m.red?"#dc2626":undefined }}>{m.v}</span>
                     </div>
                   ))}
                 </div>
@@ -631,7 +631,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                 ].map(m=>(
                   <div key={m.k} className="flex justify-between items-baseline py-1">
                     <span className="text-[10.5px] text-neutral-500">{m.k}</span>
-                    <span className="font-black text-[16px]">{m.v}</span>
+                    <span className="font-black text-[22px] leading-none">{m.v}</span>
                   </div>
                 ))}
               </div>
