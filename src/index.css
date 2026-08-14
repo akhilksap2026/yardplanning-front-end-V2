@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Shadcn/ui HSL compatibility layer ────────────────────────────── */
+@layer base {
+  :root {
+    /* shadcn tokens (HSL — keep for ui/* components) */
+    --card:                   0 0% 100%;
+    --card-foreground:        222 47% 11%;
+    --popover:                0 0% 100%;
+    --popover-foreground:     222 47% 11%;
+    --primary:                239 84% 60%;
+    --primary-foreground:     0 0% 100%;
+    --secondary:              220 14% 96%;
+    --secondary-foreground:   222 47% 11%;
+    --muted:                  220 14% 96%;
+    --muted-foreground:       220 9% 46%;
+    --accent:                 220 14% 96%;
+    --accent-foreground:      222 47% 11%;
+    --destructive:            0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border:                 220 13% 91%;
+    --input:                  220 13% 91%;
+    --ring:                   239 84% 60%;
+    --radius:                 0.375rem;
+    --background:             213 27% 95%;
+    --foreground:             222 47% 11%;
+
+    /* ── Design system tokens (hex, use these everywhere) ─────────── */
+    --ds-background:    #f1f5f9;
+    --ds-surface:       #ffffff;
+    --ds-sidebar:       #ffffff;
+    --ds-sidebar-bdr:   #e5e7eb;
+    --ds-fg:            #111827;
+    --ds-muted:         #6b7280;
+    --ds-subtle:        #9ca3af;
+    --ds-border:        #e5e7eb;
+    --ds-border-lt:     #f3f4f6;
+    --ds-accent:        #4f46e5;
+    --ds-accent-bg:     #eef2ff;
+    --ds-accent-border: #c7d2fe;
+    --ds-active-nav:    rgba(79,70,229,0.08);
+
+    /* ── Status palette (only these, nowhere else) ─────────────────── */
+    --ds-blue:   #2563eb;
+    --ds-purple: #7c3aed;
+    --ds-amber:  #d97706;
+    --ds-green:  #059669;
+    --ds-cyan:   #0891b2;
+    --ds-red:    #dc2626;
+  }
+}
+
+/* ── Base resets ───────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { font-size: 13px; }
+
+  body {
+    background-color: var(--ds-background);
+    color: var(--ds-fg);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Micro-interactions: every interactive element */
+  button, a, [role="button"], input, select, textarea {
+    transition: all 0.12s;
+  }
+
+  /* Focus ring */
+  :focus-visible {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: 2px;
+  }
+
+  /* Row hover (apply .ds-row to <tr> or <div> row containers) */
+  .ds-row:hover { background-color: #f8fafc; }
+}
+
+/* ── Scrollbar (4px, hidden until hover) ───────────────────────────── */
+::-webkit-scrollbar          { width: 4px; height: 4px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: transparent; border-radius: 2px; }
+*:hover > ::-webkit-scrollbar-thumb,
+*:hover::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); }
+::-webkit-scrollbar-thumb:hover  { background: rgba(0,0,0,0.22); }
+
+/* ── Design-system utility classes ─────────────────────────────────── */
+
+/* Label: 9px uppercase 0.1em tracking, subtle color */
+.ds-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-subtle);
+  line-height: 1.2;
+}
+
+/* KPI numeral: 26px mono 600 */
+.ds-kpi {
+  font-family: "JetBrains Mono", "Menlo", monospace;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+}
+
+/* Callout / "why this move" boxes */
+.ds-callout {
+  background: var(--ds-accent-bg);
+  border: 1px solid var(--ds-accent-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.ds-callout-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-accent);
+  margin-bottom: 4px;
+}
+
+/* Card surface — white with subtle elevation */
+.ds-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* Table header cell */
+.ds-th {
+  background: #f8fafc;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ds-subtle);
+  padding: 8px 12px;
+}
+
+/* Table body row */
+.ds-td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ds-border-lt);
+  height: 38px;
+  font-size: 12px;
+  color: var(--ds-fg);
+}
+
+/* Mono for data: IDs, codes, timestamps, measurements */
+.ds-mono {
+  font-family: "JetBrains Mono", "Menlo", monospace;
+}
+
+/* Tabular nums */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Status pill */
+.ds-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 9999px;
+}
+
+/* Severity dot */
+.ds-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}

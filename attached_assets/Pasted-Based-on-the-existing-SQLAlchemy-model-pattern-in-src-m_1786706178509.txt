@@ -1,0 +1,31 @@
+Based on the existing SQLAlchemy model pattern in src/models/, create a new file src/models/inspection.py with these entities. Follow the exact coding conventions of the existing codebase (UUID PKs, enums where the domain is closed, nullable rules matching the business logic):
+
+1. GateInspection — header record with:
+   - inspection_id (UUID PK), gate_transaction_id (UUID), container_instance_id (UUID FK → container_instances, nullable), container_number (String 11), iso_code (String 4), scac_carrier, booking_bol, driver_name, driver_id_number, driver_id_photo_url, vehicle_plate
+   - inspection_status: Enum [InProgress, Completed, Quarantined, Rejected]
+   - overall_result: Enum [Pass, PassWithExceptions, Fail]
+   - inspector_badge, inspection_started_at, inspection_completed_at, edi_322_triggered (Boolean, default False)
+   - created_at / updated_at
+
+2. DamageAssessment — CEDEX damage line:
+   - damage_id (UUID PK), inspection_id (UUID FK)
+   - cedex_component: Enum [DO, RO, FL, CM, FR, CO] (Door, Roof, Floor, Cross Member, Frame, Corner)
+   - cedex_location: Enum [L, R, F, D, T, B] (Left, Right, Front, Door/Rear, Top, Bottom)
+   - cedex_damage_type: Enum [BT, HO, BR, CT, DE, CU] (Bent, Holed, Broken, Contaminated, Dent, Cut)
+   - cedex_repair_code: Enum [ST, RP, WL, PA, CL] (Straighten, Replace, Weld, Patch, Clean)
+   - severity: Enum [Minor, Moderate, Severe]
+   - description (Text), photo_urls (JSON or ARRAY of String), requires_quarantine (Boolean)
+
+3. SealVerification:
+   - seal_id (UUID PK), inspection_id (UUID FK), asn_seal_number, physical_seal_number, seal_intact (Boolean), seal_match (Boolean), seal_photo_url, breach_detected (Boolean)
+
+4. DocumentChecklist:
+   - doc_check_id (UUID PK), inspection_id (UUID FK), document_type: Enum [BOL, BookingConfirmation, CustomsRelease, HazmatDeclaration, ReeferInstructions, DeliveryOrder], required (Boolean), present (Boolean), valid (Boolean), photo_url
+
+5. SpecialEquipmentCheck:
+   - check_id (UUID PK), inspection_id (UUID FK), check_category: Enum [Reefer, Hazmat, Security]
+   - Reefer fields (nullable): temp_set_point, temp_actual, unit_running, reefer_plug_type, fuel_level_ok
+   - Hazmat fields (nullable): placards_present, segregation_compliant, emergency_equipment_present, hazmat_docs_match
+   - Security fields (nullable): high_security_seal, tamper_evidence, lock_mechanism_intact
+
+Add the proper ForeignKey relationships and ensure the new tables are picked up by Base.metadata. If there is an existing enum pattern (like MoveType or HoldType), follow it exactly.
