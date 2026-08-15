@@ -510,30 +510,18 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                             }} />
                         </button>
 
-                        {/* Name + info icon */}
-                        <div className="flex items-center gap-1 flex-1 min-w-0">
-                          <span className="text-[11.5px] font-semibold text-neutral-800 leading-tight truncate">{item.name}</span>
-                          <span className="text-[9px] text-[#c4c9d4] select-none flex-none">ⓘ</span>
-                          <div className="absolute left-8 top-full mt-1 z-50 hidden group-hover/rule:block w-64
+                        {/* Name */}
+                        <span className="text-[11.5px] font-semibold text-neutral-800 leading-tight flex-1 min-w-0 truncate">
+                          {item.name}
+                        </span>
+
+                        {/* Info icon — right-aligned, tooltip anchors right */}
+                        <div className="relative flex-none">
+                          <span className="text-[10px] text-[#c4c9d4] select-none cursor-default group-hover/rule:text-[#9ca3af]">ⓘ</span>
+                          <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover/rule:block w-64
                             bg-[#111827] text-white text-[10px] leading-snug rounded px-3 py-2 shadow-lg pointer-events-none">
                             {item.detail}
                           </div>
-                        </div>
-
-                        {/* Weight input */}
-                        <div className="flex items-center gap-1 flex-none">
-                          <input
-                            type="number" min={0} max={100}
-                            disabled={!cs.enabled}
-                            value={cs.weight}
-                            onChange={e => setConstraintWeight(item.name, Math.min(100, Math.max(0, +e.target.value)))}
-                            className="w-10 text-center font-mono text-[11px] border border-[#e5e7eb] rounded"
-                            style={{
-                              height: 22, background: cs.enabled ? "#fff" : "#f9fafb",
-                              color: cs.enabled ? "#111827" : "#9ca3af",
-                              outline: "none", padding: "0 2px",
-                            }} />
-                          <span className="text-[9.5px] text-[#9ca3af]">%</span>
                         </div>
                       </div>
                     )
