@@ -20,7 +20,7 @@ const LS_KEY = "yardos:lang"
 /** Resolve {0}, {1} … placeholders */
 function interpolate(template: string, args: (string | number)[]): string {
   return args.reduce<string>(
-    (s, arg, i) => s.replaceAll(`{${i}}`, String(arg)),
+    (s, arg, i) => s.split(`{${i}}`).join(String(arg)),
     template
   )
 }
