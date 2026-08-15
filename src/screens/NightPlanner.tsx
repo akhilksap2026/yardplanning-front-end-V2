@@ -362,10 +362,19 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     { k:"Status",    v:viewedPlan.status.replace("_"," "),                                      sub:"plan state",    red:false },
   ] : []
 
-  function KpiCell({ m }: { m: { k:string; v:string; sub:string; red:boolean } }) {
+  function KpiCell({ m, onClick }: { m: { k:string; v:string; sub:string; red:boolean }; onClick?: () => void }) {
     return (
-      <div className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-1">
-        <span className="ds-label">{m.k}</span>
+      <div
+        onClick={onClick}
+        className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-1 transition-colors"
+        style={{ cursor: onClick ? "pointer" : "default" }}
+        onMouseEnter={e => { if (onClick) (e.currentTarget as HTMLDivElement).style.background = "#f9fafb" }}
+        onMouseLeave={e => { if (onClick) (e.currentTarget as HTMLDivElement).style.background = "" }}
+      >
+        <div className="flex items-center gap-1">
+          <span className="ds-label">{m.k}</span>
+          {onClick && <span className="text-[9px] text-[#9ca3af]">↗</span>}
+        </div>
         <div className="flex items-baseline gap-2">
           <span className="font-mono font-semibold leading-none" style={{ fontSize: 24, color: m.red ? "#dc2626" : undefined }}>{m.v}</span>
           <span className="text-[11px] text-[#9ca3af]">{m.sub}</span>
@@ -660,7 +669,15 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         <div className="flex-none border-b border-[#e5e7eb] bg-white">
           {/* Primary row: always visible */}
           <div className="flex items-stretch">
-            {(planSource === "seed" ? primaryKpis : engineKpis.slice(0,2)).map(m => <KpiCell key={m.k} m={m} />)}
+            {(planSource === "seed" ? primaryKpis : engineKpis.slice(0,2)).map(m => (
+              <KpiCell key={m.k} m={m}
+                onClick={
+                  m.k === "Inbound containers"  ? () => onNavigate?.("gate", "inbound")  :
+                  m.k === "Outbound containers" ? () => onNavigate?.("gate", "outbound") :
+                  undefined
+                }
+              />
+            ))}
             <button
               onClick={() => setKpiExpanded(v => !v)}
               className="flex items-center gap-1.5 px-4 text-[11px] text-[#6b7280] hover:text-[#374151] hover:bg-[#f9fafb] transition-colors"

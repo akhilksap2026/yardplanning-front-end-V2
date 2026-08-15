@@ -7,6 +7,8 @@ import type { BackendGateTransaction } from "@/lib/backend-api"
 import ContainerPicker from "@/components/ContainerPicker"
 import { computeRehandleCost } from "@/lib/utils"
 import GateInspection from "@/components/gate/GateInspection"
+import { allSteps } from "@/data/planningData"
+import { getDisplayOperation } from "@/utils/displayLabels"
 
 interface Props {
   focus: string | null
@@ -98,9 +100,15 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h)
   }, [moreActionsOpen])
 
+  // ── Derived inbound/outbound container lists (consistent with Planner KPIs) ─
+  const inboundSteps  = allSteps.filter(s => s.operation === "Putaway")
+  const outboundSteps = allSteps.filter(s => s.operation === "Outbound staging and truck loading")
+
   // ── Existing effects ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!focus) return
+    if (focus === "inbound")  { setTab("inbound");  return }
+    if (focus === "outbound") { setTab("outbound"); return }
     const v = visits.find(x => x.container === focus || x.id === focus)
     if (v) { setSel(v.id); setTab("visits") }
   }, [focus, visits])
@@ -309,16 +317,20 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           <span className="text-[11px] text-neutral-500">Clock starts at queue geofence · stops at barrier release · exclusions recorded per visit</span>
         </div>
         <div className="flex ml-3" style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden" }}>
-          {(["visits","gtx","appts","inspection"] as const).map(k => {
-            const label = k==="visits"?"Live visits":k==="gtx"?"Gate transactions":k==="appts"?"Appointments":"Inspection"
-            return (
-              <button key={k} onClick={()=>setTab(k)}
-                className="text-[11.5px] px-3 py-1.5 font-bold transition-colors"
-                style={{ background:tab===k?"#111827":"transparent", color:tab===k?"#fff":"#374151" }}>
-                {label}
-              </button>
-            )
-          })}
+          {([
+            { k:"visits",    label:"Live visits" },
+            { k:"inbound",   label:`Inbound (${inboundSteps.length})` },
+            { k:"outbound",  label:`Outbound (${outboundSteps.length})` },
+            { k:"gtx",       label:"Transactions" },
+            { k:"appts",     label:"Appointments" },
+            { k:"inspection",label:"Inspection" },
+          ] as const).map(({ k, label }) => (
+            <button key={k} onClick={()=>setTab(k)}
+              className="text-[11.5px] px-3 py-1.5 font-bold transition-colors"
+              style={{ background:tab===k?"#111827":"transparent", color:tab===k?"#fff":"#374151" }}>
+              {label}
+            </button>
+          ))}
         </div>
         <div className="ml-auto">
           {tab==="gtx"&&backendConnected ? (
@@ -947,6 +959,102 @@ export default function GateConsole({ focus, onNavigate }: Props) {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ════════════════════ INBOUND TAB ════════════════════ */}
+      {tab === "inbound" && (
+        <div className="flex-1 min-h-0 overflow-auto">
+          <div className="px-5 pt-3 pb-2 flex items-center gap-3 flex-none border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
+            <span className="font-semibold text-[13px]">Inbound containers</span>
+            <span className="text-[11px] text-[#9ca3af]">{inboundSteps.length} containers scheduled for putaway today</span>
+          </div>
+          <table className="w-full border-collapse text-[12px]">
+            <thead className="sticky top-[41px] z-10">
+              <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
+                {["SEQ","CONTAINER","OPERATION","FROM","TO","OPERATOR","STATUS"].map(h => (
+                  <th key={h} className="px-4 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {inboundSteps.map((s, i) => {
+                const fmtLoc = (loc: typeof s.origin) => {
+                  if (!loc || loc.bay == null) return "—"
+                  if (loc.bay === "GATE / OFF-YARD") return "Gate"
+                  return `Bay ${loc.bay} · R${loc.row ?? "?"} · T${loc.tier ?? "?"}`
+                }
+                const statusColor: Record<string, [string,string]> = {
+                  Planned:   ["#eff6ff","#1d4ed8"],
+                  "In Progress": ["#fef9c3","#a16207"],
+                  Completed: ["#f0fdf4","#15803d"],
+                  Blocked:   ["#fef2f2","#dc2626"],
+                }
+                const [stBg, stFg] = statusColor[s.step_status ?? "Planned"] ?? ["#f3f4f6","#6b7280"]
+                return (
+                  <tr key={i} className="border-b border-[#f3f4f6] hover:bg-[#f9fafb] transition-colors" style={{ background:"#fff" }}>
+                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-400">{String(i + 1).padStart(3,"0")}</td>
+                    <td className="px-4 py-2.5 font-mono font-bold text-neutral-900">{s.container_id ?? <span className="text-neutral-400 font-normal">Untracked</span>}</td>
+                    <td className="px-4 py-2.5 text-neutral-700">{getDisplayOperation(s.operation)}</td>
+                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-500 whitespace-nowrap">{fmtLoc(s.origin)}</td>
+                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-500 whitespace-nowrap">{fmtLoc(s.destination)}</td>
+                    <td className="px-4 py-2.5 text-neutral-700">{s.operator ?? "—"}</td>
+                    <td className="px-4 py-2.5">
+                      <span className="px-2 py-0.5 rounded text-[10.5px] font-semibold" style={{ background:stBg, color:stFg }}>{s.step_status ?? "Planned"}</span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ════════════════════ OUTBOUND TAB ════════════════════ */}
+      {tab === "outbound" && (
+        <div className="flex-1 min-h-0 overflow-auto">
+          <div className="px-5 pt-3 pb-2 flex items-center gap-3 flex-none border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
+            <span className="font-semibold text-[13px]">Outbound containers</span>
+            <span className="text-[11px] text-[#9ca3af]">{outboundSteps.length} containers staged for truck loading today</span>
+          </div>
+          <table className="w-full border-collapse text-[12px]">
+            <thead className="sticky top-[41px] z-10">
+              <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
+                {["SEQ","CONTAINER","OPERATION","FROM","TO","OPERATOR","STATUS"].map(h => (
+                  <th key={h} className="px-4 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {outboundSteps.map((s, i) => {
+                const fmtLoc = (loc: typeof s.origin) => {
+                  if (!loc || loc.bay == null) return "—"
+                  if (loc.bay === "GATE / OFF-YARD") return "Gate"
+                  return `Bay ${loc.bay} · R${loc.row ?? "?"} · T${loc.tier ?? "?"}`
+                }
+                const statusColor: Record<string, [string,string]> = {
+                  Planned:   ["#eff6ff","#1d4ed8"],
+                  "In Progress": ["#fef9c3","#a16207"],
+                  Completed: ["#f0fdf4","#15803d"],
+                  Blocked:   ["#fef2f2","#dc2626"],
+                }
+                const [stBg, stFg] = statusColor[s.step_status ?? "Planned"] ?? ["#f3f4f6","#6b7280"]
+                return (
+                  <tr key={i} className="border-b border-[#f3f4f6] hover:bg-[#f9fafb] transition-colors" style={{ background:"#fff" }}>
+                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-400">{String(i + 1).padStart(3,"0")}</td>
+                    <td className="px-4 py-2.5 font-mono font-bold text-neutral-900">{s.container_id ?? <span className="text-neutral-400 font-normal">Untracked</span>}</td>
+                    <td className="px-4 py-2.5 text-neutral-700">{getDisplayOperation(s.operation)}</td>
+                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-500 whitespace-nowrap">{fmtLoc(s.origin)}</td>
+                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-500 whitespace-nowrap">{fmtLoc(s.destination)}</td>
+                    <td className="px-4 py-2.5 text-neutral-700">{s.operator ?? "—"}</td>
+                    <td className="px-4 py-2.5">
+                      <span className="px-2 py-0.5 rounded text-[10.5px] font-semibold" style={{ background:stBg, color:stFg }}>{s.step_status ?? "Planned"}</span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
