@@ -43,22 +43,25 @@ const NAV_GROUP_KEYS: NavGroupKey[] = [
   "nav.group.todaysOps", "nav.group.yard", "nav.group.movement", "nav.group.config",
 ]
 
-const STORY = [
+// hint drives contextual UI state in the target screen when the demo advances
+type StoryEntry = { screen: Screen; step: string; title: string; persona: string; hint: string | null }
+
+const STORY: StoryEntry[] = [
   // ── Act 1: The engine thinks at 9 PM ─────────────────────────────────────
-  { screen: "plan"     as Screen, step: "Step 1 of 10",  title: "9 PM · engine reads yard state, detention deadlines and 6 available operators — builds tomorrow's plan",                                        persona: "Yard Manager · Martín R." },
-  { screen: "plan"     as Screen, step: "Step 2 of 10",  title: "Engine asks 'what happens downstream?' — filter to Pre-Marshal to see 49 crane moves needed before target containers become reachable",         persona: "Yard Manager · Martín R." },
-  { screen: "plan"     as Screen, step: "Step 3 of 10",  title: "Select any move — WHY callout explains the downstream reason; planning score shows how urgently the engine ranked this step",                   persona: "Yard Manager · Martín R." },
+  { screen: "plan",     step: "Step 1 of 10",  hint: "demo:reset",      title: "9 PM · engine reads yard state, detention deadlines and 6 available operators — builds tomorrow's plan",                                        persona: "Yard Manager · Martín R." },
+  { screen: "plan",     step: "Step 2 of 10",  hint: "demo:premarshal", title: "Engine asks 'what happens downstream?' — filter to Pre-Marshal to see 49 crane moves needed before target containers become reachable",         persona: "Yard Manager · Martín R." },
+  { screen: "plan",     step: "Step 3 of 10",  hint: "demo:select",     title: "Select any move — WHY callout explains the downstream reason; planning score shows how urgently the engine ranked this step",                   persona: "Yard Manager · Martín R." },
   // ── Act 2: The yard manager sets the strategy ─────────────────────────────
-  { screen: "settings" as Screen, step: "Step 4 of 10",  title: "Priority model — raise detention weight and the engine shifts sequence; lower it and customer cutoffs take over; the strategy is yours to set", persona: "Yard Manager · Martín R." },
+  { screen: "settings", step: "Step 4 of 10",  hint: "demo:weights",    title: "Priority model — raise detention weight and the engine shifts sequence; lower it and customer cutoffs take over; the strategy is yours to set", persona: "Yard Manager · Martín R." },
   // ── Act 3: The plan is handed to the shift ────────────────────────────────
-  { screen: "plan"     as Screen, step: "Step 5 of 10",  title: "Show Gantt — 6 operators, 154 steps, no overlap, no idle gaps; the engine has already done the scheduling so the shift can just execute",      persona: "Yard Manager · Martín R." },
-  { screen: "operator" as Screen, step: "Step 6 of 10",  title: "Jockey's view — scan TCLU0000006, confirm identity, pick from Bay 9 · R1 · T1, move to staging; no decisions, just execution",               persona: "Operator · R. Giménez"    },
+  { screen: "plan",     step: "Step 5 of 10",  hint: "demo:gantt",      title: "Show Gantt — 6 operators, 154 steps, no overlap, no idle gaps; the engine has already done the scheduling so the shift can just execute",      persona: "Yard Manager · Martín R." },
+  { screen: "operator", step: "Step 6 of 10",  hint: "demo:job-card",   title: "Jockey's view — scan TCLU0000006, confirm identity, pick from Bay 9 · R1 · T1, move to staging; no decisions, just execution",               persona: "Operator · R. Giménez"    },
   // ── Act 4: The yard in motion ─────────────────────────────────────────────
-  { screen: "yard"     as Screen, step: "Step 7 of 10",  title: "Yard map at shift start — slot occupancy, stack depth and hot containers plotted by position; shows where the plan will create pressure",      persona: "Yard Manager · Martín R." },
-  { screen: "gate"     as Screen, step: "Step 8 of 10",  title: "Morning arrivals — each inbound container matched to the plan on entry; mismatches and inspection holds surfaced before they reach the yard",   persona: "Gate Ops · Diego V."      },
+  { screen: "yard",     step: "Step 7 of 10",  hint: null,              title: "Yard map at shift start — slot occupancy, stack depth and hot containers plotted by position; shows where the plan will create pressure",      persona: "Yard Manager · Martín R." },
+  { screen: "gate",     step: "Step 8 of 10",  hint: null,              title: "Morning arrivals — each inbound container matched to the plan on entry; mismatches and inspection holds surfaced before they reach the yard",   persona: "Gate Ops · Diego V."      },
   // ── Act 5: Reality changes — engine adapts ────────────────────────────────
-  { screen: "tower"    as Screen, step: "Step 9 of 10",  title: "10:30 AM · disruption detected — 2 steps blocked, cascade risk across 3 operators identified in seconds; engine flags before the yard feels it", persona: "Yard Manager · Martín R." },
-  { screen: "liveops"  as Screen, step: "Step 10 of 10", title: "Continuous cycle: Predict → Plan → Execute → Monitor → Replan — affected moves redistributed, operators see updated queues, yard keeps moving", persona: "Yard Manager · Martín R." },
+  { screen: "tower",    step: "Step 9 of 10",  hint: null,              title: "10:30 AM · disruption detected — 2 steps blocked, cascade risk across 3 operators identified in seconds; engine flags before the yard feels it", persona: "Yard Manager · Martín R." },
+  { screen: "liveops",  step: "Step 10 of 10", hint: null,              title: "Continuous cycle: Predict → Plan → Execute → Monitor → Replan — affected moves redistributed, operators see updated queues, yard keeps moving", persona: "Yard Manager · Martín R." },
 ]
 
 const ALL_SLICES: RefreshSlice[] = [
@@ -169,6 +172,9 @@ function AppShell() {
     const next = Math.max(0, Math.min(STORY.length - 1, storyIdx + delta))
     setStoryIdx(next)
     setScreen(STORY[next].screen)
+    // Pass hint as focus so each screen can set the right internal state.
+    // null hint clears any stale focus from a previous step.
+    setFocus(STORY[next].hint)
   }
 
   function navigate(target: string, f?: string) {
@@ -602,8 +608,8 @@ function AppShell() {
             : screen === "yard"     ? <YardMap        focus={focus} onNavigate={navigate} />
             : screen === "gate"     ? <GateConsole    focus={focus} onNavigate={navigate} />
             : screen === "tower"    ? <ControlTower   focus={focus} onNavigate={navigate} />
-            : screen === "operator" ? <OperatorTablet />
-            : screen === "settings" ? <SettingsScreen />
+            : screen === "operator" ? <OperatorTablet focus={focus} />
+            : screen === "settings" ? <SettingsScreen focus={focus} />
             : null}
         </div>
       </div>

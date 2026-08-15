@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import TabBar             from "@/components/ui/TabBar"
 import WeightFactorsTab   from "./settings/WeightFactorsTab"
 import PriorityFactorsTab from "./settings/PriorityFactorsTab"
@@ -13,8 +13,13 @@ import { useLang }        from "@/lib/i18n"
 
 type EngineSubTab = "solver" | "optimizer"
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ focus }: { focus?: string | null }) {
   const [tab, setTab]           = useState("weights")
+
+  // Demo story hint: step 4 — show weights tab
+  useEffect(() => {
+    if (focus === "demo:weights") setTab("weights")
+  }, [focus])
   const { backendConnected }    = useData()
   const [engineSub, setEngineSub] = useState<EngineSubTab>("solver")
   const [langSaving, setLangSaving] = useState(false)

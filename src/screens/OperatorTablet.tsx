@@ -42,6 +42,15 @@ const FLOW_STEPS = [
   { key:"map",         label:"Navigate & drop", note:"Yard map shows route to destination. Tap Complete when delivered." },
 ]
 
+// ── Immutable demo task — always shown on story step 6 ───────────────────────
+// Matches the Step 6 caption: "scan TCLU0000006, pick from Bay 9 · R1 · T1, move to staging"
+const DEMO_TASK: DisplayTask = {
+  id: "DEMO-001", seq: 1, container: "TCLU0000006",
+  size: "20ft", weight: "18.4t",
+  from: "Bay 9 · R1 · T1", to: "Staging Area S-3",
+  reason: "Pre-marshal ahead of retrieval", est: 7,
+}
+
 // ── Damage codes & exception options ──────────────────────────────────────────
 const DAMAGE_CODES    = ["CRD-1 dent","CRD-2 scratch","BNT bent","HOL hole","RST rust","BRK broken"]
 const CANT_FIND_OPTS  = ["Not at this location","Wrong bay / row","Slot is empty","Container obstructed"]
@@ -151,7 +160,7 @@ function NavMap({ from, to }: { from: string; to: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function OperatorTablet() {
+export default function OperatorTablet({ focus }: { focus?: string | null }) {
   const { operatorTasks, refresh, backendConnected, backendJockeys } = useData()
   const { t } = useLang()
 
@@ -194,7 +203,15 @@ export default function OperatorTablet() {
 
   // ── Derived task ──────────────────────────────────────────────────────────
   const seedTask = operatorTasks[queueIdx] ?? null
+
+  // demoMode: derived from focus prop — when the demo tour is on step 6, bypass
+  // the jockey-picker and use seed data so the job-card is always shown regardless
+  // of whether the backend is reachable.
+  const demoMode = focus === "demo:job-card"
+
   const displayTask: DisplayTask | null = (() => {
+    // Demo mode: always use the fixed DEMO_TASK — no backend reads, no queue
+    if (demoMode) return DEMO_TASK
     if (backendConnected && engineTask) return {
       id: engineTask.id, seq: engineTask.sequence_number,
       container: engineTask.container.container_number,
@@ -212,11 +229,12 @@ export default function OperatorTablet() {
     return null
   })()
 
-  const jockeyName   = backendConnected ? (backendJockeys.find(j=>j.id===selectedJockeyId)?.name ?? "Operator") : "R. Giménez"
+  const liveBackend  = backendConnected && !demoMode
+  const jockeyName   = liveBackend ? (backendJockeys.find(j=>j.id===selectedJockeyId)?.name ?? "Operator") : "R. Giménez"
   const initials     = jockeyName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()
-  const equipBadge   = backendConnected ? "RTG #C-3" : "RS-01"
-  const pendingCount = backendConnected ? 1 : Math.max(0, operatorTasks.length - completedIds.size)
-  const doneCount    = backendConnected ? 47 : completedIds.size
+  const equipBadge   = liveBackend ? "RTG #C-3" : "RS-01"
+  const pendingCount = liveBackend ? 1 : Math.max(0, operatorTasks.length - completedIds.size)
+  const doneCount    = liveBackend ? 47 : completedIds.size
 
   const currentStepIdx = FLOW_STEPS.findIndex(s => {
     if (wizardStep === "job-card")    return s.key === "job-card"
@@ -253,8 +271,19 @@ export default function OperatorTablet() {
     setPhotoCaptured({}); setSelectedDmg(new Set()); setConfirmError(null)
   }
 
+  // Demo story hint: step 6 — reset to first job card so the jockey picker is skipped
+  useEffect(() => {
+    if (focus !== "demo:job-card") return
+    setQueueIdx(0)
+    setWizardStep("job-card"); setOverlay(null)
+    setScanInput(""); setScanResult(null)
+    setQuarantine(false); setCantFindReason(null)
+    setPhotoCaptured({}); setSelectedDmg(new Set()); setConfirmError(null)
+  }, [focus])
+
   // Skip current job and advance to next (shared by cant-find, quarantine, etc.)
   function skipCurrentJob() {
+    if (demoMode) { resetForNextJob(); return } // demo: reset wizard, keep DEMO_TASK
     if (backendConnected && selectedJockeyId != null) {
       resetForNextJob(); fetchNextTask(selectedJockeyId)
     } else {
@@ -266,8 +295,8 @@ export default function OperatorTablet() {
   }
 
   useEffect(() => {
-    if (backendConnected && selectedJockeyId != null) fetchNextTask(selectedJockeyId)
-  }, [backendConnected, selectedJockeyId])
+    if (!demoMode && backendConnected && selectedJockeyId != null) fetchNextTask(selectedJockeyId)
+  }, [demoMode, backendConnected, selectedJockeyId])
 
   // justCompleted toast auto-dismiss
   useEffect(() => {
@@ -279,9 +308,11 @@ export default function OperatorTablet() {
   // Demo tap-to-scan: auto-fill the correct ID and advance
   async function demoScan() {
     if (!displayTask) return
-    const correctId = backendConnected && engineTask
-      ? engineTask.container.container_number
-      : (seedTask?.container ?? "")
+    const correctId = demoMode
+      ? DEMO_TASK.container
+      : backendConnected && engineTask
+        ? engineTask.container.container_number
+        : (seedTask?.container ?? "")
     setScanInput(correctId)
     setScanResult({ match: true, scanned: correctId, expected: correctId })
     setTimeout(() => { setWizardStep("map"); resetScan() }, 900)
@@ -289,7 +320,7 @@ export default function OperatorTablet() {
 
   async function handleScan() {
     if (!displayTask || !scanInput.trim()) return
-    if (backendConnected && engineTask) {
+    if (!demoMode && backendConnected && engineTask) {
       setScanning(true)
       try {
         const result = await backendApi.scanMove(engineTask.id, scanInput.trim())
@@ -304,10 +335,11 @@ export default function OperatorTablet() {
         if (match) setTimeout(() => { setWizardStep("map"); resetScan() }, 900)
         else setOverlay("mismatch")
       } finally { setScanning(false) }
-    } else if (!backendConnected && seedTask) {
-      const match = scanInput.trim().toUpperCase() === (seedTask.container??"").toUpperCase()
-      const res = { match, scanned: scanInput.trim(), expected: seedTask.container??"" }
-      setScanResult(res)
+    } else {
+      // Seed or demo mode — local match only, never touches backend
+      const expected = demoMode ? DEMO_TASK.container : (seedTask?.container ?? "")
+      const match = scanInput.trim().toUpperCase() === expected.toUpperCase()
+      setScanResult({ match, scanned: scanInput.trim(), expected })
       if (match) setTimeout(() => { setWizardStep("map"); resetScan() }, 900)
       else setOverlay("mismatch")
     }
@@ -317,12 +349,15 @@ export default function OperatorTablet() {
     if (!displayTask) return
     setConfirming(true); setConfirmError(null)
     try {
-      if (backendConnected && engineTask) {
+      if (!demoMode && backendConnected && engineTask) {
         await backendApi.completeMove(engineTask.id)
         resetForNextJob(); setJustCompleted(true)
         fetchNextTask(selectedJockeyId!)
+      } else if (demoMode) {
+        // Demo mode — show success toast, reset wizard; DEMO_TASK stays fixed
+        resetForNextJob(); setJustCompleted(true)
       } else {
-        // Seed/demo mode — advance locally without backend call
+        // Seed mode — advance locally without backend call
         setCompletedIds(prev => new Set([...prev, String(displayTask.id)]))
         setQueueIdx(prev => prev + 1)
         resetForNextJob(); setJustCompleted(true)
@@ -342,7 +377,7 @@ export default function OperatorTablet() {
   // EARLY RETURN: Jockey picker
   // ══════════════════════════════════════════════════════════════════════════
   const availableJockeys = backendJockeys.filter(j => j.status==="available"||j.status==="busy")
-  if (backendConnected && selectedJockeyId == null) {
+  if (backendConnected && !demoMode && selectedJockeyId == null) {
     return (
       <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
         <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">

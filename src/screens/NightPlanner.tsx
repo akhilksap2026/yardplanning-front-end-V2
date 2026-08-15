@@ -198,6 +198,38 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   useEffect(() => {
     if (!focus) return
 
+    // ── Demo story hints ─────────────────────────────────────────────────────
+    if (focus === "demo:reset") {
+      setFilter("ALL")
+      setSel(allSteps[0] ? stepId(allSteps[0]) : "")
+      setQ("")
+      setGanttExpanded(false)
+      setPlanSource("seed")
+      return
+    }
+    if (focus === "demo:premarshal") {
+      setFilter("Premarshal ahead of retrieval")
+      setSel("")
+      setQ("")
+      setGanttExpanded(false)
+      return
+    }
+    if (focus === "demo:select") {
+      // Pick the first non-blocked pre-marshal step as the representative move
+      const step =
+        allSteps.find(s => s.operation === "Premarshal ahead of retrieval" && s.step_status !== "Blocked") ??
+        allSteps.find(s => s.operation === "Premarshal ahead of retrieval") ??
+        allSteps[0]
+      if (step) { setSel(stepId(step)); setTab("detail"); setFilter("ALL"); setQ(""); setGanttExpanded(false) }
+      return
+    }
+    if (focus === "demo:gantt") {
+      setGanttExpanded(true)
+      setFilter("ALL")
+      setQ("")
+      return
+    }
+
     // Numeric focus = plan ID from ControlTower "View plan" → switch to engine
     // mode and load the specific replan so the user sees what changed
     if (/^\d+$/.test(focus)) {
