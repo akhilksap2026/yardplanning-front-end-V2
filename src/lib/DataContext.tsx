@@ -374,23 +374,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
           fetchJson('/api/cycle-by-type'),
           fetchJson('/api/capacity'),
         ])
+        // Only replace a slice if the DB returned actual rows — prevents an
+        // empty production DB from wiping out static seed data.
+        const use = <T,>(fetched: T[], prev: T[]) =>
+          (fetched as T[]).length > 0 ? fetched : prev
         setData(prev => ({
           ...prev,
-          moves:         moves         as Move[],
-          operators:     operators     as Operator[],
-          assumptions:   assumptions   as Assumption[],
-          exceptions:    exceptions    as Exception[],
-          containers:    containers    as Container[],
-          zones:         zones         as Zone[],
-          visits:        visits        as Visit[],
-          lanes:         lanes         as Lane[],
-          appointments:  appointments  as Appointment[],
-          events:        events        as Event[],
-          diffRows:      diffRows      as DiffRow[],
-          operatorTasks: operatorTasks as OperatorTask[],
-          turnByHour:    turnByHour    as TurnByHour[],
-          cycleByType:   cycleByType   as CycleByType[],
-          capacity:      capacity      as Capacity[],
+          moves:         use(moves         as Move[],         prev.moves),
+          operators:     use(operators     as Operator[],     prev.operators),
+          assumptions:   use(assumptions   as Assumption[],   prev.assumptions),
+          exceptions:    use(exceptions    as Exception[],    prev.exceptions),
+          containers:    use(containers    as Container[],    prev.containers),
+          zones:         use(zones         as Zone[],         prev.zones),
+          visits:        use(visits        as Visit[],        prev.visits),
+          lanes:         use(lanes         as Lane[],         prev.lanes),
+          appointments:  use(appointments  as Appointment[],  prev.appointments),
+          events:        use(events        as Event[],        prev.events),
+          diffRows:      use(diffRows      as DiffRow[],      prev.diffRows),
+          operatorTasks: use(operatorTasks as OperatorTask[], prev.operatorTasks),
+          turnByHour:    use(turnByHour    as TurnByHour[],   prev.turnByHour),
+          cycleByType:   use(cycleByType   as CycleByType[],  prev.cycleByType),
+          capacity:      use(capacity      as Capacity[],     prev.capacity),
           dbLoading: false,
           dbError: null,
         }))
