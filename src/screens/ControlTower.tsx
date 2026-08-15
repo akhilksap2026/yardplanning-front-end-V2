@@ -64,7 +64,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
   const {
     events, diffRows, backendConnected, activePlan,
     backendContainers, backendSlots, backendJockeys,
-    createDisruption, containers, zones,
+    createDisruption, containers, zones, moves, refresh,
   } = useData()
 
   const [tab,  setTab]  = useState<"events" | "inventory">("events")
@@ -82,6 +82,8 @@ export default function ControlTower({ focus, onNavigate }: Props) {
   const [injecting,        setInjecting]        = useState(false)
 
   const [localDisruptions, setLocalDisruptions] = useState<BackendDisruption[]>([])
+  const [patchingMove,     setPatchingMove]     = useState<string | null>(null)
+  const [moveError,        setMoveError]        = useState<string | null>(null)
   const [replanBanner,     setReplanBanner]     = useState<{ id: number; added: number; cancelled: number; reassigned: number } | null>(null)
   const [engineDiffRows,   setEngineDiffRows]   = useState<EngineDiffRow[] | null>(null)
   const [engineDiffStats,  setEngineDiffStats]  = useState<EngineDiffStats | null>(null)
@@ -136,6 +138,18 @@ export default function ControlTower({ focus, onNavigate }: Props) {
       }
       setModalOpen(false); setModalDescription(""); setModalSearch(""); setModalContainer(""); setModalJockey(""); setModalType("truck_accident")
     } finally { setInjecting(false) }
+  }
+
+  // Persist a move state change to the DB, then re-pull moves so all screens update.
+  async function handleMoveStateChange(moveId: string, state: string) {
+    setPatchingMove(moveId); setMoveError(null)
+    try {
+      await backendApi.patchMove(moveId, { state })
+      await refresh(["moves"])
+    } catch (err) {
+      console.error("[ControlTower] patchMove failed:", err)
+      setMoveError(`Could not update ${moveId}: ${String(err).replace("Error: ", "")}`)
+    } finally { setPatchingMove(null) }
   }
 
   const activeDiffRows  = engineDiffRows ?? diffRows
@@ -405,11 +419,16 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                       <div className="px-5 pt-3 pb-1">
                         <span className="ds-label">What changed in the plan</span>
                       </div>
+                      {moveError && (
+                        <div className="mx-5 mb-2 px-3 py-2 text-[11.5px]" style={{ background: "#fef2f2", border: "1px solid #fca5a5", color: "#991b1b", borderRadius: 5 }}>
+                          {moveError}
+                        </div>
+                      )}
                       <table className="w-full border-collapse text-[12px]">
                         <thead>
                           <tr>
-                            {["Move", "Before", "After", "Reason"].map((h, i) => (
-                              <th key={h} className="ds-th text-left" style={{ paddingLeft: i === 0 ? 20 : 12, paddingRight: i === 3 ? 20 : 12 }}>{h}</th>
+                            {["Move", "Before", "After", "Reason", "Live state"].map((h, i) => (
+                              <th key={h} className="ds-th text-left" style={{ paddingLeft: i === 0 ? 20 : 12, paddingRight: i === 4 ? 20 : 12 }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
@@ -431,7 +450,27 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                                 </td>
                                 <td className="px-3 py-2 align-top text-neutral-400 font-mono text-[11.5px]">{(r as { before: string }).before}</td>
                                 <td className="px-3 py-2 align-top font-mono font-semibold text-[11.5px]">{(r as { after: string }).after}</td>
-                                <td className="px-5 py-2 pl-3 align-top text-neutral-600 leading-relaxed">{(r as { note: string }).note}</td>
+                                <td className="px-3 py-2 align-top text-neutral-600 leading-relaxed">{(r as { note: string }).note}</td>
+                                <td className="py-2 pl-3 pr-5 align-top">
+                                  {(() => {
+                                    const moveId = (r as { moveId: string }).moveId
+                                    const live = moves.find(m => m.id === moveId)
+                                    if (!live) return <span className="text-[11px] text-neutral-300">—</span>
+                                    if (live.state === "DONE") return <span className="text-[10.5px] font-bold" style={{ color: "#059669" }}>✓ Done</span>
+                                    return (
+                                      <select
+                                        value={live.state}
+                                        disabled={patchingMove === moveId}
+                                        onChange={e => handleMoveStateChange(moveId, e.target.value)}
+                                        className="border border-[#e5e7eb] bg-white text-[11px] px-1.5 py-1"
+                                        style={{ borderRadius: 4, opacity: patchingMove === moveId ? 0.5 : 1 }}>
+                                        {["PLANNED", "ASSIGNED", "IN_PROGRESS"].map(s => (
+                                          <option key={s} value={s}>{s === "IN_PROGRESS" ? "In progress" : s.charAt(0) + s.slice(1).toLowerCase()}</option>
+                                        ))}
+                                      </select>
+                                    )
+                                  })()}
+                                </td>
                               </tr>
                             )
                           })}

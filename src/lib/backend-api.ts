@@ -216,6 +216,11 @@ export const backendApi = {
     request<{ match: boolean; move: BackendMove }>(`/moves/${moveId}/scan`, { method: "POST", body: JSON.stringify({ scanned_container_number: containerNumber }) }),
   /** Complete a move via the backend engine (numeric id for live engine). */
   completeMove: (moveId: number) => request<BackendMove>(`/moves/${moveId}/complete`, { method: "POST" }),
+  /** Update a move's state (PLANNED / ASSIGNED / IN_PROGRESS). DONE must go via completeMoveById. */
+  patchMove: (moveId: string | number, body: { state: string }) =>
+    request<{ id: string; state: string }>(
+      `/moves/${moveId}`, { method: "PATCH", body: JSON.stringify(body) }
+    ),
   /** Complete a move by string or numeric id (used for seed-data moves). */
   completeMoveById: (moveId: string | number) =>
     request<{ moveId: string | number; containerId: string; destination: string; state: string }>(
