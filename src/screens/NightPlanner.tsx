@@ -426,48 +426,50 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
               <span className="font-semibold text-[13px]">Assumptions & weights</span>
               <button onClick={() => setDrawerOpen(false)} className="text-[#9ca3af] hover:text-neutral-800 text-[12px]">✕</button>
             </div>
-            <div className="px-4 pt-3 pb-2 ds-label font-bold">Assumptions</div>
-            {(() => {
-              const OPERATIONAL_KEYS = new Set(["Machines available","Shift pattern","Inbound mode","Bonded status"])
-              const EXTERNAL_KEYS    = new Set(["Weight snapshot","Arrival profile","Wind forecast","Travel matrix"])
-              const operational = assumptions.filter(a => OPERATIONAL_KEYS.has(a.k))
-              const external    = assumptions.filter(a => EXTERNAL_KEYS.has(a.k))
-              const renderGroup = (label: string, items: typeof assumptions) => (
-                <div className="px-4 pb-3">
-                  <div className="text-[9.5px] font-bold tracking-widest text-[#9ca3af] uppercase mb-2"
-                    style={{ borderBottom:"1px solid #f3f4f6", paddingBottom:4 }}>
-                    {label}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    {items.map(a => (
-                      <div key={a.k}>
-                        <div className="text-[12px] font-semibold leading-tight">{a.v}</div>
-                        <div className="text-[10.5px] leading-tight mt-0.5">
-                          <span className="text-[#9ca3af]">{a.k} · </span>
-                          <span className={/unanswered|unconfirmed|maintenance/.test(a.note) ? "text-[#dc2626]" : "text-[#9ca3af]"}>{a.note}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            {([
+              {
+                label: "Physical & Spatial Constraints",
+                desc:  "Rules that check whether a container physically fits in the slot.",
+                items: [
+                  { name: "Size eligibility",    detail: "Container.size_type vs Slot.size_eligibility (20ft / 40ft)" },
+                  { name: "Reefer match",         detail: "Container.reefer_unit_flag vs Slot.reefer_capable + tier power_available" },
+                  { name: "Slot status",          detail: "Slot.slot_status must allow placement" },
+                  { name: "Tier status",          detail: "Tier.tier_status must be Available (not Occupied / Blocked)" },
+                  { name: "Weight limits",        detail: "Container gross weight vs Tier.weight_limit and Slot.max_gross_weight_capacity" },
+                  { name: "Max stack height",     detail: "Current stack height vs Block default or Slot.max_tier_height override" },
+                ],
+              },
+              {
+                label: "Safety & Compliance",
+                desc:  "Rules that enforce hazmat regulations and legal clearances.",
+                items: [
+                  { name: "Hazmat allowed",             detail: "Container.hazmat_class vs Slot.hazmat_class_allowed" },
+                  { name: "Spatial hazmat segregation", detail: "HazmatClass.segregation_group (A/B/C) — incompatible groups cannot be placed in conflicting slots" },
+                  { name: "Active holds",               detail: "Hold.released_at IS NULL — any uncleared customs/legal hold blocks placement" },
+                ],
+              },
+              {
+                label: "Operational Readiness",
+                desc:  "Rules that confirm equipment and personnel are ready for the move.",
+                items: [
+                  { name: "Certification",         detail: "JockeyEquipmentCertification — jockey must be certified for the equipment type" },
+                  { name: "Chassis prerequisites", detail: "Required chassis availability for the move" },
+                ],
+              },
+            ]).map(group => (
+              <div key={group.label} className="px-4 pb-4">
+                <div className="text-[9.5px] font-bold tracking-widest text-[#9ca3af] uppercase mb-1"
+                  style={{ borderBottom:"1px solid #f3f4f6", paddingBottom:4 }}>
+                  {group.label}
                 </div>
-              )
-              return (
-                <>
-                  {renderGroup("Operational Controls", operational)}
-                  <div className="h-px bg-[#f3f4f6] mx-4 mb-1" />
-                  {renderGroup("Observations", external)}
-                </>
-              )
-            })()}
-            <div className="h-px bg-[#e5e7eb] my-1 mx-4" />
-            <div className="px-4 pt-3 pb-2 ds-label font-bold">Objective weights</div>
-            {WEIGHTS.map(w => (
-              <div key={w.k} className="px-4 pb-3 flex flex-col gap-1">
-                <div className="flex justify-between text-[11.5px]">
-                  <span>{w.k}</span><span className="font-bold font-mono">{w.v}</span>
-                </div>
-                <div className="h-px bg-[#e5e7eb] relative">
-                  <div className="absolute left-0 top-0 h-px bg-[#111827]" style={{ width: w.pct+"%" }} />
+                <p className="text-[10.5px] text-[#9ca3af] leading-snug mb-2">{group.desc}</p>
+                <div className="flex flex-col gap-2">
+                  {group.items.map(item => (
+                    <div key={item.name}>
+                      <div className="text-[11.5px] font-semibold text-neutral-800 leading-tight">{item.name}</div>
+                      <div className="text-[10.5px] text-[#9ca3af] leading-snug mt-0.5">{item.detail}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
