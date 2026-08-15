@@ -248,3 +248,13 @@ CREATE TABLE IF NOT EXISTS gate_containers (
   seal_number   TEXT NOT NULL,
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ── Key-value settings store (UI preferences, language, etc.) ─────────────────
+CREATE TABLE IF NOT EXISTS settings (
+  k     TEXT PRIMARY KEY,
+  v     TEXT NOT NULL,
+  note  TEXT
+);
+INSERT INTO settings (k, v, note)
+  VALUES ('language', 'en', 'UI language: en | es')
+  ON CONFLICT (k) DO NOTHING;

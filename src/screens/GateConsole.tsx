@@ -8,6 +8,7 @@ import { computeRehandleCost } from "@/lib/utils"
 import GateInspection from "@/components/gate/GateInspection"
 import { allSteps } from "@/data/planningData"
 import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
+import { useLang } from "@/lib/i18n"
 
 interface Props {
   focus: string | null
@@ -43,6 +44,7 @@ const VISIT_COL_LABELS: Record<VisitCol, string> = {
 
 export default function GateConsole({ focus, onNavigate }: Props) {
   const { visits, lanes, appointments, refresh, backendConnected, backendContainers, containers } = useData()
+  const { t } = useLang()
 
   // ── Existing state ────────────────────────────────────────────────────────
   const [tab,          setTab]         = useState("visits")
@@ -345,17 +347,17 @@ export default function GateConsole({ focus, onNavigate }: Props) {
       {/* Header */}
       <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
         <div className="flex flex-col gap-1">
-          <span className="font-semibold text-[15px] tracking-tight">Gate & Appointments</span>
-          <span className="text-[11px] text-neutral-500">Clock starts at queue geofence · stops at barrier release · exclusions recorded per visit</span>
+          <span className="font-semibold text-[15px] tracking-tight">{t("gate.title")}</span>
+          <span className="text-[11px] text-neutral-500">{t("gate.subtitle")}</span>
         </div>
         <div className="flex ml-3" style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden" }}>
           {([
-            { k:"visits",    label:"Live visits" },
-            { k:"inbound",   label:`Inbound (${inboundRows.length})` },
-            { k:"outbound",  label:`Outbound (${outboundRows.length})` },
-            { k:"gtx",       label:"Transactions" },
-            { k:"appts",     label:"Appointments" },
-            { k:"inspection",label:"Inspection" },
+            { k:"visits",    label:t("gate.tab.visits") },
+            { k:"inbound",   label:t("gate.tab.inbound", inboundRows.length) },
+            { k:"outbound",  label:t("gate.tab.outbound", outboundRows.length) },
+            { k:"gtx",       label:t("gate.tab.transactions") },
+            { k:"appts",     label:t("gate.tab.appointments") },
+            { k:"inspection",label:t("gate.tab.inspection") },
           ] as const).map(({ k, label }) => (
             <button key={k} onClick={()=>setTab(k)}
               className="text-[11.5px] px-3 py-1.5 font-bold transition-colors"
@@ -368,12 +370,12 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           {tab==="gtx"&&backendConnected ? (
             <button onClick={()=>setShowGateInForm(f=>!f)}
               style={{ background:"#111827", color:"#fff", border:"none", borderRadius:5, fontSize:12, padding:"5px 14px", fontWeight:600 }}>
-              {showGateInForm?"Cancel":"Gate in"}
+              {showGateInForm?t("common.cancel"):t("gate.gateIn")}
             </button>
           ) : (
             <button onClick={handleCheckIn} disabled={checkingIn}
               style={{ background:"#111827", color:"#fff", border:"none", borderRadius:5, fontSize:12, padding:"5px 14px", fontWeight:600, opacity:checkingIn?0.5:1 }}>
-              {checkInDone?"V-2043 served · gate pass issued":checkingIn?"Checking in…":"Check in next in queue"}
+              {checkInDone?"V-2043 served · gate pass issued":checkingIn?t("gate.checkingIn"):t("gate.checkIn")}
             </button>
           )}
         </div>
@@ -384,8 +386,8 @@ export default function GateConsole({ focus, onNavigate }: Props) {
         {/* Primary row */}
         <div className="flex items-stretch">
           {[
-            { k:"In queue",       v:"2",     sub:"depth at 06:12", red:false },
-            { k:"Turn P50 today", v:"13.8′", sub:"target 15′",     red:false },
+            { k:t("gate.kpi.inQueue"),   v:"2",     sub:"depth at 06:12", red:false },
+            { k:t("gate.kpi.turnP50"),   v:"13.8′", sub:"target 15′",     red:false },
           ].map(m => (
             <div key={m.k} className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-0.5">
               <span className="ds-label text-neutral-500">{m.k}</span>
@@ -398,16 +400,16 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           <button onClick={()=>setKpiExpanded(v=>!v)}
             className="flex items-center gap-1.5 px-4 text-[11px] text-[#6b7280] hover:text-[#374151] hover:bg-[#f9fafb] transition-colors"
             style={{ whiteSpace:"nowrap" }}>
-            {kpiExpanded?"Fewer metrics ▲":"More metrics ▼"}
+            {kpiExpanded?t("gate.kpi.fewerMetrics"):t("gate.kpi.moreMetrics")}
           </button>
         </div>
         {/* Secondary row */}
         <div style={{ overflow:"hidden", maxHeight:kpiExpanded?120:0, transition:"max-height 200ms ease" }}>
           <div className="flex border-t border-[#e5e7eb]">
             {[
-              { k:"Turn P90 today",    v:"21.4′", sub:"target 22′",      red:false },
-              { k:"Longest live turn", v:"18′",   sub:"V-2042",          red:true  },
-              { k:"Exclusions logged", v:"2",     sub:"driver-caused",   red:false },
+              { k:t("gate.kpi.turnP90"),      v:"21.4′", sub:"target 22′",      red:false },
+              { k:t("gate.kpi.longestTurn"),  v:"18′",   sub:"V-2042",          red:true  },
+              { k:t("gate.kpi.exclusions"),   v:"2",     sub:"driver-caused",   red:false },
             ].map(m => (
               <div key={m.k} className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-0.5">
                 <span className="ds-label text-neutral-500">{m.k}</span>
@@ -428,12 +430,12 @@ export default function GateConsole({ focus, onNavigate }: Props) {
 
             {/* ── Step 2: Lane summary / expandable cards ────────────────── */}
             <div className="flex items-center gap-2.5 px-4 py-2 border-b border-[#e5e7eb]">
-              <span className="ds-label text-neutral-500">Lanes</span>
+              <span className="ds-label text-neutral-500">{t("gate.lanes")}</span>
               <span className="text-[11.5px] text-neutral-700 font-medium">{laneSummaryParts}</span>
               <button onClick={()=>setLanesExpanded(v=>!v)}
                 className="ml-auto text-[11px] px-2.5 py-1 text-neutral-500 hover:text-neutral-800"
                 style={{ border:"1px solid #e5e7eb", borderRadius:5 }}>
-                {lanesExpanded?"Hide lanes ▲":"Show lanes ▼"}
+                {lanesExpanded?t("gate.hideLanes"):t("gate.showLanes")}
               </button>
             </div>
             {/* Lane cards — expandable */}
@@ -480,9 +482,13 @@ export default function GateConsole({ focus, onNavigate }: Props) {
               <table className="w-full border-collapse" style={{ fontSize:11 }}>
                 <thead>
                   <tr>
-                    {VISIT_COLS.filter(h=>visibleCols.has(h)).map(h=>(
-                      <th key={h} className="ds-th text-left">{VISIT_COL_LABELS[h]}</th>
-                    ))}
+                    {visibleCols.has("TRUCK")     && <th className="ds-th text-left">{t("gate.col.truck")}</th>}
+                    {visibleCols.has("LIFECYCLE") && <th className="ds-th text-left">{t("gate.col.lifecycle")}</th>}
+                    {visibleCols.has("TURN")      && <th className="ds-th text-left">{t("gate.col.turn")}</th>}
+                    {visibleCols.has("PURPOSE")   && <th className="ds-th text-left">{t("gate.col.purpose")}</th>}
+                    {visibleCols.has("CONTAINER") && <th className="ds-th text-left">{t("gate.col.container")}</th>}
+                    {visibleCols.has("APPT")      && <th className="ds-th text-left">{t("gate.col.appt")}</th>}
+                    {visibleCols.has("EXCLUSION") && <th className="ds-th text-left">{t("gate.col.exclusion")}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -634,7 +640,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
               <button className="w-full text-[11.5px] text-left px-3 py-2.5 font-semibold mb-1"
                 style={{ background:"#111827", color:"#fff", borderRadius:5 }}
                 onClick={handleCheckIn} disabled={checkingIn}>
-                {checkInDone?"✓ Checked in and assigned to lane":checkingIn?"Checking in…":"Check in and assign lane"}
+                {checkInDone?"✓ Checked in and assigned to lane":checkingIn?t("gate.checkingIn"):"Check in and assign lane"}
               </button>
               {checkInDone && (
                 <div className="text-[10px] font-semibold text-[#059669] mb-1.5 px-0.5">EDI 322 sent ✓</div>
@@ -730,7 +736,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                   color:      gtxDirFilter===d?"#fff":"#6b7280",
                   border:     `1px solid ${gtxDirFilter===d?"#111827":"#e5e7eb"}`,
                 }}>
-                {d==="all"?"All":d==="IN"?"Inbound":d==="OUT"?"Outbound":"Empty return"}
+                {d==="all"?"All":d==="IN"?t("gate.purpose.inbound"):d==="OUT"?t("gate.purpose.outbound"):t("gate.purpose.empty")}
               </button>
             ))}
             <span className="ml-auto text-[11px] text-neutral-400">{filteredGtxRows.length} of {seedGtxRows.length} visits</span>
@@ -740,7 +746,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
               <button onClick={()=>setShowGateInForm(f=>!f)}
                 className="text-[11px] px-3 py-1.5 font-semibold"
                 style={{ background:"#111827", color:"#fff", borderRadius:5 }}>
-                {showGateInForm?"Cancel":"+ Gate in"}
+                {showGateInForm?t("common.cancel"):`+ ${t("gate.gateIn")}`}
               </button>
             )}
           </div>
@@ -751,7 +757,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
               <div className="ds-label text-neutral-500 font-bold mb-3">Record gate in</div>
               <div className="grid gap-3" style={{ gridTemplateColumns:"1fr 1fr" }}>
                 <div className="col-span-2">
-                  <label className="ds-label text-neutral-500 block mb-1">Container</label>
+                  <label className="ds-label text-neutral-500 block mb-1">{t("gate.container")}</label>
                   <ContainerPicker containers={pickableContainers} value={gateInContId} onChange={(id)=>setGateInContId(id)} placeholder="Search container number…" />
                 </div>
                 <div>
@@ -777,7 +783,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                 </button>
                 <button style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:5, fontSize:12, padding:"5px 14px", fontWeight:600 }}
                   onClick={()=>{ setShowGateInForm(false); setGateInContId(""); setGateInPlate(""); setGateInDriver(""); setGateInCarrier("") }}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
               </div>
             </div>
@@ -797,7 +803,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
             <table className="w-full border-collapse text-[12px]">
               <thead className="sticky top-0 z-10">
                 <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
-                  {["VISIT","CONTAINER","CHANNEL","DIRECTION","PURPOSE","QUEUE IN","CHECK IN","GATE OUT","TURN","TRUCK · DRIVER","CARRIER","LANE","STATUS"].map(h => (
+                  {["VISIT",t("gate.container"),t("gate.channel"),"DIRECTION",t("gate.col.purpose"),"QUEUE IN","CHECK IN",t("gate.gateOut"),"TURN","TRUCK · DRIVER",t("gate.carrier"),t("gate.col.appt"),t("gate.status")].map(h => (
                     <th key={h} className="px-3 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap"
                       style={{ borderBottom:"1px solid #e5e7eb" }}>
                       {h}
@@ -898,13 +904,13 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                 <div className="ds-label text-neutral-500 mb-3">LIVE ENGINE TRANSACTIONS</div>
                 <table className="w-full border-collapse text-[12px]">
                   <thead>
-                    <tr>{["CONTAINER","GATE IN","GATE OUT","TURNAROUND","TRUCK","DRIVER","CARRIER",""].map(h=>(
+                    <tr>{[t("gate.container"),t("gate.gateIn"),t("gate.gateOut"),"TURNAROUND",t("gate.plate"),t("gate.driver"),t("gate.carrier"),""].map(h=>(
                       <th key={h} className="ds-th text-left">{h}</th>
                     ))}</tr>
                   </thead>
                   <tbody>
                     {txLoading
-                      ? <tr><td colSpan={8} className="px-3 py-4 text-neutral-400 text-[11px]">Loading…</td></tr>
+                      ? <tr><td colSpan={8} className="px-3 py-4 text-neutral-400 text-[11px]">{t("common.loading")}</td></tr>
                       : txGroups.map(g=>{
                           const inTime=g.inTx?.actual_arrival??g.inTx?.created_at??null
                           const outTime=g.outTx?.actual_departure??g.outTx?.created_at??null
@@ -922,7 +928,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                                 {isRunning&&g.containerId!=null&&(
                                   <button disabled={gateOutLoading===g.containerId} onClick={()=>handleGateOut(g.containerId!,inTime)}
                                     style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:5, fontSize:10.5, padding:"3px 10px", fontWeight:600 }}>
-                                    {gateOutLoading===g.containerId?"…":"Gate out"}
+                                    {gateOutLoading===g.containerId?"…":t("gate.gateOut")}
                                   </button>
                                 )}
                               </td>
@@ -965,8 +971,8 @@ export default function GateConsole({ focus, onNavigate }: Props) {
             <div className="overflow-auto bg-white">
               <div className="px-4 pt-4 pb-2">
                 <div className="text-[9.5px] font-semibold tracking-wide text-neutral-400 mb-1">ASN — advance ship notice</div>
-                <div className="ds-label text-neutral-500">Window <span className="font-mono">{apptData.window}</span></div>
-                <div className="font-semibold text-[16px] mt-1"><span className="font-mono">{apptData.booked}</span> booked of <span className="font-mono">{apptData.capacity}</span> capacity</div>
+                <div className="ds-label text-neutral-500">{t("gate.appts.window")} <span className="font-mono">{apptData.window}</span></div>
+                <div className="font-semibold text-[16px] mt-1"><span className="font-mono">{apptData.booked}</span> {t("gate.appts.booked")} of <span className="font-mono">{apptData.capacity}</span> {t("gate.appts.capacity")}</div>
               </div>
               {[
                 {k:"Capacity basis",           v:"3 RS + 1 EH · 11.4 moves/h"},
@@ -1048,10 +1054,10 @@ export default function GateConsole({ focus, onNavigate }: Props) {
               <thead className="sticky top-[41px] z-10">
                 <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
                   {[
-                    "CONTAINER","SIZE","CONSIGNEE",
-                    "LINE SCAC","CARRIER",
-                    "TRUCK SCAC","TRUCKER",
-                    "CHANNEL","APPT","DRIVER","TRUCK","LFD","FREE DAYS","HOLD","STATUS"
+                    t("gate.container"),"SIZE","CONSIGNEE",
+                    "LINE SCAC",t("gate.carrier"),
+                    "TRUCK SCAC",t("gate.trucker"),
+                    t("gate.channel"),t("gate.appt"),t("gate.driver"),t("gate.plate"),"LFD",t("gate.freeDays"),t("gate.hold"),t("gate.status")
                   ].map(h => (
                     <th key={h} className="px-3 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap">{h}</th>
                   ))}

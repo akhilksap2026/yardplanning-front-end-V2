@@ -16,6 +16,7 @@ import {
 } from "@/lib/yard-layout"
 import { containerColor as _containerColor, LEGENDS } from "@/lib/yard-color"
 import type { ColorMode } from "@/lib/yard-color"
+import { useLang } from "@/lib/i18n"
 
 interface Props {
   focus: string | null
@@ -41,6 +42,8 @@ export default function YardMap({ focus, onNavigate }: Props) {
     containers, zones, moves, turnByHour, cycleByType, capacity,
     backendConnected, backendSlots, backendContainers,
   } = useData()
+
+  const { t } = useLang()
 
   // ── Existing seed state ───────────────────────────────────────────────────
   const [view,  setView]  = useState<"map"|"dash">("map")
@@ -397,7 +400,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
           {/* Zone header */}
           <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none">
             <div>
-              <div className="font-black text-[17px] tracking-tight">Zone {drawerZone}</div>
+              <div className="font-black text-[17px] tracking-tight">{t("yard.zone", drawerZone)}</div>
               <div className="text-[11px] text-neutral-500 mt-0.5">{stat?.shortName}</div>
             </div>
             <button onClick={() => { setDrawerOpen(false); setDrawerZone(null) }}
@@ -456,10 +459,10 @@ export default function YardMap({ focus, onNavigate }: Props) {
           <div className="flex items-center gap-2 px-4 py-2 border-b border-[#e5e7eb] flex-none bg-[#fafafa]">
             <button onClick={() => { setSelectedSlot(null); setDrawerMode("block") }}
               className="text-[11px] text-neutral-500 hover:text-neutral-900 transition-colors flex items-center gap-1">
-              ← Block {selectedBlockLabel ?? activeLiveBlock}
+              ← {t("yard.block")} {selectedBlockLabel ?? activeLiveBlock}
             </button>
             <span className="text-neutral-300 text-xs">›</span>
-            <span className="text-[11px] text-neutral-700 font-semibold">Bay {selectedSlot.col} · Row {selectedSlot.row}</span>
+            <span className="text-[11px] text-neutral-700 font-semibold">Bay {selectedSlot.col} · {t("yard.row")} {selectedSlot.row}</span>
             <button onClick={() => { setDrawerOpen(false); setSelectedSlot(null); setDrawerMode("block") }}
               className="ml-auto text-neutral-400 hover:text-neutral-800 transition-colors"
               style={{ width:24, height:24, borderRadius:"50%", background:"#f3f4f6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11 }}>
@@ -517,7 +520,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
       <div className="flex items-center gap-2.5 px-4 py-2 border-b border-[#e5e7eb] flex-none bg-white">
 
         {/* Title */}
-        <span className="font-black text-[15px] tracking-tight mr-1">Yard Map</span>
+        <span className="font-black text-[15px] tracking-tight mr-1">{t("yard.title")}</span>
 
         {/* Map / Dashboard toggle */}
         <div className="flex" style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden" }}>
@@ -550,7 +553,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
         {/* Search */}
         {view==="map" && (
           <Input
-            placeholder="Container, consignee, slot…"
+            placeholder={t("common.search")}
             value={q} onChange={e => setQ(e.target.value)}
             className="w-52 h-7 text-xs"
           />
@@ -864,7 +867,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                 </div>
                 {backendConnected && !forecast && (
                   <Button variant="secondary" size="sm" className="text-[10.5px]" onClick={loadForecast} disabled={loadingFcast}>
-                    {loadingFcast ? "Loading…" : "Load forecast"}
+                    {loadingFcast ? t("common.loading") : "Load forecast"}
                   </Button>
                 )}
                 {forecast && (

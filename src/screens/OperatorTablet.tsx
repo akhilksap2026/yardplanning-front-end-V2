@@ -5,6 +5,7 @@ import { backendApi } from "@/lib/backend-api"
 import type { BackendMoveDetail } from "@/lib/backend-api"
 import { slotAddress, REASON_LABELS } from "@/lib/backend-adapters"
 import { OPERATOR_QUEUES } from "@/data/yard-ops"
+import { useLang } from "@/lib/i18n"
 
 const STEPS = [
   { key:"instruction", title:"Retrieve", tag:"1", label:"Instruction",   note:"One instruction per view, large type for cab visibility." },
@@ -29,6 +30,7 @@ type DisplayTask = {
 
 export default function OperatorTablet() {
   const { operatorTasks, refresh, backendConnected, backendJockeys } = useData()
+  const { t } = useLang()
 
   // ── Existing state ────────────────────────────────────────────────────────
   const [step,         setStep]         = useState(0)
@@ -233,7 +235,7 @@ export default function OperatorTablet() {
               {fetchingTask ? (
                 <>
                   <div className="text-[24px] mb-2 animate-spin select-none">⟳</div>
-                  <div className="font-semibold text-[15px]">Loading task…</div>
+                  <div className="font-semibold text-[15px]">{t("common.loading")}</div>
                   <div className="text-[12px] text-neutral-500 mt-1">Fetching your next move from the engine</div>
                 </>
               ) : (
@@ -273,7 +275,7 @@ export default function OperatorTablet() {
       {/* Header */}
       <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
         <div className="flex flex-col gap-1">
-          <span className="font-semibold text-[15px] tracking-tight">Operator tablet</span>
+          <span className="font-semibold text-[15px] tracking-tight">{t("operator.title")}</span>
           <span className="text-[11px] text-neutral-500">
             {jockeyName} · {backendConnected ? "engine connected" : <><span className="font-mono">RS-01</span> · shift <span className="font-mono">06:00–14:00</span> · offline queue armed</>}
           </span>
@@ -368,11 +370,11 @@ export default function OperatorTablet() {
                 </div>
                 <div className="grid grid-cols-2">
                   <div className="px-4 py-3 border-r border-b border-[#e5e7eb]">
-                    <div className="ds-label text-neutral-500">From</div>
+                    <div className="ds-label text-neutral-500">{t("operator.from")}</div>
                     <div className="font-mono font-semibold text-[18px]">{displayTask.from}</div>
                   </div>
                   <div className="px-4 py-3 border-b border-[#e5e7eb]">
-                    <div className="ds-label text-neutral-500">To</div>
+                    <div className="ds-label text-neutral-500">{t("operator.to")}</div>
                     <div className="font-mono font-semibold text-[18px]">{displayTask.to}</div>
                   </div>
                 </div>
@@ -406,7 +408,7 @@ export default function OperatorTablet() {
                   {backendConnected ? (
                     <>
                       <div>
-                        <div className="ds-label text-neutral-500 mb-1.5">Scan / enter ID</div>
+                        <div className="ds-label text-neutral-500 mb-1.5">{t("operator.scanContainer")}</div>
                         <input type="text" value={scanInput}
                           onChange={e=>{ setScanInput(e.target.value); setScanResult(null) }}
                           onKeyDown={e=>e.key==="Enter"&&handleScan()}
@@ -417,7 +419,7 @@ export default function OperatorTablet() {
                       <button onClick={handleScan} disabled={!scanInput.trim()||scanning}
                         className="w-full text-left px-3 py-2 text-white font-semibold disabled:opacity-40"
                         style={{ background:"#111827", fontSize:13, borderRadius:5 }}>
-                        {scanning?"Checking…":"Confirm scan"}
+                        {scanning ? t("operator.scanning") : t("operator.confirmScan")}
                       </button>
                       {scanResult && (
                         <div className="px-3 py-2 text-[13px] leading-snug"

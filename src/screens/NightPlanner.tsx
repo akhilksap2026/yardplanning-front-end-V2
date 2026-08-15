@@ -12,6 +12,7 @@ import type { BackendPlanDetail } from "@/lib/backend-api"
 import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type PlanningStep } from "@/data/planningData"
 import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
 import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, isExtraMovement, getStatusStyle, getDisplayContainerId, isAnonymousContainer, generateWhyText } from "@/utils/displayLabels"
+import { useLang } from "@/lib/i18n"
 
 interface Props {
   focus: string | null
@@ -73,6 +74,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     backendContainers, backendSlots, backendJockeys,
     generatePlan, confirmPlan,
   } = useData()
+  const { t } = useLang()
 
   // ── Existing state ────────────────────────────────────────────────────────
   const [sel,          setSel]          = useState<string>(() => { const s = allSteps[0]; return s ? stepId(s) : "" })
@@ -341,11 +343,11 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   const outbounds   = OUTBOUND_SEED.length
   const equipAvail  = EQUIPMENT.filter(e => e.status === "available").length
   const primaryKpis = [
-    { k:"Inbound containers",  v:String(inbounds),           sub:"containers today",                                                                      red:false },
-    { k:"Outbound containers", v:String(outbounds),          sub:"containers today",                                                                      red:false },
-    { k:"Operators available", v:String(totalOperators),     sub:`${totalOperators} of ${totalOperators} on shift`,                                       red:false },
-    { k:"Moves created",       v:String(totalSteps),         sub:"in shift plan",                                                                         red:false },
-    { k:"Detention risk",      v:"$8.4k",                    sub:"next 72 h",                                                                             red:true  },
+    { k:t("planner.kpi.inbound"),  v:String(inbounds),           sub:"containers today",                                                                      red:false },
+    { k:t("planner.kpi.outbound"), v:String(outbounds),          sub:"containers today",                                                                      red:false },
+    { k:t("planner.kpi.operators"), v:String(totalOperators),     sub:`${totalOperators} of ${totalOperators} on shift`,                                       red:false },
+    { k:t("planner.kpi.movesCreated"), v:String(totalSteps),         sub:"in shift plan",                                                                         red:false },
+    { k:t("planner.kpi.detentionRisk"), v:"$8.4k",                    sub:"next 72 h",                                                                             red:true  },
   ]
   const rehandleSteps = allSteps.filter(s => isExtraMovement(s.operation)).length
   const rehandleRatio = allSteps.length > 0 ? Math.round(rehandleSteps / allSteps.length * 100) : 0
@@ -355,11 +357,11 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     { k:"Rehandle Ratio",        v:`${rehandleRatio}%`,                   sub:"reshuffle · digout of total",                                              red:rehandleRatio > 50  },
   ]
   const engineKpis = viewedPlan ? [
-    { k:"Moves",     v:String(viewedPlan.moves.length),                                         sub:"in this plan",  red:false },
-    { k:"Strategy",  v:viewedPlan.strategy,                                                     sub:"solver",        red:false },
-    { k:"Solve time",v:viewedPlan.solve_seconds != null ? viewedPlan.solve_seconds.toFixed(1)+"s":"—", sub:"wall clock",  red:false },
-    { k:"Objective", v:viewedPlan.objective_value != null ? viewedPlan.objective_value.toFixed(2):"—", sub:"minimised",   red:false },
-    { k:"Gap",       v:viewedPlan.gap_percent != null ? viewedPlan.gap_percent.toFixed(1)+"%":"—",     sub:"optimality",  red:false },
+    { k:t("planner.moves"),     v:String(viewedPlan.moves.length),                                         sub:"in this plan",  red:false },
+    { k:t("planner.strategy"),  v:viewedPlan.strategy,                                                     sub:"solver",        red:false },
+    { k:t("planner.solveTime"),v:viewedPlan.solve_seconds != null ? viewedPlan.solve_seconds.toFixed(1)+"s":"—", sub:"wall clock",  red:false },
+    { k:t("planner.objective"), v:viewedPlan.objective_value != null ? viewedPlan.objective_value.toFixed(2):"—", sub:"minimised",   red:false },
+    { k:t("planner.gap"),       v:viewedPlan.gap_percent != null ? viewedPlan.gap_percent.toFixed(1)+"%":"—",     sub:"optimality",  red:false },
     { k:"Status",    v:viewedPlan.status.replace("_"," "),                                      sub:"plan state",    red:false },
   ] : []
 
@@ -450,7 +452,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             style={{ width: 300, borderRight: "1px solid #e5e7eb", boxShadow: "4px 0 16px rgba(0,0,0,0.12)" }}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#e5e7eb]">
-              <span className="font-semibold text-[13px]">Assumptions & weights</span>
+              <span className="font-semibold text-[13px]">{t("planner.assumptions")}</span>
               <button onClick={() => setDrawerOpen(false)} className="text-[#9ca3af] hover:text-neutral-800 text-[12px]">✕</button>
             </div>
             {([
@@ -564,9 +566,9 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       <div className="flex items-center gap-3 px-5 pt-3 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-base tracking-tight">Planner</span>
+            <span className="font-semibold text-base tracking-tight">{t("planner.title")}</span>
             {planSource === "seed" && (
-              <Badge variant={published ? "brand" : "muted"}>{published ? "PUBLISHED" : "DRAFT"}</Badge>
+              <Badge variant={published ? "brand" : "muted"}>{published ? t("planner.status.published") : t("planner.status.draft")}</Badge>
             )}
             {planSource === "engine" && viewedPlan && (
               <Badge variant={PLAN_STATUS_VARIANT[viewedPlan.status] ?? "muted"}>
@@ -576,17 +578,17 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           </div>
           <div className="flex gap-3 text-[11px] text-[#9ca3af]">
             {planSource === "seed"
-              ? <><span className="font-mono">P-2026-08-11</span><span>Generated <span className="font-mono">22:14</span></span><span>Engine <span className="font-mono">41.8 s</span></span><span>Snapshot <span className="font-mono">#a41f9c</span></span><span>Horizon <span className="font-mono">06:00–14:00</span></span></>
+              ? <><span className="font-mono">P-2026-08-11</span><span>{t("planner.generated")} <span className="font-mono">22:14</span></span><span>{t("planner.engine")} <span className="font-mono">41.8 s</span></span><span>{t("planner.snapshot")} <span className="font-mono">#a41f9c</span></span><span>{t("planner.horizon")} <span className="font-mono">06:00–14:00</span></span></>
               : viewedPlan
               ? <><span>Plan <span className="font-mono">#{viewedPlan.id}</span></span><span className="font-mono">{viewedPlan.plan_date}</span>{viewedPlan.solve_seconds != null && <span>Solved in <span className="font-mono">{viewedPlan.solve_seconds.toFixed(1)} s</span></span>}{viewedPlan.solver_status && <span>Solver: {viewedPlan.solver_status}</span>}<span><span className="font-mono">{viewedPlan.moves.length}</span> moves</span></>
-              : <span>No plan generated</span>
+              : <span>{t("planner.noPlan")}</span>
             }
           </div>
         </div>
 
         {/* Plan source toggle */}
         <div className="flex items-center gap-2 ml-2">
-          <span className="ds-label whitespace-nowrap">Source</span>
+          <span className="ds-label whitespace-nowrap">{t("planner.source")}</span>
           <div style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden", display:"flex" }}>
             {(["seed","engine"] as PlanSource[]).map(src => (
               <button key={src} disabled={src==="engine" && !backendConnected}
@@ -594,7 +596,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                 className="text-[10.5px] px-3 py-1 font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: planSource===src ? "#111827":"transparent", color: planSource===src ? "#fff":"#374151" }}
               >
-                {src === "seed" ? "Seed data" : backendConnected ? "Planning engine" : "Engine offline"}
+                {src === "seed" ? t("planner.seedData") : backendConnected ? t("planner.engineOnline") : t("planner.engineOffline")}
               </button>
             ))}
           </div>
@@ -607,7 +609,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             className="text-xs px-3 py-1.5 text-[#374151] bg-white"
             style={{ border: "1px solid #e5e7eb", borderRadius: 5, whiteSpace: "nowrap" }}
           >
-            Assumptions &amp; weights
+            {t("planner.assumptions")}
           </button>
         )}
 
@@ -615,10 +617,10 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         <div className="ml-auto flex gap-2">
           {planSource === "seed" ? (
             <>
-              <button className="text-xs px-3 py-1 text-[#374151] bg-white" style={{ border:"1px solid #e5e7eb", borderRadius:5 }} onClick={() => setConfigOpen(true)}>Configure</button>
-              <button className="text-xs px-3 py-1 text-[#374151] bg-white" style={{ border:"1px solid #e5e7eb", borderRadius:5 }} onClick={() => setPublished(false)}>Regenerate</button>
+              <button className="text-xs px-3 py-1 text-[#374151] bg-white" style={{ border:"1px solid #e5e7eb", borderRadius:5 }} onClick={() => setConfigOpen(true)}>{t("planner.configure")}</button>
+              <button className="text-xs px-3 py-1 text-[#374151] bg-white" style={{ border:"1px solid #e5e7eb", borderRadius:5 }} onClick={() => setPublished(false)}>{t("planner.regenerate")}</button>
               <button className="text-xs px-3 py-1 text-white disabled:opacity-50" style={{ background:"#111827", borderRadius:5, border:"1px solid #111827" }} onClick={handlePublish} disabled={publishing}>
-                {publishing ? "Publishing…" : published ? "Published · view diff" : "Approve & publish"}
+                {publishing ? t("planner.publishing") : published ? t("planner.published") : t("planner.approve")}
               </button>
             </>
           ) : (
@@ -631,11 +633,11 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                 </select>
               )}
               <button className="text-xs px-3 py-1 text-[#374151] bg-white disabled:opacity-50" style={{ border:"1px solid #e5e7eb", borderRadius:5 }} onClick={handleGenerate} disabled={generating}>
-                {generating ? "⟳ Solver running…" : "Generate plan"}
+                {generating ? t("planner.solverRunning") : t("planner.generate")}
               </button>
               {viewedPlan?.status === "draft" && (
                 <button className="text-xs px-3 py-1 text-white disabled:opacity-50" style={{ background:"#111827", borderRadius:5, border:"1px solid #111827" }} onClick={handleConfirm} disabled={confirming}>
-                  {confirming ? "Confirming…" : "Confirm plan"}
+                  {confirming ? t("planner.confirming") : t("planner.confirmPlan")}
                 </button>
               )}
             </>
@@ -673,8 +675,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             {(planSource === "seed" ? primaryKpis : engineKpis.slice(0,2)).map(m => (
               <KpiCell key={m.k} m={m}
                 onClick={
-                  m.k === "Inbound containers"  ? () => onNavigate?.("gate", "inbound")  :
-                  m.k === "Outbound containers" ? () => onNavigate?.("gate", "outbound") :
+                  m.k === t("planner.kpi.inbound")  ? () => onNavigate?.("gate", "inbound")  :
+                  m.k === t("planner.kpi.outbound") ? () => onNavigate?.("gate", "outbound") :
                   undefined
                 }
               />
@@ -684,7 +686,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
               className="flex items-center gap-1.5 px-4 text-[11px] text-[#6b7280] hover:text-[#374151] hover:bg-[#f9fafb] transition-colors"
               style={{ whiteSpace: "nowrap" }}
             >
-              {kpiExpanded ? "Fewer metrics ▲" : "More metrics ▼"}
+              {kpiExpanded ? t("planner.fewerMetrics") : t("planner.moreMetrics")}
             </button>
           </div>
           {/* Secondary row: expandable with height transition */}
@@ -706,13 +708,18 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           <div className="flex flex-col min-h-0 bg-white">
             {/* Table toolbar */}
             <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[#e5e7eb] flex-none">
-              <Input placeholder="Filter container, slot, operator…" value={q} onChange={e => setQ(e.target.value)} className="w-48 h-7 text-xs" />
+              <Input placeholder={t("common.search")} value={q} onChange={e => setQ(e.target.value)} className="w-48 h-7 text-xs" />
               {/* Operation filter */}
               <div style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden", display:"flex" }}>
-                {OP_FILTER_TYPES.map(t => (
-                  <button key={t} onClick={() => setFilter(t)} className="text-[10.5px] px-2 py-1 font-semibold transition-colors"
-                    style={{ background: filter===t ? "#111827":"transparent", color: filter===t ? "#fff":"#374151" }}>
-                    {t === "ALL" ? "All" : getDisplayOperation(t)}
+                {OP_FILTER_TYPES.map(type => (
+                  <button key={type} onClick={() => setFilter(type)} className="text-[10.5px] px-2 py-1 font-semibold transition-colors"
+                    style={{ background: filter===type ? "#111827":"transparent", color: filter===type ? "#fff":"#374151" }}>
+                    {type === "ALL" ? t("planner.filter.all")
+                      : type === "Putaway" ? t("planner.filter.putaway")
+                      : type === "Premarshal ahead of retrieval" ? t("planner.filter.preMarshal")
+                      : type === "Outbound staging and truck loading" ? t("planner.filter.retrieval")
+                      : type === "Digout to clear an overstow" ? t("planner.filter.extraMove")
+                      : getDisplayOperation(type)}
                   </button>
                 ))}
               </div>
@@ -723,7 +730,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                   className="flex items-center gap-1 px-2.5 py-1 text-[11px] text-[#374151]"
                   style={{ border:"1px solid #e5e7eb", borderRadius:5 }}
                 >
-                  Columns <span style={{ fontSize:8 }}>{colChooserOpen ? "▲" : "▼"}</span>
+                  {t("common.columns")} <span style={{ fontSize:8 }}>{colChooserOpen ? "▲" : "▼"}</span>
                 </button>
                 {colChooserOpen && (
                   <div className="absolute left-0 top-full mt-1 z-30 bg-white" style={{ border:"1px solid #e5e7eb", borderRadius:5, boxShadow:"0 4px 12px rgba(0,0,0,0.10)", padding:"6px 0", minWidth:140 }}>
@@ -749,7 +756,11 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     {ALL_COLS.filter(h => visibleCols.has(h)).map((h,i) => (
                       <th key={h} className="ds-th text-left sticky top-0 z-10"
                         style={{ paddingLeft: i===0 ? 16 : undefined, textAlign: h==="EST" ? "right" : undefined }}>
-                        {h}
+                        {h === "SEQ" ? t("planner.move.seq")
+                          : h === "MOVE" ? t("planner.move.move")
+                          : h === "ROUTE" ? t("planner.move.route")
+                          : h === "ASSIGNED" ? t("planner.move.assigned")
+                          : h}
                       </th>
                     ))}
                   </tr>
@@ -769,7 +780,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           <div className="bg-white flex flex-col min-h-0" style={{ borderLeft:"1px solid #e5e7eb" }}>
             <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
               <TabsList className="flex-none">
-                <TabsTrigger value="detail">Move</TabsTrigger>
+                <TabsTrigger value="detail">{t("planner.move.move")}</TabsTrigger>
                 <TabsTrigger value="exceptions">Exceptions {exceptions.length}</TabsTrigger>
                 <TabsTrigger value="projection">Projected KPI</TabsTrigger>
               </TabsList>
@@ -823,7 +834,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                       </div>
                     ) : (
                       <div className="ds-callout mx-4 mb-3">
-                        <div className="ds-callout-label">Why this step</div>
+                        <div className="ds-callout-label">{t("planner.move.whyStep")}</div>
                         <div className="text-[12.5px] leading-relaxed">
                           {generateWhyText(selStep)}
                         </div>
@@ -832,14 +843,14 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
 
                     {/* Key-value detail rows */}
                     {[
-                      ["Operator",    selStep.operator ?? "—"],
-                      ["Move method", getDisplayMoveMethod(selStep)],
-                      ["Window",      selStep.estimated_start
+                      [t("planner.move.operator"),    selStep.operator ?? "—"],
+                      [t("planner.move.moveMethod"), getDisplayMoveMethod(selStep)],
+                      [t("planner.move.window"),      selStep.estimated_start
                         ? fmtIso(selStep.estimated_start) + "–" + fmtIso(selStep.estimated_end) + " (" + stepDur(selStep).toFixed(1) + "′)"
                         : selStep.step_status === "Completed" ? "Completed · no window recorded"
                         : selStep.step_status === "Blocked"   ? "Blocked · not scheduled"
                         : "Not yet scheduled"],
-                      ["Score",       selStep.planning_score != null
+                      [t("planner.move.score"),       selStep.planning_score != null
                         ? selStep.planning_score.toFixed(2)
                         : selStep.move_method === "Inspection" ? "N/A · inspection step"
                         : selStep.step_status === "Completed"  ? "N/A · completed"
@@ -852,8 +863,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     ))}
                     {/* Status rows — color-coded chips */}
                     {[
-                      ["Step status", selStep.step_status],
-                      ["Activity",   selStep.activity_status ?? "—"],
+                      [t("planner.move.stepStatus"), selStep.step_status],
+                      [t("planner.move.activity"),   selStep.activity_status ?? "—"],
                     ].map(([k, v]) => {
                       const st = getStatusStyle(v)
                       return (
@@ -868,7 +879,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     })}
 
                     {/* Hard constraints accordion */}
-                    <AccordionHeader label="Hard constraints" open={constraintsOpen} onToggle={() => setConstraintsOpen(v => !v)} />
+                    <AccordionHeader label={t("planner.move.hardConstraints")} open={constraintsOpen} onToggle={() => setConstraintsOpen(v => !v)} />
                     <div style={{ overflow:"hidden", maxHeight: constraintsOpen ? 300 : 0, transition:"max-height 200ms ease" }}>
                       {[
                         ["C2","Stack height within zone max and reach envelope","PASS"],
@@ -886,7 +897,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     </div>
 
                     {/* Step history accordion */}
-                    <AccordionHeader label="Step history" open={moveHistoryOpen} onToggle={() => setMoveHistoryOpen(v => !v)} />
+                    <AccordionHeader label={t("planner.move.stepHistory")} open={moveHistoryOpen} onToggle={() => setMoveHistoryOpen(v => !v)} />
                     <div style={{ overflow:"hidden", maxHeight: moveHistoryOpen ? 200 : 0, transition:"max-height 200ms ease" }}>
                       {[
                         ...(selStep.estimated_start ? [[fmtIso(selStep.estimated_start), "Planned by engine", "auto"]] : []),
@@ -968,7 +979,11 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     {ALL_COLS.filter(h => visibleCols.has(h)).map((h,i) => (
                       <th key={h} className="ds-th text-left sticky top-0 z-10"
                         style={{ paddingLeft: i===0 ? 16 : undefined, textAlign: h==="EST" ? "right" : undefined }}>
-                        {h}
+                        {h === "SEQ" ? t("planner.move.seq")
+                          : h === "MOVE" ? t("planner.move.move")
+                          : h === "ROUTE" ? t("planner.move.route")
+                          : h === "ASSIGNED" ? t("planner.move.assigned")
+                          : h}
                       </th>
                     ))}
                   </tr>
@@ -987,7 +1002,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             {engineSelMove ? (
               <div>
                 <div className="px-4 pt-3 pb-3">
-                  <div className="ds-label">Move <span className="font-mono">#{engineSelMove.id}</span> · seq <span className="font-mono">{engineSelMove.seq}</span></div>
+                  <div className="ds-label">{t("planner.move.move")} <span className="font-mono">#{engineSelMove.id}</span> · seq <span className="font-mono">{engineSelMove.seq}</span></div>
                   <div className="font-semibold text-base mt-1 tracking-tight">{REASON_LABELS[engineSelMove.reason] ?? engineSelMove.typeLabel ?? "Move"}</div>
                   <div className="text-[12px] mt-1 font-mono text-[#374151]">{engineSelMove.containerId}</div>
                   <div className="text-[12px] font-mono text-[#9ca3af]">{engineSelMove.from} → {engineSelMove.to}</div>
@@ -1035,7 +1050,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
               className="ml-auto text-[11px] px-2.5 py-1 text-[#374151]"
               style={{ border:"1px solid #e5e7eb", borderRadius:5 }}
             >
-              {ganttExpanded ? "Collapse ▲" : "Show Gantt ▼"}
+              {ganttExpanded ? "Collapse ▲" : t("planner.move.showGantt") + " ▼"}
             </button>
           </div>
 

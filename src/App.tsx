@@ -9,26 +9,39 @@ import OperatorTablet from "@/screens/OperatorTablet"
 import SettingsScreen from "@/screens/Settings"
 import CommandPalette from "@/components/CommandPalette"
 import LiveOps from "@/screens/LiveOps"
+import { useLang } from "@/lib/i18n"
 
 type Screen  = "plan" | "yard" | "gate" | "tower" | "operator" | "settings" | "liveops"
 type Persona = "manager" | "ops" | "operator"
 
-const PERSONAS: { id: Persona; name: string; sub: string; screens: Screen[] | "*" }[] = [
-  { id: "manager",  name: "Manager",  sub: "Yard Manager · full authority", screens: "*" },
-  { id: "ops",      name: "Ops",      sub: "Gate & yard front line",        screens: ["yard", "gate"] },
-  { id: "operator", name: "Operator", sub: "Tablet · device-bound",         screens: ["operator"] },
+// Static persona / nav definitions — labels are translated at render time via t()
+const PERSONA_DEFS: { id: Persona; nameKey: string; subKey: string; screens: Screen[] | "*" }[] = [
+  { id: "manager",  nameKey: "persona.manager",  subKey: "persona.manager.sub", screens: "*" },
+  { id: "ops",      nameKey: "persona.ops",      subKey: "persona.ops.sub",     screens: ["yard", "gate"] },
+  { id: "operator", nameKey: "persona.operator", subKey: "persona.operator.sub",screens: ["operator"] },
 ]
 
-const NAV_ITEMS: { id: Screen; group: string; name: string; crumb: string; alert?: boolean }[] = [
-  { id: "liveops",  group: "Today's Operations", name: "Live Operations",     crumb: "Live Operations",     alert: true },
-  { id: "tower",    group: "Today's Operations", name: "Control Tower",       crumb: "Control Tower",       alert: true },
-  { id: "plan",     group: "Today's Operations", name: "Planner",             crumb: "Planner"             },
-  { id: "yard",     group: "Yard",               name: "Yard Map",            crumb: "Yard Map"            },
-  { id: "gate",     group: "Movement",           name: "Gate & Appointments", crumb: "Gate & Appointments", alert: true },
-  { id: "operator", group: "Movement",           name: "Operator Tablet",     crumb: "Operator Tablet"     },
-  { id: "settings", group: "Configuration",      name: "Settings",            crumb: "Settings"            },
+// Keep legacy PERSONAS shape for compat helpers that use .name / .sub
+const PERSONAS_STATIC = [
+  { id: "manager"  as Persona, name: "Manager",  sub: "Yard Manager · full authority", screens: "*" as const },
+  { id: "ops"      as Persona, name: "Ops",      sub: "Gate & yard front line",        screens: ["yard", "gate"] as Screen[] },
+  { id: "operator" as Persona, name: "Operator", sub: "Tablet · device-bound",         screens: ["operator"] as Screen[] },
 ]
-const NAV_GROUPS = [...new Set(NAV_ITEMS.map(i => i.group))]
+
+type NavGroupKey = "nav.group.todaysOps" | "nav.group.yard" | "nav.group.movement" | "nav.group.config"
+
+const NAV_ITEMS: { id: Screen; groupKey: NavGroupKey; nameKey: string; alert?: boolean }[] = [
+  { id: "liveops",  groupKey: "nav.group.todaysOps", nameKey: "nav.liveops",   alert: true },
+  { id: "tower",    groupKey: "nav.group.todaysOps", nameKey: "nav.tower",     alert: true },
+  { id: "plan",     groupKey: "nav.group.todaysOps", nameKey: "nav.plan"                  },
+  { id: "yard",     groupKey: "nav.group.yard",      nameKey: "nav.yard"                  },
+  { id: "gate",     groupKey: "nav.group.movement",  nameKey: "nav.gate",      alert: true },
+  { id: "operator", groupKey: "nav.group.movement",  nameKey: "nav.operator"              },
+  { id: "settings", groupKey: "nav.group.config",    nameKey: "nav.settings"              },
+]
+const NAV_GROUP_KEYS: NavGroupKey[] = [
+  "nav.group.todaysOps", "nav.group.yard", "nav.group.movement", "nav.group.config",
+]
 
 const STORY = [
   // ── Act 1: The engine thinks at 9 PM ─────────────────────────────────────
@@ -65,13 +78,14 @@ const NAV_ICONS: Record<Screen, string> = {
 
 function allowed(persona: Persona, screen: Screen): boolean {
   if (screen === "settings") return persona === "manager"
-  const p = PERSONAS.find(x => x.id === persona)!
+  const p = PERSONAS_STATIC.find(x => x.id === persona)!
   return p.screens === "*" || (p.screens as Screen[]).includes(screen)
 }
 
 // ── Inner shell ───────────────────────────────────────────────────────────────
 function AppShell() {
   const { moves, events, visits, refresh, backendConnected, dbLoading, reconnectBackend } = useData()
+  const { t, lang, setLang } = useLang()
 
   const [persona,      setPersona]      = useState<Persona>("manager")
   const [screen,       setScreen]       = useState<Screen>("plan")
@@ -87,14 +101,14 @@ function AppShell() {
   const [personaOpen, setPersonaOpen] = useState(false)
   const personaRef = useRef<HTMLDivElement>(null)
 
-  const activeGroup = NAV_ITEMS.find(i => i.id === screen)?.group ?? ""
+  const activeGroup = NAV_ITEMS.find(i => i.id === screen)?.groupKey ?? ""
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set([activeGroup]))
   const [storyExpanded, setStoryExpanded] = useState(false)
 
   useEffect(() => { localStorage.setItem("yardos:showDemo", String(showDemo)) }, [showDemo])
 
   useEffect(() => {
-    const group = NAV_ITEMS.find(i => i.id === screen)?.group
+    const group = NAV_ITEMS.find(i => i.id === screen)?.groupKey
     if (group) setExpandedGroups(prev => new Set([...prev, group]))
   }, [screen])
 
@@ -167,7 +181,7 @@ function AppShell() {
   }
 
   function switchPersona(id: Persona) {
-    const p2 = PERSONAS.find(x => x.id === id)!
+    const p2 = PERSONAS_STATIC.find(x => x.id === id)!
     const first: Screen = p2.screens === "*"
       ? screen
       : (p2.screens as Screen[]).includes(screen) ? screen : (p2.screens as Screen[])[0]
@@ -183,10 +197,14 @@ function AppShell() {
     })
   }
 
-  const story = STORY[storyIdx]
-  const p     = PERSONAS.find(x => x.id === persona)!
-  const ok    = allowed(persona, screen)
-  const crumb = NAV_ITEMS.find(i => i.id === screen)?.crumb ?? ""
+  const story  = STORY[storyIdx]
+  const pDef   = PERSONA_DEFS.find(x => x.id === persona)!
+  const ok     = allowed(persona, screen)
+  const navItem = NAV_ITEMS.find(i => i.id === screen)
+  const crumb  = navItem ? t(navItem.nameKey) : ""
+  // Translated persona name/sub for current persona
+  const pName  = t(pDef.nameKey)
+  const pSub   = t(pDef.subKey)
 
   return (
     <>
@@ -223,8 +241,8 @@ function AppShell() {
               style={{ width: 32, height: 32, background: "#4f46e5", borderRadius: 8 }}
             >YO</div>
             <div className="flex flex-col gap-0.5 leading-none">
-              <span className="font-bold text-[13px] tracking-tight" style={{ color: "#111827" }}>YardOS</span>
-              <span className="ds-label">Operations Console</span>
+              <span className="font-bold text-[13px] tracking-tight" style={{ color: "#111827" }}>{t("app.title")}</span>
+              <span className="ds-label">{t("app.subtitle")}</span>
             </div>
           </div>
 
@@ -242,26 +260,27 @@ function AppShell() {
               }}
             >
               <span style={{ opacity: 0.7, fontSize: 13 }}>⌕</span>
-              <span>Search container, plate…</span>
+              <span>{t("app.search")}</span>
               <span className="ml-auto font-mono" style={{ fontSize: 10, color: "#c4c9d4", background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: 4, padding: "1px 5px" }}>⌘K</span>
             </button>
           </div>
 
           {/* ── Nav groups ── */}
           <div className="flex-1 overflow-y-auto px-2 pb-2">
-            {NAV_GROUPS.map(group => {
-              const isExpanded = expandedGroups.has(group)
-              const items      = NAV_ITEMS.filter(item => item.group === group)
+            {NAV_GROUP_KEYS.map(groupKey => {
+              const isExpanded = expandedGroups.has(groupKey)
+              const items      = NAV_ITEMS.filter(item => item.groupKey === groupKey)
+              const groupLabel = t(groupKey)
 
               return (
-                <div key={group} className="mt-3">
+                <div key={groupKey} className="mt-3">
                   {/* Group header */}
                   <button
-                    onClick={() => toggleGroup(group)}
+                    onClick={() => toggleGroup(groupKey)}
                     className="w-full flex items-center gap-1 px-2 py-1 text-left rounded"
                     style={{ color: "#9ca3af" }}
                   >
-                    <span className="ds-label flex-1" style={{ color: "inherit", letterSpacing: "0.08em" }}>{group}</span>
+                    <span className="ds-label flex-1" style={{ color: "inherit", letterSpacing: "0.08em" }}>{groupLabel}</span>
                     <span style={{ fontSize: 8, opacity: 0.5 }}>{isExpanded ? "▲" : "▼"}</span>
                   </button>
 
@@ -270,11 +289,12 @@ function AppShell() {
                     const isAllowed = allowed(persona, item.id)
                     const isActive  = screen === item.id
                     const badge     = BADGE_COUNT[item.id]
+                    const itemName  = t(item.nameKey)
                     return (
                       <button
                         key={item.id}
                         onClick={() => { if (isAllowed) setScreen(item.id) }}
-                        title={!isAllowed ? `${p.name} cannot access ${item.name}` : undefined}
+                        title={!isAllowed ? t("app.noAccess", pName, itemName) : undefined}
                         className="w-full flex items-center gap-2.5 px-3 py-[7px] mt-0.5 text-left"
                         style={{
                           fontSize: 12,
@@ -296,7 +316,7 @@ function AppShell() {
                         >
                           {NAV_ICONS[item.id]}
                         </span>
-                        <span className="flex-1 truncate">{item.name}</span>
+                        <span className="flex-1 truncate">{itemName}</span>
                         {badge != null && badge > 0 && (
                           <span
                             className="flex-none flex items-center justify-center font-semibold"
@@ -324,10 +344,10 @@ function AppShell() {
             <div
               className="flex-none flex items-center justify-center text-white font-black text-[11px]"
               style={{ width: 32, height: 32, background: "#4f46e5", borderRadius: 8 }}
-            >{p.name[0]}</div>
+            >{pName[0]}</div>
             <div className="flex flex-col leading-tight min-w-0">
-              <span className="text-[12px] font-semibold truncate" style={{ color: "#111827" }}>{p.name}</span>
-              <span className="text-[10px] truncate" style={{ color: "#9ca3af" }}>{p.sub}</span>
+              <span className="text-[12px] font-semibold truncate" style={{ color: "#111827" }}>{pName}</span>
+              <span className="text-[10px] truncate" style={{ color: "#9ca3af" }}>{pSub}</span>
             </div>
           </div>
         </div>
@@ -351,7 +371,7 @@ function AppShell() {
                 className="flex items-center gap-1.5 px-2.5 py-1"
                 style={{ fontSize: 11, color: "#d97706", border: "1px solid #fde68a", background: "#fffbeb", borderRadius: 6 }}
               >
-                <span className="animate-spin text-[10px]">↻</span> Syncing…
+                <span className="animate-spin text-[10px]">↻</span> {t("app.syncing")}
               </span>
             )}
 
@@ -366,13 +386,13 @@ function AppShell() {
                     boxShadow: refreshing ? "none" : "0 0 0 3px rgba(34,197,94,0.18)",
                   }}
                 />
-                Live
+                {t("app.live")}
               </span>
               <div
                 className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
                 style={{ background: "#1e293b", color: "#e2e8f0", fontSize: 10.5, padding: "4px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50 }}
               >
-                Last sync: {syncLabel}
+                {t("app.lastSync", syncLabel)}
               </div>
             </div>
 
@@ -384,7 +404,7 @@ function AppShell() {
                 className="px-3 py-1.5 font-semibold disabled:opacity-50"
                 style={{ fontSize: 11, background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 6 }}
               >
-                {reconnecting ? "↻ Connecting…" : "↻ Reconnect"}
+                {reconnecting ? t("app.connecting") : t("app.reconnect")}
               </button>
             )}
 
@@ -398,8 +418,8 @@ function AppShell() {
                 <span
                   className="flex-none flex items-center justify-center text-white font-black"
                   style={{ width: 18, height: 18, background: "#4f46e5", borderRadius: 5, fontSize: 10 }}
-                >{p.name[0]}</span>
-                {p.name}
+                >{pName[0]}</span>
+                {pName}
                 <span style={{ fontSize: 8, opacity: 0.5, marginLeft: 1 }}>{personaOpen ? "▲" : "▼"}</span>
               </button>
 
@@ -415,34 +435,49 @@ function AppShell() {
                     boxShadow: "0 10px 15px rgba(0,0,0,0.08), 0 4px 6px rgba(0,0,0,0.04)",
                   }}
                 >
-                  {PERSONAS.map(px => (
-                    <button
-                      key={px.id}
-                      onClick={() => { switchPersona(px.id); setPersonaOpen(false) }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left"
-                      style={{
-                        fontSize: 11,
-                        color: persona === px.id ? "#4f46e5" : "#374151",
-                        fontWeight: persona === px.id ? 600 : 400,
-                        background: persona === px.id ? "#eef2ff" : "transparent",
-                        borderLeft: `2px solid ${persona === px.id ? "#4f46e5" : "transparent"}`,
-                      }}
-                      onMouseEnter={e => { if (persona !== px.id) (e.currentTarget as HTMLElement).style.background = "#f8fafc" }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = persona === px.id ? "#eef2ff" : "transparent" }}
-                    >
-                      <span
-                        className="flex-none flex items-center justify-center text-white font-black"
-                        style={{ width: 20, height: 20, background: persona === px.id ? "#4f46e5" : "#e5e7eb", color: persona === px.id ? "#fff" : "#6b7280", borderRadius: 5, fontSize: 10 }}
-                      >{px.name[0]}</span>
-                      <div className="flex flex-col gap-0.5">
-                        <span>{px.name}</span>
-                        <span style={{ fontSize: 9.5, color: "#9ca3af", fontWeight: 400 }}>{px.sub}</span>
-                      </div>
-                    </button>
-                  ))}
+                  {PERSONA_DEFS.map(px => {
+                    const pxName = t(px.nameKey)
+                    const pxSub  = t(px.subKey)
+                    return (
+                      <button
+                        key={px.id}
+                        onClick={() => { switchPersona(px.id); setPersonaOpen(false) }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left"
+                        style={{
+                          fontSize: 11,
+                          color: persona === px.id ? "#4f46e5" : "#374151",
+                          fontWeight: persona === px.id ? 600 : 400,
+                          background: persona === px.id ? "#eef2ff" : "transparent",
+                          borderLeft: `2px solid ${persona === px.id ? "#4f46e5" : "transparent"}`,
+                        }}
+                        onMouseEnter={e => { if (persona !== px.id) (e.currentTarget as HTMLElement).style.background = "#f8fafc" }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = persona === px.id ? "#eef2ff" : "transparent" }}
+                      >
+                        <span
+                          className="flex-none flex items-center justify-center text-white font-black"
+                          style={{ width: 20, height: 20, background: persona === px.id ? "#4f46e5" : "#e5e7eb", color: persona === px.id ? "#fff" : "#6b7280", borderRadius: 5, fontSize: 10 }}
+                        >{pxName[0]}</span>
+                        <div className="flex flex-col gap-0.5">
+                          <span>{pxName}</span>
+                          <span style={{ fontSize: 9.5, color: "#9ca3af", fontWeight: 400 }}>{pxSub}</span>
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>
+
+            {/* Language toggle — compact pill */}
+            <button
+              onClick={() => void setLang(lang === "en" ? "es" : "en")}
+              className="flex items-center gap-0.5 font-mono font-semibold"
+              style={{ fontSize: 10.5, background: "#f8fafc", border: "1px solid #e5e7eb", color: "#374151", borderRadius: 6, padding: "3px 10px", letterSpacing: "0.04em" }}
+            >
+              <span style={{ color: lang === "en" ? "#4f46e5" : "#9ca3af" }}>EN</span>
+              <span style={{ color: "#d1d5db", margin: "0 3px" }}>|</span>
+              <span style={{ color: lang === "es" ? "#4f46e5" : "#9ca3af" }}>ES</span>
+            </button>
 
             {/* Refresh */}
             <button
@@ -451,13 +486,13 @@ function AppShell() {
               className="px-3 py-1.5 font-semibold disabled:opacity-50"
               style={{ fontSize: 11, background: "#f8fafc", border: "1px solid #e5e7eb", color: "#374151", borderRadius: 6 }}
             >
-              {refreshing ? "↻ Syncing…" : "↻ Refresh"}
+              {refreshing ? t("app.syncing_btn") : t("app.refresh")}
             </button>
 
             {/* Demo toggle */}
             <button
               onClick={() => setShowDemo(v => !v)}
-              title="Toggle demo story bar"
+              title={t("app.toggleDemo")}
               className="px-3 py-1.5 font-semibold"
               style={{
                 fontSize: 11,
@@ -467,12 +502,12 @@ function AppShell() {
                 borderRadius: 6,
               }}
             >
-              🎬 Demo
+              🎬 {t("app.demo")}
             </button>
 
             {/* Bell */}
             <button
-              aria-label="Notifications"
+              aria-label={t("app.notifications")}
               className="flex items-center justify-center"
               style={{
                 width: 32, height: 32,
@@ -518,7 +553,7 @@ function AppShell() {
                     className="font-semibold"
                     style={{ fontSize: 10.5, padding: "1px 8px", border: "1px solid #d97706", background: "#fffbeb", color: "#b45309", borderRadius: 5 }}
                   >
-                    tracking {focus} ✕
+                    {t("app.tracking", focus)} ✕
                   </button>
                 )}
               </>
@@ -530,14 +565,14 @@ function AppShell() {
                 className="flex items-center gap-1 px-2.5 py-1 font-medium"
                 style={{ fontSize: 11, border: "1px solid #fde68a", background: "white", color: "#92400e", borderRadius: 5 }}
               >
-                {storyExpanded ? "← Back" : "←"}
+                {storyExpanded ? t("app.back") : "←"}
               </button>
               <button
                 onClick={() => goStory(1)}
                 className="flex items-center gap-1 px-2.5 py-1 font-semibold"
                 style={{ fontSize: 11, background: "#4f46e5", color: "#fff", border: "1px solid #4f46e5", borderRadius: 5 }}
               >
-                {storyExpanded ? "Next step →" : "→"}
+                {storyExpanded ? t("app.next") : "→"}
               </button>
             </div>
           </div>
@@ -555,9 +590,9 @@ function AppShell() {
                 style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, maxWidth: 420, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
               >
                 <div className="font-semibold text-[13px] mb-1" style={{ color: "#111827" }}>
-                  {p.name} cannot access {crumb}
+                  {t("app.noAccess", pName, crumb)}
                 </div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>Switch persona in the top bar to continue.</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>{t("app.switchPersona")}</div>
               </div>
             </div>
           ) : screen === "liveops"  ? <LiveOps       onNavigate={navigate} />

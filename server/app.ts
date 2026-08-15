@@ -422,6 +422,30 @@ app.patch('/api/lanes/:id', async (req, res) => {
   res.json(rows[0])
 })
 
+// ── Settings (key-value store for UI preferences) ─────────────────────────────
+app.get('/api/settings/:k', async (req, res) => {
+  const { k } = req.params
+  const { rows } = await pool.query(
+    `SELECT k, v AS value, note FROM settings WHERE k = $1`,
+    [k]
+  )
+  if (!rows.length) return res.status(404).json({ error: `Setting '${k}' not found` })
+  res.json(rows[0])
+})
+
+app.patch('/api/settings/:k', async (req, res) => {
+  const { k } = req.params
+  const { value } = req.body
+  if (value === undefined) return res.status(400).json({ error: 'value is required' })
+  const { rows } = await pool.query(
+    `INSERT INTO settings (k, v) VALUES ($1, $2)
+     ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v
+     RETURNING k, v AS value`,
+    [k, String(value)]
+  )
+  res.json(rows[0])
+})
+
 // ── Catch-all: serve index.html for client-side routing ──────────────────────
 app.get('/{*path}', (_, res) => {
   res.sendFile(path.join(distDir, 'index.html'))
