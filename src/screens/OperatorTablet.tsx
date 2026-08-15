@@ -193,7 +193,7 @@ export default function OperatorTablet() {
   const [justCompleted,  setJustCompleted]  = useState(false)   // success toast on job-card
 
   // ── Derived task ──────────────────────────────────────────────────────────
-  const seedTask = operatorTasks[queueIdx] ?? operatorTasks[operatorTasks.length-1]
+  const seedTask = operatorTasks[queueIdx] ?? null
   const displayTask: DisplayTask | null = (() => {
     if (backendConnected && engineTask) return {
       id: engineTask.id, seq: engineTask.sequence_number,
@@ -322,8 +322,7 @@ export default function OperatorTablet() {
         resetForNextJob(); setJustCompleted(true)
         fetchNextTask(selectedJockeyId!)
       } else {
-        await backendApi.completeMoveById(String(displayTask.id))
-        await refresh(["moves","containers"])
+        // Seed/demo mode — advance locally without backend call
         setCompletedIds(prev => new Set([...prev, String(displayTask.id)]))
         setQueueIdx(prev => prev + 1)
         resetForNextJob(); setJustCompleted(true)
@@ -424,6 +423,78 @@ export default function OperatorTablet() {
     )
   }
 
+  // Fix #7 — seed mode all-done screen (no task loops)
+  if (!backendConnected && !seedTask) {
+    return (
+      <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
+        <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
+          <span className="font-semibold text-[15px] tracking-tight">Operator Tablet</span>
+          <button className="ml-auto text-[12px] px-3 py-1.5" style={{ border:"1px solid #e5e7eb", borderRadius:6, color:"#374151" }}
+            onClick={() => { setQueueIdx(0); setCompletedIds(new Set()); resetForNextJob() }}>Restart run</button>
+        </div>
+        <div className="flex flex-1 items-center justify-center p-8">
+          <div className="w-[340px] flex flex-col overflow-hidden" style={{ borderRadius:28, height:680, minHeight:680, maxHeight:680, border:`6px solid ${NAVY}` }}>
+            <div className="flex justify-center pt-3 pb-1 flex-none" style={{ background:AMBER }}><div style={{ width:100, height:22, background:NAVY, borderRadius:12 }} /></div>
+            <PhoneAmberHeader initials={initials} name={jockeyName} badge={equipBadge} pending={0} done={completedIds.size} />
+            <div className="flex-1 flex items-center justify-center px-6 py-8 bg-white">
+              <div className="text-center">
+                <div className="text-[52px] mb-3">🏁</div>
+                <div className="font-black text-[18px] text-neutral-900 mb-1">All jobs complete!</div>
+                <div className="text-[12px] text-neutral-500 leading-relaxed mb-6">
+                  You've cleared your entire queue — {completedIds.size} job{completedIds.size !== 1 ? "s" : ""} logged this shift.
+                </div>
+                <button onClick={() => { setQueueIdx(0); setCompletedIds(new Set()); resetForNextJob() }}
+                  className="w-full py-3.5 text-white font-bold text-[14px]" style={{ background:AMBER, borderRadius:12 }}>
+                  Restart demo →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Fix #6 — Equipment reported: show "stand by" screen, remove from queue
+  if (equipReported) {
+    const phoneFrame = "w-[340px] flex flex-col overflow-hidden"
+    const phoneStyle = { borderRadius:28, height:680, minHeight:680, maxHeight:680, border:`6px solid ${NAVY}` }
+    return (
+      <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
+        <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
+          <span className="font-semibold text-[15px] tracking-tight">Operator Tablet</span>
+        </div>
+        <div className="flex flex-1 items-center justify-center p-8">
+          <div className={phoneFrame} style={phoneStyle}>
+            <div className="flex justify-center pt-3 pb-1 flex-none" style={{ background:AMBER }}>
+              <div style={{ width:100, height:22, background:NAVY, borderRadius:12 }} />
+            </div>
+            <PhoneAmberHeader initials={initials} name={jockeyName} badge={equipBadge} pending={0} done={doneCount} />
+            <div className="flex-1 flex items-center justify-center px-6 py-8 bg-white">
+              <div className="text-center">
+                <div className="text-[46px] mb-3">🔧</div>
+                <div className="font-black text-[17px] text-neutral-900 mb-1">Equipment reported</div>
+                <div className="text-[12px] text-neutral-500 leading-relaxed mb-6">
+                  Dispatch has been notified. You are removed from the active queue.<br/>Stand by for further instructions.
+                </div>
+                {backendConnected
+                  ? <button onClick={() => { setEquipReported(false); setSelectedJockeyId(null); setEngineTask(null) }}
+                      className="w-full py-3.5 text-white font-bold text-[14px]" style={{ background:NAVY, borderRadius:12 }}>
+                      Switch jockey →
+                    </button>
+                  : <button onClick={() => { setEquipReported(false); setQueueIdx(prev => prev + 1); resetForNextJob() }}
+                      className="w-full py-3.5 text-white font-bold text-[14px]" style={{ background:AMBER, borderRadius:12 }}>
+                      Continue with next job →
+                    </button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!displayTask) return null
 
   const badge = getBadge(displayTask.reason)
@@ -490,7 +561,7 @@ export default function OperatorTablet() {
             )}
 
             {/* ── Progress bar ─────────────────────────────────────────── */}
-            {true && (
+            {overlay === null && (
               <div className="flex-none px-4 pt-3 pb-2" style={{ background:"white", borderBottom:"1px solid #f3f4f6" }}>
                 <div className="flex gap-1.5 mb-1.5">
                   {FLOW_STEPS.map((s,i) => (
@@ -727,11 +798,19 @@ export default function OperatorTablet() {
                   </div>
 
                   {/* CTA */}
-                  <div className="px-4 pb-5 pt-2">
+                  <div className="px-4 pb-2 pt-2">
                     <button onClick={handleScan} disabled={!scanInput.trim()||scanning}
                       className="w-full py-4 font-black text-[16px] text-white disabled:opacity-40 active:scale-[0.98] transition-transform"
                       style={{ background:AMBER, borderRadius:14 }}>
                       {scanning ? "Scanning…" : "Confirm scan →"}
+                    </button>
+                  </div>
+                  {/* #5 — Escape: container not present at pickup */}
+                  <div className="px-4 pb-5 flex justify-center">
+                    <button onClick={() => { resetScan(); setOverlay("cant-find") }}
+                      className="text-[12px] font-semibold"
+                      style={{ color:"#9ca3af" }}>
+                      Container not here →
                     </button>
                   </div>
                 </div>
@@ -799,11 +878,19 @@ export default function OperatorTablet() {
                     )}
 
                     {/* CTA */}
-                    <div className="px-4 pt-3 pb-5">
+                    <div className="px-4 pt-3 pb-2">
                       <button onClick={confirmDelivery} disabled={confirming}
                         className="w-full py-4 font-black text-[17px] text-white disabled:opacity-50 active:scale-[0.98] transition-transform"
                         style={{ background: GREEN, borderRadius:14 }}>
                         {confirming ? "Saving…" : "✓  Arrived — Complete delivery"}
+                      </button>
+                    </div>
+                    {/* #8 — Drop-zone exception escape */}
+                    <div className="px-4 pb-5 flex justify-center">
+                      <button onClick={() => setOverlay("cant-find")}
+                        className="text-[12px] font-semibold"
+                        style={{ color:"#9ca3af" }}>
+                        Issue at drop zone →
                       </button>
                     </div>
                   </div>
@@ -814,16 +901,21 @@ export default function OperatorTablet() {
               {/* OVERLAYS (rendered inside the scrollable content area)  */}
               {/* ──────────────────────────────────────────────────────── */}
 
-              {/* Overlay: Can't find container */}
+              {/* Overlay: Can't find container / drop-zone issue (context-aware) */}
               {overlay === "cant-find" && (
                 <div className="absolute inset-0 bg-white flex flex-col z-10">
                   <div className="flex items-center gap-3 px-4 py-3 border-b border-[#f3f4f6]" style={{ background:"#fafafa" }}>
                     <button onClick={() => setOverlay(null)} className="text-[12px] font-semibold" style={{ color:AMBER }}>← Back</button>
-                    <span className="font-bold text-[13px] text-neutral-800">Can't find container</span>
+                    <span className="font-bold text-[13px] text-neutral-800">
+                      {wizardStep === "map" ? "Issue at drop zone" : "Can't find container"}
+                    </span>
                   </div>
                   <div className="px-4 pt-4 pb-2">
                     <div className="font-mono font-bold text-[16px] text-neutral-900 mb-0.5">{displayTask.container}</div>
-                    <div className="text-[12px] text-neutral-500 mb-4">Expected at <span className="font-mono font-bold">{displayTask.from}</span></div>
+                    <div className="text-[12px] text-neutral-500 mb-4">
+                      {wizardStep === "map" ? "Drop slot" : "Expected at"}{" "}
+                      <span className="font-mono font-bold">{wizardStep === "map" ? displayTask.to : displayTask.from}</span>
+                    </div>
                     <div className="text-[12px] font-semibold text-neutral-700 mb-2">What's the situation?</div>
                     <div className="flex flex-col gap-2 mb-5">
                       {CANT_FIND_OPTS.map(opt => (
@@ -837,7 +929,7 @@ export default function OperatorTablet() {
                   </div>
                   {cantFindReason && (
                     <div className="px-4 pb-5 mt-auto">
-                      <button onClick={() => { setOverlay(null); setCantFindReason(null) }}
+                      <button onClick={() => { setCantFindReason(null); skipCurrentJob() }}
                         className="w-full py-4 font-black text-[15px] text-white mb-2"
                         style={{ background:AMBER, borderRadius:12 }}>
                         Submit report &amp; skip job →
@@ -868,10 +960,10 @@ export default function OperatorTablet() {
                       style={{ background:AMBER, borderRadius:12 }}>
                       Try again →
                     </button>
-                    <button onClick={() => { setOverlay(null); setScanResult(null); setScanInput("") }}
+                    <button onClick={() => { setOverlay(null); setScanResult(null); setScanInput(""); setWizardStep("map") }}
                       className="w-full py-3.5 font-semibold text-[13px]"
                       style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:12 }}>
-                      This IS the right container
+                      Override — proceed to drop →
                     </button>
                     <button onClick={() => setOverlay("cant-find")}
                       className="w-full py-3.5 font-semibold text-[13px]"
@@ -933,7 +1025,7 @@ export default function OperatorTablet() {
                           style={{ background:"#f0fdf4", color:"#065f46", border:`1.5px solid ${GREEN}`, borderRadius:12 }}>
                           ✓ PASS<br/><span className="font-semibold text-[11px]">continue job</span>
                         </button>
-                        <button onClick={() => { setQuarantine(true); setOverlay(null); setWizardStep("job-card") }}
+                        <button onClick={() => { setQuarantine(true); skipCurrentJob() }}
                           className="py-4 font-black text-[13px]"
                           style={{ background:"#fef2f2", color:"#7f1d1d", border:`1.5px solid ${RED}`, borderRadius:12 }}>
                           ✕ FAIL<br/><span className="font-semibold text-[11px]">quarantine</span>
@@ -967,7 +1059,7 @@ export default function OperatorTablet() {
                   </div>
                   {equipReason && (
                     <div className="px-4 pb-5 mt-auto">
-                      <button onClick={() => { setOverlay(null); setEquipReason(null) }}
+                      <button onClick={() => { setEquipReason(null); setOverlay(null); setEquipReported(true) }}
                         className="w-full py-4 font-black text-[15px] text-white"
                         style={{ background:RED, borderRadius:12 }}>
                         Report &amp; remove from queue →

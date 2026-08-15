@@ -102,7 +102,7 @@ function AppShell() {
   const personaRef = useRef<HTMLDivElement>(null)
 
   const activeGroup = NAV_ITEMS.find(i => i.id === screen)?.groupKey ?? ""
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set([activeGroup]))
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(NAV_GROUP_KEYS))
   const [storyExpanded, setStoryExpanded] = useState(false)
 
   useEffect(() => { localStorage.setItem("yardos:showDemo", String(showDemo)) }, [showDemo])
