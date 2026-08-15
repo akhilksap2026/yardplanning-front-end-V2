@@ -25,7 +25,7 @@ function getBadge(reason: string): { bg: string; label: string } {
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type WizardStep = "job-card" | "nav-pickup" | "scan-pickup" | "nav-drop" | "complete"
+type WizardStep = "job-card" | "nav-pickup" | "scan-pickup" | "map" | "complete"
 type Overlay    = null | "damage" | "cant-find" | "mismatch" | "equipment"
 
 type DisplayTask = {
@@ -39,7 +39,7 @@ const FLOW_STEPS = [
   { key:"job-card",    label:"Accept job",      note:"Review task — container ID, FROM/TO, move type. One clear CTA." },
   { key:"nav-pickup",  label:"Go to pickup",    note:"Navigate to FROM location. Large zone/row/bay for cab visibility." },
   { key:"scan-pickup", label:"Scan at pickup",  note:"Camera scan confirms the correct container before the lift starts." },
-  { key:"nav-drop",    label:"Deliver & close", note:"Navigate to TO location, confirm delivery. Job cycle recorded." },
+  { key:"map",         label:"Navigate & drop", note:"Yard map shows route to destination. Tap Complete when delivered." },
 ]
 
 // ── Damage codes & exception options ──────────────────────────────────────────
@@ -77,7 +77,6 @@ export default function OperatorTablet() {
   // ── Completion state ──────────────────────────────────────────────────────
   const [confirming,   setConfirming]   = useState(false)
   const [confirmError, setConfirmError] = useState<string|null>(null)
-  const [countdown,    setCountdown]    = useState(3)
 
   // ── Exception state ───────────────────────────────────────────────────────
   const [cantFindReason, setCantFindReason] = useState<string|null>(null)
@@ -89,9 +88,10 @@ export default function OperatorTablet() {
   const [selectedDmg,   setSelectedDmg]   = useState<Set<string>>(new Set())
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  const [offline,      setOffline]      = useState(false)
-  const [flowExpanded, setFlowExpanded] = useState(false)
-  const [auditOpen,    setAuditOpen]    = useState(false)
+  const [offline,        setOffline]        = useState(false)
+  const [flowExpanded,   setFlowExpanded]   = useState(false)
+  const [auditOpen,      setAuditOpen]      = useState(false)
+  const [justCompleted,  setJustCompleted]  = useState(false)   // success toast on job-card
 
   // ── Derived task ──────────────────────────────────────────────────────────
   const seedTask = operatorTasks[queueIdx] ?? operatorTasks[operatorTasks.length-1]
@@ -123,7 +123,7 @@ export default function OperatorTablet() {
     if (wizardStep === "job-card")    return s.key === "job-card"
     if (wizardStep === "nav-pickup")  return s.key === "nav-pickup"
     if (wizardStep === "scan-pickup") return s.key === "scan-pickup"
-    return s.key === "nav-drop"
+    return s.key === "map"
   })
   const safeStepIdx = Math.max(0, currentStepIdx)
 
@@ -158,29 +158,23 @@ export default function OperatorTablet() {
     if (backendConnected && selectedJockeyId != null) fetchNextTask(selectedJockeyId)
   }, [backendConnected, selectedJockeyId])
 
-  // Auto-countdown on complete screen
+  // justCompleted toast auto-dismiss
   useEffect(() => {
-    if (wizardStep !== "complete") return
-    setCountdown(3)
-    const iv = setInterval(() => {
-      setCountdown(c => {
-        if (c <= 1) { clearInterval(iv); return 0 }
-        return c - 1
-      })
-    }, 1000)
-    return () => clearInterval(iv)
-  }, [wizardStep])
+    if (!justCompleted) return
+    const t = setTimeout(() => setJustCompleted(false), 2500)
+    return () => clearTimeout(t)
+  }, [justCompleted])
 
-  useEffect(() => {
-    if (wizardStep === "complete" && countdown === 0) {
-      if (backendConnected && selectedJockeyId != null) {
-        resetForNextJob(); fetchNextTask(selectedJockeyId)
-      } else {
-        setCompletedIds(prev => new Set([...prev, String(displayTask?.id)]))
-        setQueueIdx(prev => prev+1); resetForNextJob()
-      }
-    }
-  }, [countdown, wizardStep])
+  // Demo tap-to-scan: auto-fill the correct ID and advance
+  async function demoScan() {
+    if (!displayTask) return
+    const correctId = backendConnected && engineTask
+      ? engineTask.container.container_number
+      : (seedTask?.container ?? "")
+    setScanInput(correctId)
+    setScanResult({ match: true, scanned: correctId, expected: correctId })
+    setTimeout(() => { setWizardStep("map"); resetScan() }, 900)
+  }
 
   async function handleScan() {
     if (!displayTask || !scanInput.trim()) return
@@ -190,20 +184,20 @@ export default function OperatorTablet() {
         const result = await backendApi.scanMove(engineTask.id, scanInput.trim())
         const res = { match: result.match, scanned: scanInput.trim(), expected: engineTask.container.container_number }
         setScanResult(res)
-        if (result.match) setTimeout(() => { setWizardStep("nav-drop"); resetScan() }, 900)
+        if (result.match) setTimeout(() => { setWizardStep("map"); resetScan() }, 900)
         else setOverlay("mismatch")
       } catch {
         const match = scanInput.trim().toUpperCase() === engineTask.container.container_number.toUpperCase()
         const res = { match, scanned: scanInput.trim(), expected: engineTask.container.container_number }
         setScanResult(res)
-        if (match) setTimeout(() => { setWizardStep("nav-drop"); resetScan() }, 900)
+        if (match) setTimeout(() => { setWizardStep("map"); resetScan() }, 900)
         else setOverlay("mismatch")
       } finally { setScanning(false) }
     } else if (!backendConnected && seedTask) {
       const match = scanInput.trim().toUpperCase() === (seedTask.container??"").toUpperCase()
       const res = { match, scanned: scanInput.trim(), expected: seedTask.container??"" }
       setScanResult(res)
-      if (match) setTimeout(() => { setWizardStep("nav-drop"); resetScan() }, 900)
+      if (match) setTimeout(() => { setWizardStep("map"); resetScan() }, 900)
       else setOverlay("mismatch")
     }
   }
@@ -214,11 +208,15 @@ export default function OperatorTablet() {
     try {
       if (backendConnected && engineTask) {
         await backendApi.completeMove(engineTask.id)
+        resetForNextJob(); setJustCompleted(true)
+        fetchNextTask(selectedJockeyId!)
       } else {
         await backendApi.completeMoveById(String(displayTask.id))
         await refresh(["moves","containers"])
+        setCompletedIds(prev => new Set([...prev, String(displayTask.id)]))
+        setQueueIdx(prev => prev + 1)
+        resetForNextJob(); setJustCompleted(true)
       }
-      setWizardStep("complete")
     } catch (err) {
       setConfirmError(String(err).replace("Error: ",""))
     } finally {
@@ -381,7 +379,7 @@ export default function OperatorTablet() {
             )}
 
             {/* ── Progress bar ─────────────────────────────────────────── */}
-            {wizardStep !== "complete" && (
+            {true && (
               <div className="flex-none px-4 pt-3 pb-2" style={{ background:"white", borderBottom:"1px solid #f3f4f6" }}>
                 <div className="flex gap-1.5 mb-1.5">
                   {FLOW_STEPS.map((s,i) => (
@@ -401,6 +399,14 @@ export default function OperatorTablet() {
               {/* ── SCREEN 1: Job Card ───────────────────────────────── */}
               {wizardStep === "job-card" && overlay === null && (
                 <div className="flex flex-col">
+                  {/* ✓ Previous job saved toast */}
+                  {justCompleted && (
+                    <div className="flex items-center gap-2 px-4 py-2.5 flex-none"
+                      style={{ background: GREEN, color:"#fff" }}>
+                      <span className="text-[14px]">✓</span>
+                      <span className="text-[12px] font-bold">Job logged — next job ready</span>
+                    </div>
+                  )}
                   {/* Move type + container ID */}
                   <div className="px-4 pt-5 pb-4 border-b border-[#f3f4f6]">
                     <span className="text-[11px] font-black tracking-wider text-white px-3 py-1 rounded-full"
@@ -541,16 +547,18 @@ export default function OperatorTablet() {
                     <div className="text-[11px] text-neutral-500 mt-0.5 font-mono">{displayTask.from} · {badge.label}</div>
                   </div>
 
-                  {/* Camera viewfinder */}
-                  <div className="mx-3 mt-4 overflow-hidden" style={{ borderRadius:12, background:"#111", height:188 }}>
+                  {/* Camera viewfinder — tap to demo-scan */}
+                  <button onClick={demoScan}
+                    className="mx-3 mt-4 overflow-hidden w-[calc(100%-24px)] active:opacity-80 transition-opacity"
+                    style={{ borderRadius:12, background:"#111", height:188, display:"block", cursor:"pointer" }}>
                     <div className="flex items-center justify-center h-7 text-[9px] font-bold tracking-widest text-white/50"
                       style={{ borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-                      KEEP CONTAINER ID IN FRAME
+                      TAP CAMERA TO SCAN
                     </div>
                     <div className="relative flex items-center justify-center" style={{ height:148 }}>
                       <div style={{ width:130, height:88, border:"2px solid rgba(255,255,255,0.2)", borderRadius:6, position:"relative" }}>
                         {/* Corner accents */}
-                        {([[true,true,true,false],[true,true,false,true],[true,false,true,false],[true,false,false,true]] as const).map(([tl,tr,bl,br],i) => (
+                        {([[true,true,true,false],[true,true,false,true],[true,false,true,false],[true,false,false,true]] as const).map(([tl,_tr,bl,_br],i) => (
                           <div key={i} style={{
                             position:"absolute",
                             top:   (i<2)?-2:"auto", bottom:(i>=2)?-2:"auto",
@@ -565,6 +573,15 @@ export default function OperatorTablet() {
                         {/* Scan line */}
                         <div className="absolute left-0 right-0" style={{ top:"42%", height:2, background:"#f59e0b", boxShadow:"0 0 8px #f59e0b", borderRadius:1 }} />
                       </div>
+                      {/* Tap hint */}
+                      {!scanResult && (
+                        <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+                          <span className="text-[9px] font-bold tracking-widest px-3 py-1 rounded-full"
+                            style={{ background:"rgba(245,158,11,0.18)", color:"#f59e0b", border:"1px solid rgba(245,158,11,0.35)" }}>
+                            TAP TO DEMO SCAN
+                          </span>
+                        </div>
+                      )}
                       {/* Match overlay */}
                       {scanResult?.match && (
                         <div className="absolute inset-0 flex items-center justify-center" style={{ background:"rgba(5,150,105,0.85)", borderRadius:10 }}>
@@ -572,7 +589,7 @@ export default function OperatorTablet() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </button>
 
                   {/* Mismatch alert */}
                   {scanResult && !scanResult.match && (
@@ -609,50 +626,54 @@ export default function OperatorTablet() {
                 </div>
               )}
 
-              {/* ── SCREEN 4: Navigate to Drop ────────────────────────── */}
-              {wizardStep === "nav-drop" && overlay === null && (
-                <NavScreen
-                  heading="Go to drop point"
-                  zoneLabel={displayTask.to}
-                  container={displayTask.container}
-                  badge={badge}
-                  ctaLabel="✓  Confirm delivery"
-                  confirming={confirming}
-                  onConfirm={confirmDelivery}
-                />
-              )}
+              {/* ── SCREEN 4: Map — navigate to drop ─────────────────── */}
+              {wizardStep === "map" && overlay === null && (
+                <div className="flex flex-col">
+                  {/* Destination header */}
+                  <div className="px-4 pt-4 pb-3 border-b border-[#f3f4f6]">
+                    <div className="text-[10px] font-bold tracking-widest text-neutral-400 mb-1">DROP DESTINATION</div>
+                    <div className="font-mono font-black text-[26px] text-neutral-900 tracking-tight leading-none">{displayTask.to}</div>
+                    <div className="text-[11px] text-neutral-500 mt-1 font-mono">{displayTask.container} · {badge.label}</div>
+                  </div>
 
-              {/* ── SCREEN 5: Complete ───────────────────────────────── */}
-              {wizardStep === "complete" && overlay === null && (
-                <div className="flex flex-col items-center justify-center h-full px-6 py-8" style={{ minHeight:320 }}>
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center mb-5"
-                    style={{ background:"#f0fdf4", border:`3px solid ${GREEN}`, color:GREEN }}>
-                    <IcoCheck />
+                  {/* Yard map */}
+                  <div className="px-3 pt-3 pb-2">
+                    <YardMap from={displayTask.from} to={displayTask.to} />
                   </div>
-                  <div className="font-black text-[22px] text-neutral-900 mb-1">Job Complete!</div>
-                  <div className="font-mono text-[14px] text-neutral-500 mb-1">{displayTask.container}</div>
-                  <div className="text-[12px] text-neutral-400 mb-6">
-                    {displayTask.from} → {displayTask.to} · {Number(displayTask.est).toFixed(1)||"5.0"}′ est.
+
+                  {/* Route summary */}
+                  <div className="flex items-center gap-2 px-4 py-2.5 mx-3 mb-3 rounded-xl"
+                    style={{ background:"#f9fafb", border:"1px solid #e5e7eb" }}>
+                    <span className="text-[11px] font-mono text-neutral-500 flex-none">FROM</span>
+                    <span className="font-mono font-bold text-[12px] text-neutral-700">{displayTask.from}</span>
+                    <span className="text-neutral-300 mx-1">→</span>
+                    <span className="text-[11px] font-mono text-neutral-500 flex-none">TO</span>
+                    <span className="font-mono font-bold text-[12px]" style={{ color: AMBER }}>{displayTask.to}</span>
                   </div>
-                  {confirmError ? (
-                    <div className="w-full px-3 py-2.5 text-[12px] rounded-xl mb-4"
+
+                  {/* Error */}
+                  {confirmError && (
+                    <div className="mx-3 mb-3 px-3 py-2.5 rounded-xl text-[12px]"
                       style={{ background:"#fef2f2", border:`1px solid ${RED}`, color:"#7f1d1d" }}>
                       <span className="font-bold">Save failed:</span> {confirmError}
-                      <button onClick={confirmDelivery} className="block mt-2 font-bold underline">Retry</button>
-                    </div>
-                  ) : (
-                    <div className="text-[13px] text-neutral-500 mb-4">
-                      Next job loading in <span className="font-black text-[18px]" style={{ color:AMBER }}>{countdown}</span>…
                     </div>
                   )}
-                  <button onClick={() => {
-                    if (backendConnected && selectedJockeyId!=null) { resetForNextJob(); fetchNextTask(selectedJockeyId) }
-                    else { setCompletedIds(prev=>new Set([...prev, String(displayTask.id)])); setQueueIdx(p=>p+1); resetForNextJob() }
-                  }}
-                    className="w-full py-3.5 font-bold text-[14px] text-white"
-                    style={{ background:AMBER, borderRadius:12 }}>
-                    Load next job now →
-                  </button>
+
+                  {/* CTA */}
+                  <div className="px-4 pb-5">
+                    <button onClick={confirmDelivery} disabled={confirming}
+                      className="w-full py-4 font-black text-[17px] text-white disabled:opacity-50 active:scale-[0.98] transition-transform"
+                      style={{ background: GREEN, borderRadius:14 }}>
+                      {confirming ? "Saving…" : "✓  Complete delivery"}
+                    </button>
+                    {confirmError && (
+                      <button onClick={confirmDelivery}
+                        className="w-full py-3 mt-2 font-semibold text-[13px]"
+                        style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:14 }}>
+                        Retry →
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -824,7 +845,7 @@ export default function OperatorTablet() {
               )}
 
               {/* Floating damage button (visible during active job steps) */}
-              {overlay === null && wizardStep !== "job-card" && wizardStep !== "complete" && (
+              {overlay === null && wizardStep !== "job-card" && (
                 <button onClick={() => setOverlay("damage")}
                   className="absolute bottom-4 right-4 w-10 h-10 rounded-full flex items-center justify-center shadow-md transition-transform active:scale-95 z-10"
                   style={{ background:RED, color:"white", fontSize:16 }}
@@ -1013,5 +1034,136 @@ function PhoneAmberHeader({ initials, name, badge, pending, done, onEquipment }:
         {pending} pending · {done} completed today
       </div>
     </div>
+  )
+}
+
+// ── YardMap — schematic SVG yard grid ─────────────────────────────────────────
+// Parses addresses like "A-01-03", "B-12-02", "GATE" and shows a simple yard
+// block grid with the pickup zone (faded ✓) and destination zone (amber pulse).
+function YardMap({ from, to }: { from: string; to: string }) {
+  // Yard zones laid out in a 5×3 grid (A-O)
+  const ZONES = [
+    ["A","B","C","D","E"],
+    ["F","G","H","I","J"],
+    ["K","L","M","N","O"],
+  ]
+  const GATE_ZONES = ["GATE","GATEIN","GATEOUT","STAGING"]
+
+  function zoneOf(addr: string) {
+    if (!addr) return null
+    const upper = addr.toUpperCase()
+    if (GATE_ZONES.some(g => upper.includes(g))) return "GATE"
+    // "A-01-03" → "A"
+    const first = upper.split(/[-·\s]/)[0]
+    return first.length <= 2 ? first : null
+  }
+
+  const fromZone = zoneOf(from)
+  const toZone   = zoneOf(to)
+
+  const W = 296, H = 164  // SVG viewport
+
+  // Cell dimensions
+  const cols = 5, rows = 3
+  const pad = 10
+  const cellW = (W - pad * 2) / cols
+  const cellH = (H - pad * 2 - 28) / rows  // 28px reserved for GATE strip at bottom
+
+  function cellFor(zone: string | null): { x: number; y: number } | null {
+    if (!zone) return null
+    if (zone === "GATE") return null  // handled separately
+    for (let r = 0; r < ZONES.length; r++) {
+      const c = ZONES[r].indexOf(zone)
+      if (c >= 0) return { x: pad + c * cellW, y: pad + r * cellH }
+    }
+    return null
+  }
+
+  const fromCell = cellFor(fromZone)
+  const toCell   = cellFor(toZone)
+
+  // Centre of a cell
+  function cx(cell: { x: number; y: number }) { return cell.x + cellW / 2 }
+  function cy(cell: { x: number; y: number }) { return cell.y + cellH / 2 }
+
+  // Route line points: from → to (straight line for simplicity)
+  const gateY = pad + rows * cellH + 6
+
+  function pinX(zone: string | null, cell: { x: number; y: number } | null) {
+    if (zone === "GATE") return W / 2
+    return cell ? cx(cell) : W / 2
+  }
+  function pinY(zone: string | null, cell: { x: number; y: number } | null) {
+    if (zone === "GATE") return gateY + 11
+    return cell ? cy(cell) : H / 2
+  }
+
+  const fx = pinX(fromZone, fromCell), fy = pinY(fromZone, fromCell)
+  const tx = pinX(toZone, toCell),     ty = pinY(toZone, toCell)
+
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ borderRadius:10, background:"#f1f5f9", display:"block", width:"100%" }}>
+      {/* Zone cells */}
+      {ZONES.map((row, ri) => row.map((zone, ci) => {
+        const x = pad + ci * cellW, y = pad + ri * cellH
+        const isFrom = zone === fromZone
+        const isTo   = zone === toZone
+        return (
+          <g key={zone}>
+            <rect x={x+2} y={y+2} width={cellW-4} height={cellH-4} rx={5}
+              fill={isTo ? "#fef3c7" : isFrom ? "#f0fdf4" : "#e2e8f0"}
+              stroke={isTo ? AMBER : isFrom ? GREEN : "#cbd5e1"}
+              strokeWidth={isTo || isFrom ? 2 : 1} />
+            <text x={x + cellW/2} y={y + cellH/2 + 5} textAnchor="middle"
+              fontSize={isTo || isFrom ? 13 : 11}
+              fontWeight={isTo || isFrom ? "900" : "600"}
+              fill={isTo ? AMBER : isFrom ? GREEN : "#94a3b8"}>
+              {zone}
+            </text>
+            {isFrom && (
+              <text x={x + cellW/2} y={y + cellH/2 - 8} textAnchor="middle" fontSize={9} fill={GREEN} fontWeight="700">✓</text>
+            )}
+          </g>
+        )
+      }))}
+
+      {/* GATE strip */}
+      <rect x={pad+2} y={gateY} width={W - pad*2 - 4} height={22} rx={5}
+        fill={toZone === "GATE" ? "#fef3c7" : fromZone === "GATE" ? "#f0fdf4" : "#e2e8f0"}
+        stroke={toZone === "GATE" ? AMBER : fromZone === "GATE" ? GREEN : "#cbd5e1"}
+        strokeWidth={toZone === "GATE" || fromZone === "GATE" ? 2 : 1} />
+      <text x={W/2} y={gateY + 14} textAnchor="middle" fontSize={10} fontWeight="700"
+        fill={toZone === "GATE" ? AMBER : fromZone === "GATE" ? GREEN : "#94a3b8"}>
+        GATE {fromZone === "GATE" ? "✓" : ""}
+      </text>
+
+      {/* Route line */}
+      {(fromCell || fromZone === "GATE") && (toCell || toZone === "GATE") && (
+        <line x1={fx} y1={fy} x2={tx} y2={ty}
+          stroke={AMBER} strokeWidth={2.5} strokeDasharray="5,4"
+          strokeLinecap="round" opacity={0.7} />
+      )}
+
+      {/* FROM pin (green, done) */}
+      {(fromCell || fromZone === "GATE") && (
+        <circle cx={fx} cy={fy} r={6} fill={GREEN} stroke="white" strokeWidth={2} />
+      )}
+
+      {/* TO pin (amber, pulsing via double ring) */}
+      {(toCell || toZone === "GATE") && (
+        <g>
+          <circle cx={tx} cy={ty} r={10} fill={AMBER} opacity={0.2} />
+          <circle cx={tx} cy={ty} r={6}  fill={AMBER} stroke="white" strokeWidth={2} />
+        </g>
+      )}
+
+      {/* Legend */}
+      <g>
+        <circle cx={pad+6} cy={H-6} r={4} fill={GREEN} />
+        <text x={pad+14} y={H-2} fontSize={8} fill="#64748b">Pickup done</text>
+        <circle cx={pad+76} cy={H-6} r={4} fill={AMBER} />
+        <text x={pad+84} y={H-2} fontSize={8} fill="#64748b">Destination</text>
+      </g>
+    </svg>
   )
 }
