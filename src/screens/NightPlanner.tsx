@@ -10,6 +10,7 @@ import { checkPlacementRules } from "@/lib/placement-rules"
 import { backendApi } from "@/lib/backend-api"
 import type { BackendPlanDetail } from "@/lib/backend-api"
 import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type PlanningStep } from "@/data/planningData"
+import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
 import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, isExtraMovement, getStatusStyle, getDisplayContainerId, isAnonymousContainer, generateWhyText } from "@/utils/displayLabels"
 
 interface Props {
@@ -336,8 +337,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
 
   // ── Step 1: KPI data arrays (planningData) ───────────────────────────────
   const { totalSteps, totalOperators } = dashboardCounts()
-  const inbounds    = new Set(allSteps.filter(s => s.operation === "Putaway" && s.container_id).map(s => s.container_id)).size
-  const outbounds   = new Set(allSteps.filter(s => s.operation === "Outbound staging and truck loading" && s.container_id).map(s => s.container_id)).size
+  const inbounds    = INBOUND_SEED.length
+  const outbounds   = OUTBOUND_SEED.length
   const equipAvail  = EQUIPMENT.filter(e => e.status === "available").length
   const primaryKpis = [
     { k:"Inbound containers",  v:String(inbounds),           sub:"containers today",                                                                      red:false },

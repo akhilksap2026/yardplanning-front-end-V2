@@ -32,6 +32,34 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 // ─── Types (mirror the Express API schema) ───────────────────────────
 
+// Gate container row enriched by the live DB join
+export interface LiveGateRow {
+  containerId:     string
+  type:            "inbound" | "outbound"
+  scac:            string        // shipping-line BIC/SCAC
+  size:            string
+  consignee:       string
+  carrierName:     string
+  truckerScac:     string
+  trucker:         string
+  truckerFullName: string | null
+  truckerRegion:   string | null
+  driver:          string
+  plate:           string
+  channel:         "verde" | "naranja" | "rojo"
+  appt:            string
+  gateStatus:      string
+  hoursToLFD:      number
+  hold:            string | null
+  excl:            string | null
+  grossKg:         number
+  isoType:         string
+  sealNumber:      string
+  updatedAt:       string
+  freeDays:        number | null       // from carriers table
+  detentionBasis:  string | null       // from carriers table
+}
+
 export type ContainerStatus = "in_transit" | "yard" | "staged" | "departed";
 export type DamageStatus = "none" | "minor" | "major" | "hold";
 export type OrderType = "inbound_full" | "outbound_empty_to_port" | "outbound_full_to_dc" | "outbound_empty_for_pickup";
@@ -232,6 +260,10 @@ export const backendApi = {
   },
   createGateTransaction: (body: { gate_type: "in" | "out"; container_id?: number; truck_license_plate?: string; driver_ref?: string; carrier_ref?: string }) =>
     request<BackendGateTransaction>("/gate/transactions", { method: "POST", body: JSON.stringify(body) }),
+
+  // Gate containers — enriched with live carrier + trucker DB join
+  fetchGateContainers: (type: "inbound" | "outbound") =>
+    request<{ rows: LiveGateRow[]; fetchedAt: string }>(`/gate/containers?type=${type}`),
 
   // Seed reset (demo) — requires --force on seed.ts server-side
   resetSeed: (randomize = false) =>

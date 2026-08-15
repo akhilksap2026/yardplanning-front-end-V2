@@ -123,6 +123,50 @@ app.get('/api/assumptions', async (_, res) => {
   res.json(rows)
 })
 
+// ── Gate containers (inbound / outbound with live carrier + trucker join) ─────
+app.get('/api/gate/containers', async (req, res) => {
+  const type = req.query.type as string | undefined
+  if (!type || !['inbound', 'outbound'].includes(type)) {
+    return res.status(400).json({ error: 'query param ?type=inbound|outbound required' })
+  }
+  const { rows } = await pool.query(
+    `SELECT
+       g.container_id   AS "containerId",
+       g.type,
+       g.scac,
+       g.size,
+       g.consignee,
+       g.carrier_name   AS "carrierName",
+       g.trucker_scac   AS "truckerScac",
+       g.trucker,
+       g.driver,
+       g.plate,
+       g.channel,
+       g.appt,
+       g.gate_status    AS "gateStatus",
+       g.hours_to_lfd::float AS "hoursToLFD",
+       g.hold,
+       g.excl,
+       g.gross_kg::float    AS "grossKg",
+       g.iso_type       AS "isoType",
+       g.seal_number    AS "sealNumber",
+       g.updated_at     AS "updatedAt",
+       -- live carrier enrichment from DB
+       c.free_days      AS "freeDays",
+       c.basis          AS "detentionBasis",
+       -- live trucker enrichment from DB
+       t.name           AS "truckerFullName",
+       t.region         AS "truckerRegion"
+     FROM gate_containers g
+     LEFT JOIN carriers c ON c.code = g.scac
+     LEFT JOIN truckers t ON t.scac = g.trucker_scac
+     WHERE g.type = $1
+     ORDER BY g.appt, g.container_id`,
+    [type]
+  )
+  res.json({ rows, fetchedAt: new Date().toISOString() })
+})
+
 // ── Gate ──────────────────────────────────────────────────────────────────────
 app.get('/api/visits', async (_, res) => {
   const { rows } = await pool.query(

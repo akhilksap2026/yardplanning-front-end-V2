@@ -217,3 +217,34 @@ CREATE TABLE IF NOT EXISTS capacity_forecast (
   available   NUMERIC NOT NULL DEFAULT 0,
   breach      BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+-- ── Road carriers (truckers) ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS truckers (
+  scac        TEXT PRIMARY KEY,       -- Standard Carrier Alpha Code
+  name        TEXT NOT NULL,
+  region      TEXT NOT NULL DEFAULT ''
+);
+
+-- ── Gate container list (inbound + outbound) ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS gate_containers (
+  container_id  TEXT PRIMARY KEY,
+  type          TEXT NOT NULL,        -- 'inbound' | 'outbound'
+  scac          TEXT NOT NULL,        -- shipping-line BIC/SCAC (first 4 chars of container_id)
+  size          TEXT NOT NULL,
+  consignee     TEXT NOT NULL,
+  carrier_name  TEXT NOT NULL,
+  trucker_scac  TEXT REFERENCES truckers(scac),
+  trucker       TEXT NOT NULL,
+  driver        TEXT NOT NULL,
+  plate         TEXT NOT NULL,
+  channel       TEXT NOT NULL DEFAULT 'verde',
+  appt          TEXT NOT NULL,
+  gate_status   TEXT NOT NULL DEFAULT 'EXPECTED',
+  hours_to_lfd  NUMERIC NOT NULL DEFAULT 0,
+  hold          TEXT,
+  excl          TEXT,
+  gross_kg      NUMERIC NOT NULL DEFAULT 0,
+  iso_type      TEXT NOT NULL,
+  seal_number   TEXT NOT NULL,
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

@@ -12,8 +12,9 @@
  *   npx tsx server/seed.ts
  */
 import { Pool } from 'pg'
-import { CARRIERS, DEPOTS, ZONES, EQUIPMENT, OPERATORS, CONTAINERS, MOVES, EXCEPTIONS, ASSUMPTIONS } from '../src/data/yard-data.js'
+import { CARRIERS, TRUCKERS, DEPOTS, ZONES, EQUIPMENT, OPERATORS, CONTAINERS, MOVES, EXCEPTIONS, ASSUMPTIONS } from '../src/data/yard-data.js'
 import { VISITS, LANES, APPOINTMENTS, EVENTS, DIFF_ROWS, OPERATOR_TASKS, TURN_BY_HOUR, CYCLE_BY_TYPE, CAPACITY } from '../src/data/yard-ops.js'
+import { INBOUND_SEED, OUTBOUND_SEED } from '../src/data/gate-seed.js'
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 const force = process.argv.includes('--force')
@@ -67,6 +68,8 @@ async function run() {
         TRUNCATE depots CASCADE;
         TRUNCATE zones CASCADE;
         TRUNCATE carriers CASCADE;
+        TRUNCATE gate_containers CASCADE;
+        TRUNCATE truckers CASCADE;
       `)
     }
 
@@ -259,6 +262,36 @@ async function run() {
       )
     }
     console.log(`  kpi series: ${TURN_BY_HOUR.length + CYCLE_BY_TYPE.length + CAPACITY.length}`)
+
+    // Truckers
+    for (const t of TRUCKERS) {
+      await client.query(
+        `INSERT INTO truckers (scac, name, region) VALUES ($1,$2,$3) ON CONFLICT (scac) DO NOTHING`,
+        [t.scac, t.name, t.region]
+      )
+    }
+    console.log(`  truckers: ${TRUCKERS.length}`)
+
+    // Gate containers (inbound + outbound)
+    const allGate = [
+      ...INBOUND_SEED.map(r => ({ ...r, type: 'inbound' })),
+      ...OUTBOUND_SEED.map(r => ({ ...r, type: 'outbound' })),
+    ]
+    for (const r of allGate) {
+      await client.query(
+        `INSERT INTO gate_containers
+         (container_id, type, scac, size, consignee, carrier_name,
+          trucker_scac, trucker, driver, plate, channel, appt,
+          gate_status, hours_to_lfd, hold, excl, gross_kg, iso_type, seal_number)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+         ON CONFLICT (container_id) DO NOTHING`,
+        [r.containerId, r.type, r.scac, r.size, r.consignee, r.carrierName,
+         r.truckerScac, r.trucker, r.driver, r.plate, r.channel, r.appt,
+         r.gateStatus, r.hoursToLFD, r.hold ?? null, r.excl ?? null,
+         r.grossKg, r.isoType, r.sealNumber]
+      )
+    }
+    console.log(`  gate_containers: ${allGate.length}`)
 
     await client.query('COMMIT')
     console.log('Done ✓')

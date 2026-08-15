@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { useData } from "@/lib/DataContext"
 import type { Visit } from "@/data/yard-ops"
-import { backendApi } from "@/lib/backend-api"
-import type { BackendGateTransaction } from "@/lib/backend-api"
+import { backendApi, type BackendGateTransaction, type LiveGateRow } from "@/lib/backend-api"
 import ContainerPicker from "@/components/ContainerPicker"
 import { computeRehandleCost } from "@/lib/utils"
 import GateInspection from "@/components/gate/GateInspection"
@@ -100,9 +99,38 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h)
   }, [moreActionsOpen])
 
-  // ── Inbound / outbound seed rows (counts match Planner KPI unique-container counts) ─
-  const inboundRows  = INBOUND_SEED
-  const outboundRows = OUTBOUND_SEED
+  // ── Live gate container rows (fetched from backend, seed fallback) ───────────
+  const [liveInbound,  setLiveInbound]  = useState<LiveGateRow[] | null>(null)
+  const [liveOutbound, setLiveOutbound] = useState<LiveGateRow[] | null>(null)
+  const [fetchedAt,    setFetchedAt]    = useState<string | null>(null)
+  const [liveError,    setLiveError]    = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const [ib, ob] = await Promise.all([
+          backendApi.fetchGateContainers("inbound"),
+          backendApi.fetchGateContainers("outbound"),
+        ])
+        if (cancelled) return
+        setLiveInbound(ib.rows)
+        setLiveOutbound(ob.rows)
+        setFetchedAt(ib.fetchedAt)
+        setLiveError(false)
+      } catch {
+        if (!cancelled) setLiveError(true)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  // Merge live data over seed: live rows enriched with freeDays/detentionBasis;
+  // seed used as fallback when backend is unreachable.
+  // Seed data cast to LiveGateRow shape — freeDays/detentionBasis will be undefined until live fetch resolves
+  const inboundRows  = (liveInbound  ?? INBOUND_SEED  as unknown as LiveGateRow[]) as LiveGateRow[]
+  const outboundRows = (liveOutbound ?? OUTBOUND_SEED as unknown as LiveGateRow[]) as LiveGateRow[]
 
   // ── Existing effects ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -992,23 +1020,45 @@ export default function GateConsole({ focus, onNavigate }: Props) {
 
         return (
           <div className="flex-1 min-h-0 overflow-auto">
+
+            {/* ── Sticky header bar ── */}
             <div className="px-5 pt-3 pb-2 flex items-center gap-3 border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
               <span className="font-semibold text-[13px]">{title}</span>
               <span className="text-[11px] text-[#9ca3af]">{subtitle}</span>
+              <div className="ml-auto flex items-center gap-2">
+                {liveError && (
+                  <span className="text-[10px] text-[#d97706] font-medium px-2 py-0.5 rounded"
+                    style={{ background:"#fffbeb" }}>⚠ seed fallback</span>
+                )}
+                {fetchedAt && !liveError && (
+                  <span className="flex items-center gap-1 text-[10px] text-[#059669] font-medium px-2 py-0.5 rounded"
+                    style={{ background:"#f0fdf4" }}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#059669] inline-block animate-pulse" />
+                    Live · {fetchedAt.slice(11,19)} UTC
+                  </span>
+                )}
+              </div>
             </div>
 
             <table className="w-full border-collapse text-[12px]">
               <thead className="sticky top-[41px] z-10">
                 <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
-                  {["CONTAINER","SIZE","CONSIGNEE","CARRIER","TRUCKER","CHANNEL","APPT","DRIVER","TRUCK","LFD","HOLD","STATUS"].map(h => (
+                  {[
+                    "CONTAINER","SIZE","CONSIGNEE",
+                    "LINE SCAC","CARRIER",
+                    "TRUCK SCAC","TRUCKER",
+                    "CHANNEL","APPT","DRIVER","TRUCK","LFD","FREE DAYS","HOLD","STATUS"
+                  ].map(h => (
                     <th key={h} className="px-3 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r, i) => {
-                  const lfdLabel  = r.hoursToLFD < 0 ? "BREACHED" : `${r.hoursToLFD}h`
-                  const lfdRed    = r.hoursToLFD < 24
+                  const lfdLabel   = r.hoursToLFD < 0 ? "BREACHED" : `${r.hoursToLFD}h`
+                  const lfdRed     = r.hoursToLFD < 24
+                  const freeDays   = r.freeDays
+                  const detBasis   = r.detentionBasis
                   const [chanBg, chanFg, chanLabel] = CHAN_PILL[r.channel] ?? ["#f3f4f6","#6b7280","—"]
                   const [gBg, gFg] = GATE_STATE[r.gateStatus] ?? ["#f3f4f6","#6b7280"]
                   const rowBg = r.excl ? "#fffbeb" : "#fff"
@@ -1038,10 +1088,26 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                         <div className="text-[10px] text-neutral-400">{(r.grossKg / 1000).toFixed(1)} t gross</div>
                       </td>
 
-                      {/* Shipping carrier */}
+                      {/* Shipping-line SCAC */}
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className="font-mono font-bold text-[11.5px] px-1.5 py-0.5 rounded tracking-widest"
+                          style={{ background:"#eff6ff", color:"#1d4ed8" }}>
+                          {r.scac}
+                        </span>
+                      </td>
+
+                      {/* Carrier full name */}
                       <td className="px-3 py-3 text-[11.5px] text-neutral-700 whitespace-nowrap">{r.carrierName}</td>
 
-                      {/* Road trucker */}
+                      {/* Trucker SCAC */}
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className="font-mono font-bold text-[11.5px] px-1.5 py-0.5 rounded tracking-widest"
+                          style={{ background:"#faf5ff", color:"#7c3aed" }}>
+                          {r.truckerScac}
+                        </span>
+                      </td>
+
+                      {/* Trucker full name */}
                       <td className="px-3 py-3 text-[11.5px] text-neutral-600 whitespace-nowrap">{r.trucker}</td>
 
                       {/* Customs channel */}
@@ -1067,6 +1133,16 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                       <td className="px-3 py-3 font-mono text-[11.5px] whitespace-nowrap font-bold"
                         style={{ color: lfdRed ? "#dc2626" : "#374151" }}>
                         {lfdLabel}
+                      </td>
+
+                      {/* Free days (live from carriers table) */}
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        {freeDays != null
+                          ? <div>
+                              <span className="font-mono text-[11.5px] text-neutral-700 font-semibold">{freeDays}d</span>
+                              {detBasis && <div className="text-[9.5px] text-neutral-400 capitalize">{detBasis}</div>}
+                            </div>
+                          : <span className="text-neutral-300 text-[11px]">—</span>}
                       </td>
 
                       {/* Hold */}

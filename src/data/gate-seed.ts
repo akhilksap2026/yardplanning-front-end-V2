@@ -1,180 +1,103 @@
 /**
  * gate-seed.ts
  * Realistic seed rows for the Inbound and Outbound container tabs.
- * IDs match the container_ids in planningResults.json so joins work correctly.
+ * The Planner KPI cards import INBOUND_SEED.length / OUTBOUND_SEED.length
+ * directly, so counts are always in sync.
+ *
+ * scac        = shipping-line BIC/SCAC (always the first 4 chars of containerId)
+ * truckerScac = road-carrier SCAC from the truckers lookup table
  */
 
 export interface GateContainerRow {
   containerId:  string
-  size:         string          // "20ft" | "40ft" | "40ft HC"
-  consignee:    string          // owner / receiving company
-  carrierName:  string          // shipping line
-  trucker:      string          // road transport company
+  scac:         string           // shipping-line BIC/SCAC — first 4 chars of containerId
+  size:         string           // "20ft" | "40ft" | "40ft HC"
+  consignee:    string           // owner / receiving company
+  carrierName:  string           // shipping line full name
+  truckerScac:  string           // road-carrier SCAC (RIVA / LAND / DSUR / EDPL)
+  trucker:      string           // road transport company full name
   driver:       string
-  plate:        string          // truck license plate
+  plate:        string           // truck license plate (Argentine format)
   channel:      "verde" | "naranja" | "rojo"
-  appt:         string          // "HH:MM" appointment window
+  appt:         string           // "HH:MM" appointment window
   gateStatus:   "GATE_OUT" | "SERVED" | "AT_POSITION" | "CHECKED_IN" | "IN_QUEUE" | "APPROACHING" | "EXPECTED"
-  hoursToLFD:   number          // negative = breached
+  hoursToLFD:   number           // negative = breached
   hold:         "customs" | "quality" | "damage" | null
-  excl:         string | null   // gate exclusion note
+  excl:         string | null    // gate exclusion / alert note
   grossKg:      number
   isoType:      string
   sealNumber:   string
+  /** Populated by the live API join — free days granted by the shipping line */
+  freeDays?:    number
+  /** Populated by the live API join — detention rate basis */
+  detentionBasis?: string
 }
 
-// ── Inbound containers ─────────────────────────────────────────────────────
-// Coming into the yard for putaway. Mix of gate lifecycle states across the day.
+// ─── INBOUND — 28 containers ──────────────────────────────────────────────
 
 export const INBOUND_SEED: GateContainerRow[] = [
-  {
-    containerId: "OOLU0000043",
-    size: "40ft HC", consignee: "Bosch Argentina", carrierName: "OOCL",
-    trucker: "Transportes Rivas", driver: "M. Coronel", plate: "AD 190 QT",
-    channel: "verde", appt: "06:30", gateStatus: "GATE_OUT",
-    hoursToLFD: 48, hold: null, excl: null,
-    grossKg: 24_800, isoType: "45G1", sealNumber: "BRG-441892",
-  },
-  {
-    containerId: "TCLU0000041",
-    size: "20ft", consignee: "Magna Rosario", carrierName: "Triton Container",
-    trucker: "Log. Andina", driver: "R. Paz", plate: "AE 552 RB",
-    channel: "verde", appt: "06:45", gateStatus: "SERVED",
-    hoursToLFD: 72, hold: null, excl: null,
-    grossKg: 18_400, isoType: "22G1", sealNumber: "TRI-009341",
-  },
-  {
-    containerId: "MSCU0000040",
-    size: "40ft", consignee: "Denso Sudamérica", carrierName: "MSC",
-    trucker: "Drayage Sur", driver: "L. Ferreyra", plate: "AB 774 JD",
-    channel: "naranja", appt: "07:00", gateStatus: "AT_POSITION",
-    hoursToLFD: 20, hold: "customs", excl: "Customs hold — pending ARCA release",
-    grossKg: 21_200, isoType: "42G1", sealNumber: "MSC-774002",
-  },
-  {
-    containerId: "MSCU0000045",
-    size: "40ft HC", consignee: "Autopartes del Sur SA", carrierName: "MSC",
-    trucker: "Transportes Rivas", driver: "S. Ojeda", plate: "AG 018 WX",
-    channel: "verde", appt: "07:15", gateStatus: "CHECKED_IN",
-    hoursToLFD: 96, hold: null, excl: null,
-    grossKg: 27_600, isoType: "45G1", sealNumber: "MSC-553318",
-  },
-  {
-    containerId: "HLXU0000044",
-    size: "20ft", consignee: "ZF Pilar", carrierName: "Hapag-Lloyd",
-    trucker: "Log. Andina", driver: "D. Barrios", plate: "AH 336 PL",
-    channel: "verde", appt: "07:30", gateStatus: "IN_QUEUE",
-    hoursToLFD: 60, hold: null, excl: null,
-    grossKg: 16_900, isoType: "22G1", sealNumber: "HL-091222",
-  },
-  {
-    containerId: "TCLU0000046",
-    size: "40ft", consignee: "Continental Arg.", carrierName: "Triton Container",
-    trucker: "Drayage Sur", driver: "N. Vera", plate: "AJ 905 ZR",
-    channel: "verde", appt: "08:00", gateStatus: "APPROACHING",
-    hoursToLFD: 84, hold: null, excl: null,
-    grossKg: 22_300, isoType: "42G1", sealNumber: "TRI-223891",
-  },
-  {
-    containerId: "CMAU0000042",
-    size: "40ft HC", consignee: "Valeo BA", carrierName: "CMA CGM",
-    trucker: "Transportes Rivas", driver: "F. Altamirano", plate: "AK 213 FW",
-    channel: "rojo", appt: "08:30", gateStatus: "EXPECTED",
-    hoursToLFD: -6, hold: "quality", excl: "LFD breached — priority putaway flagged",
-    grossKg: 29_100, isoType: "45G1", sealNumber: "CMA-881045",
-  },
-  {
-    containerId: "CMAU0000047",
-    size: "20ft", consignee: "Magna Rosario", carrierName: "CMA CGM",
-    trucker: "Log. Andina", driver: "G. Sandoval", plate: "AL 774 RT",
-    channel: "verde", appt: "09:00", gateStatus: "EXPECTED",
-    hoursToLFD: 120, hold: null, excl: null,
-    grossKg: 17_500, isoType: "22G1", sealNumber: "CMA-330712",
-  },
+  { containerId:"OOLU0000043", scac:"OOLU", size:"40ft HC", consignee:"Bosch Argentina",        carrierName:"OOCL",            truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"M. Coronel",   plate:"AD 190 QT", channel:"verde",   appt:"06:00", gateStatus:"GATE_OUT",    hoursToLFD:48,  hold:null,      excl:null,                                          grossKg:24_800, isoType:"45G1", sealNumber:"BRG-441892" },
+  { containerId:"TCLU0000041", scac:"TCLU", size:"20ft",    consignee:"Magna Rosario",           carrierName:"Triton Container", truckerScac:"LAND", trucker:"Log. Andina",       driver:"R. Paz",       plate:"AE 552 RB", channel:"verde",   appt:"06:15", gateStatus:"GATE_OUT",    hoursToLFD:72,  hold:null,      excl:null,                                          grossKg:18_400, isoType:"22G1", sealNumber:"TRI-009341" },
+  { containerId:"MSCU0000040", scac:"MSCU", size:"40ft",    consignee:"Denso Sudamérica",        carrierName:"MSC",             truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"L. Ferreyra",  plate:"AB 774 JD", channel:"naranja", appt:"06:30", gateStatus:"GATE_OUT",    hoursToLFD:20,  hold:"customs", excl:"Customs hold — pending ARCA release",         grossKg:21_200, isoType:"42G1", sealNumber:"MSC-774002" },
+  { containerId:"MSCU0000045", scac:"MSCU", size:"40ft HC", consignee:"Autopartes del Sur SA",   carrierName:"MSC",             truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"S. Ojeda",     plate:"AG 018 WX", channel:"verde",   appt:"06:45", gateStatus:"SERVED",      hoursToLFD:96,  hold:null,      excl:null,                                          grossKg:27_600, isoType:"45G1", sealNumber:"MSC-553318" },
+  { containerId:"HLXU0000044", scac:"HLXU", size:"20ft",    consignee:"ZF Pilar",                carrierName:"Hapag-Lloyd",     truckerScac:"LAND", trucker:"Log. Andina",       driver:"D. Barrios",   plate:"AH 336 PL", channel:"verde",   appt:"07:00", gateStatus:"SERVED",      hoursToLFD:60,  hold:null,      excl:null,                                          grossKg:16_900, isoType:"22G1", sealNumber:"HL-091222"  },
+  { containerId:"TCLU0000046", scac:"TCLU", size:"40ft",    consignee:"Continental Arg.",        carrierName:"Triton Container", truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"N. Vera",      plate:"AJ 905 ZR", channel:"verde",   appt:"07:15", gateStatus:"AT_POSITION", hoursToLFD:84,  hold:null,      excl:null,                                          grossKg:22_300, isoType:"42G1", sealNumber:"TRI-223891" },
+  { containerId:"CMAU0000042", scac:"CMAU", size:"40ft HC", consignee:"Valeo BA",                carrierName:"CMA CGM",         truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"F. Altamirano",plate:"AK 213 FW", channel:"rojo",    appt:"07:30", gateStatus:"CHECKED_IN",  hoursToLFD:-6,  hold:"quality", excl:"LFD breached — priority putaway flagged",     grossKg:29_100, isoType:"45G1", sealNumber:"CMA-881045" },
+  { containerId:"CMAU0000047", scac:"CMAU", size:"20ft",    consignee:"Magna Rosario",           carrierName:"CMA CGM",         truckerScac:"LAND", trucker:"Log. Andina",       driver:"G. Sandoval",  plate:"AL 774 RT", channel:"verde",   appt:"07:45", gateStatus:"CHECKED_IN",  hoursToLFD:120, hold:null,      excl:null,                                          grossKg:17_500, isoType:"22G1", sealNumber:"CMA-330712" },
+  { containerId:"MAEU0000051", scac:"MAEU", size:"40ft HC", consignee:"Toyota Argentina",        carrierName:"Maersk",          truckerScac:"EDPL", trucker:"Expreso del Plata", driver:"P. Giménez",   plate:"AM 881 XQ", channel:"verde",   appt:"08:00", gateStatus:"IN_QUEUE",    hoursToLFD:108, hold:null,      excl:null,                                          grossKg:25_400, isoType:"45G1", sealNumber:"MAE-002109" },
+  { containerId:"CSNU0000052", scac:"CSNU", size:"40ft",    consignee:"Pirelli Arg.",            carrierName:"Cosco Shipping",  truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"A. Lucero",    plate:"AN 334 BT", channel:"verde",   appt:"08:15", gateStatus:"IN_QUEUE",    hoursToLFD:55,  hold:null,      excl:null,                                          grossKg:23_100, isoType:"42G1", sealNumber:"CSN-771204" },
+  { containerId:"EGLV0000053", scac:"EGLV", size:"20ft",    consignee:"3M Argentina",            carrierName:"Evergreen",       truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"C. Ríos",      plate:"AO 556 NM", channel:"naranja", appt:"08:30", gateStatus:"IN_QUEUE",    hoursToLFD:18,  hold:null,      excl:"Early arrival — 22 min before window",        grossKg:14_700, isoType:"22G1", sealNumber:"EGL-443901" },
+  { containerId:"YMLU0000054", scac:"YMLU", size:"40ft HC", consignee:"Unilever de Arg.",        carrierName:"Yang Ming",       truckerScac:"LAND", trucker:"Log. Andina",       driver:"B. Ledesma",   plate:"AP 119 KQ", channel:"verde",   appt:"08:45", gateStatus:"APPROACHING", hoursToLFD:78,  hold:null,      excl:null,                                          grossKg:26_900, isoType:"45G1", sealNumber:"YML-990312" },
+  { containerId:"HLXU0000055", scac:"HLXU", size:"20ft",    consignee:"Danone Argentina",        carrierName:"Hapag-Lloyd",     truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"E. Méndez",    plate:"AQ 772 JF", channel:"verde",   appt:"09:00", gateStatus:"APPROACHING", hoursToLFD:90,  hold:null,      excl:null,                                          grossKg:15_300, isoType:"22G1", sealNumber:"HL-228801"  },
+  { containerId:"MSCU0000056", scac:"MSCU", size:"40ft",    consignee:"Nestlé Argentina",        carrierName:"MSC",             truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"H. Quiroga",   plate:"AR 443 WS", channel:"verde",   appt:"09:15", gateStatus:"APPROACHING", hoursToLFD:65,  hold:null,      excl:null,                                          grossKg:20_600, isoType:"42G1", sealNumber:"MSC-661034" },
+  { containerId:"OOLU0000057", scac:"OOLU", size:"40ft HC", consignee:"Bunge Argentina",         carrierName:"OOCL",            truckerScac:"LAND", trucker:"Log. Andina",       driver:"I. Soria",     plate:"AS 885 YT", channel:"verde",   appt:"09:30", gateStatus:"EXPECTED",    hoursToLFD:144, hold:null,      excl:null,                                          grossKg:28_200, isoType:"45G1", sealNumber:"OOC-112038" },
+  { containerId:"TCLU0000058", scac:"TCLU", size:"20ft",    consignee:"Cargill Arg.",            carrierName:"Triton Container", truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"K. Peralta",   plate:"AT 227 NM", channel:"verde",   appt:"09:45", gateStatus:"EXPECTED",    hoursToLFD:48,  hold:null,      excl:null,                                          grossKg:16_800, isoType:"22G1", sealNumber:"TRI-554217" },
+  { containerId:"CMAU0000059", scac:"CMAU", size:"40ft",    consignee:"Dow Chemical Arg.",       carrierName:"CMA CGM",         truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"M. Vargas",    plate:"AU 669 JF", channel:"rojo",    appt:"10:00", gateStatus:"EXPECTED",    hoursToLFD:-18, hold:"customs", excl:"IMO cargo — pending DGA clearance",           grossKg:22_900, isoType:"42G1", sealNumber:"CMA-773104" },
+  { containerId:"MAEU0000060", scac:"MAEU", size:"40ft HC", consignee:"Shell Argentina",         carrierName:"Maersk",          truckerScac:"LAND", trucker:"Log. Andina",       driver:"F. Altamirano",plate:"AV 112 RT", channel:"verde",   appt:"10:15", gateStatus:"EXPECTED",    hoursToLFD:36,  hold:null,      excl:null,                                          grossKg:24_100, isoType:"45G1", sealNumber:"MAE-881002" },
+  { containerId:"CSNU0000061", scac:"CSNU", size:"20ft",    consignee:"Caterpillar Arg.",        carrierName:"Cosco Shipping",  truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"G. Sandoval",  plate:"AW 334 BV", channel:"verde",   appt:"10:30", gateStatus:"EXPECTED",    hoursToLFD:52,  hold:null,      excl:null,                                          grossKg:18_700, isoType:"22G1", sealNumber:"CSN-220941" },
+  { containerId:"EGLV0000062", scac:"EGLV", size:"40ft",    consignee:"John Deere Arg.",         carrierName:"Evergreen",       truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"J. Álvarez",   plate:"AX 776 KQ", channel:"naranja", appt:"10:45", gateStatus:"EXPECTED",    hoursToLFD:14,  hold:null,      excl:null,                                          grossKg:21_500, isoType:"42G1", sealNumber:"EGL-009312" },
+  { containerId:"YMLU0000063", scac:"YMLU", size:"40ft HC", consignee:"Scania Argentina",        carrierName:"Yang Ming",       truckerScac:"LAND", trucker:"Log. Andina",       driver:"P. Molina",    plate:"AY 118 WS", channel:"verde",   appt:"11:00", gateStatus:"EXPECTED",    hoursToLFD:72,  hold:null,      excl:null,                                          grossKg:27_300, isoType:"45G1", sealNumber:"YML-441009" },
+  { containerId:"HLXU0000064", scac:"HLXU", size:"20ft",    consignee:"Volvo Group Arg.",        carrierName:"Hapag-Lloyd",     truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"S. Ojeda",     plate:"AZ 550 YT", channel:"verde",   appt:"11:15", gateStatus:"EXPECTED",    hoursToLFD:96,  hold:null,      excl:null,                                          grossKg:15_900, isoType:"22G1", sealNumber:"HL-882211"  },
+  { containerId:"MSCU0000065", scac:"MSCU", size:"40ft",    consignee:"DHL Supply Chain Arg.",   carrierName:"MSC",             truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"D. Barrios",   plate:"BA 221 NM", channel:"verde",   appt:"11:30", gateStatus:"EXPECTED",    hoursToLFD:110, hold:null,      excl:null,                                          grossKg:19_400, isoType:"42G1", sealNumber:"MSC-330714" },
+  { containerId:"OOLU0000066", scac:"OOLU", size:"40ft HC", consignee:"Geodis Argentina",        carrierName:"OOCL",            truckerScac:"LAND", trucker:"Log. Andina",       driver:"N. Vera",      plate:"BB 663 JF", channel:"verde",   appt:"11:45", gateStatus:"EXPECTED",    hoursToLFD:88,  hold:null,      excl:null,                                          grossKg:26_100, isoType:"45G1", sealNumber:"OOC-554891" },
+  { containerId:"TCLU0000067", scac:"TCLU", size:"20ft",    consignee:"Bridgestone Arg.",        carrierName:"Triton Container", truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"L. Ferreyra",  plate:"BC 115 BV", channel:"naranja", appt:"12:00", gateStatus:"EXPECTED",    hoursToLFD:22,  hold:null,      excl:"Reefer unit — pre-cooling bay reserved",       grossKg:14_200, isoType:"22R1", sealNumber:"TRI-009900" },
+  { containerId:"CMAU0000068", scac:"CMAU", size:"40ft",    consignee:"Michelin Argentina",      carrierName:"CMA CGM",         truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"R. Paz",       plate:"BD 447 KQ", channel:"verde",   appt:"12:30", gateStatus:"EXPECTED",    hoursToLFD:56,  hold:null,      excl:null,                                          grossKg:23_800, isoType:"42G1", sealNumber:"CMA-110234" },
+  { containerId:"MAEU0000069", scac:"MAEU", size:"40ft HC", consignee:"Pepsico Arg.",            carrierName:"Maersk",          truckerScac:"LAND", trucker:"Log. Andina",       driver:"C. Ríos",      plate:"BE 889 WS", channel:"verde",   appt:"13:00", gateStatus:"EXPECTED",    hoursToLFD:130, hold:null,      excl:null,                                          grossKg:28_600, isoType:"45G1", sealNumber:"MAE-773412" },
+  { containerId:"CSNU0000070", scac:"CSNU", size:"20ft",    consignee:"ABInBev Argentina",       carrierName:"Cosco Shipping",  truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"E. Méndez",    plate:"BF 221 YT", channel:"verde",   appt:"13:30", gateStatus:"EXPECTED",    hoursToLFD:68,  hold:null,      excl:null,                                          grossKg:17_100, isoType:"22G1", sealNumber:"CSN-883201" },
 ]
 
-// ── Outbound containers ────────────────────────────────────────────────────
-// Already in the yard, being staged for truck pickup / export loading.
+// ─── OUTBOUND — 31 containers ─────────────────────────────────────────────
 
 export const OUTBOUND_SEED: GateContainerRow[] = [
-  {
-    containerId: "TCLU0000006",
-    size: "40ft HC", consignee: "Denso Sudamérica", carrierName: "Triton Container",
-    trucker: "Drayage Sur", driver: "P. Molina", plate: "AC 883 MN",
-    channel: "verde", appt: "06:15", gateStatus: "GATE_OUT",
-    hoursToLFD: 0, hold: null, excl: null,
-    grossKg: 23_400, isoType: "45G1", sealNumber: "TRI-661002",
-  },
-  {
-    containerId: "OOLU0000008",
-    size: "20ft", consignee: "Autopartes del Sur SA", carrierName: "OOCL",
-    trucker: "Transportes Rivas", driver: "J. Álvarez", plate: "AF 421 KL",
-    channel: "verde", appt: "06:30", gateStatus: "GATE_OUT",
-    hoursToLFD: 2, hold: null, excl: null,
-    grossKg: 14_200, isoType: "22G1", sealNumber: "OOC-019931",
-  },
-  {
-    containerId: "MSCU0000005",
-    size: "40ft", consignee: "Bosch Argentina", carrierName: "MSC",
-    trucker: "Log. Andina", driver: "C. Ríos", plate: "AM 330 BV",
-    channel: "naranja", appt: "07:00", gateStatus: "SERVED",
-    hoursToLFD: 8, hold: null, excl: "Weight discrepancy — reweigh in progress",
-    grossKg: 26_800, isoType: "42G1", sealNumber: "MSC-002441",
-  },
-  {
-    containerId: "HLXU0000004",
-    size: "20ft", consignee: "ZF Pilar", carrierName: "Hapag-Lloyd",
-    trucker: "Drayage Sur", driver: "E. Méndez", plate: "AN 551 KQ",
-    channel: "verde", appt: "07:15", gateStatus: "AT_POSITION",
-    hoursToLFD: 14, hold: null, excl: null,
-    grossKg: 15_600, isoType: "22G1", sealNumber: "HL-773401",
-  },
-  {
-    containerId: "CMAU0000007",
-    size: "40ft HC", consignee: "Continental Arg.", carrierName: "CMA CGM",
-    trucker: "Transportes Rivas", driver: "H. Quiroga", plate: "AO 882 YT",
-    channel: "verde", appt: "07:30", gateStatus: "CHECKED_IN",
-    hoursToLFD: 22, hold: null, excl: null,
-    grossKg: 28_900, isoType: "45G1", sealNumber: "CMA-110938",
-  },
-  {
-    containerId: "HLXU0000009",
-    size: "40ft", consignee: "Valeo BA", carrierName: "Hapag-Lloyd",
-    trucker: "Log. Andina", driver: "I. Soria", plate: "AP 221 NM",
-    channel: "verde", appt: "08:00", gateStatus: "IN_QUEUE",
-    hoursToLFD: 36, hold: null, excl: null,
-    grossKg: 19_700, isoType: "42G1", sealNumber: "HL-992215",
-  },
-  {
-    containerId: "MSCU0000000",
-    size: "20ft", consignee: "Magna Rosario", carrierName: "MSC",
-    trucker: "Drayage Sur", driver: "K. Peralta", plate: "AQ 664 JF",
-    channel: "verde", appt: "08:30", gateStatus: "APPROACHING",
-    hoursToLFD: 48, hold: null, excl: null,
-    grossKg: 16_100, isoType: "22G1", sealNumber: "MSC-880041",
-  },
-  {
-    containerId: "CMAU0000002",
-    size: "40ft HC", consignee: "Autopartes del Sur SA", carrierName: "CMA CGM",
-    trucker: "Transportes Rivas", driver: "L. Ferreyra", plate: "AB 774 JD",
-    channel: "rojo", appt: "09:00", gateStatus: "EXPECTED",
-    hoursToLFD: -12, hold: "damage", excl: "Damage code D4 — surveyor notified",
-    grossKg: 24_300, isoType: "45G1", sealNumber: "CMA-554103",
-  },
-  {
-    containerId: "TCLU0000001",
-    size: "40ft", consignee: "Denso Sudamérica", carrierName: "Triton Container",
-    trucker: "Log. Andina", driver: "M. Vargas", plate: "AR 117 WS",
-    channel: "verde", appt: "09:30", gateStatus: "EXPECTED",
-    hoursToLFD: 56, hold: null, excl: null,
-    grossKg: 21_800, isoType: "42G1", sealNumber: "TRI-330991",
-  },
-  {
-    containerId: "OOLU0000003",
-    size: "20ft", consignee: "Bosch Argentina", carrierName: "OOCL",
-    trucker: "Drayage Sur", driver: "N. Vera", plate: "AJ 905 ZR",
-    channel: "verde", appt: "10:00", gateStatus: "EXPECTED",
-    hoursToLFD: 72, hold: null, excl: null,
-    grossKg: 13_900, isoType: "22G1", sealNumber: "OOC-773290",
-  },
+  { containerId:"TCLU0000006", scac:"TCLU", size:"40ft HC", consignee:"Denso Sudamérica",        carrierName:"Triton Container", truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"P. Molina",    plate:"AC 883 MN", channel:"verde",   appt:"06:00", gateStatus:"GATE_OUT",    hoursToLFD:0,   hold:null,      excl:null,                                          grossKg:23_400, isoType:"45G1", sealNumber:"TRI-661002" },
+  { containerId:"OOLU0000008", scac:"OOLU", size:"20ft",    consignee:"Autopartes del Sur SA",   carrierName:"OOCL",            truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"J. Álvarez",   plate:"AF 421 KL", channel:"verde",   appt:"06:15", gateStatus:"GATE_OUT",    hoursToLFD:2,   hold:null,      excl:null,                                          grossKg:14_200, isoType:"22G1", sealNumber:"OOC-019931" },
+  { containerId:"MSCU0000005", scac:"MSCU", size:"40ft",    consignee:"Bosch Argentina",         carrierName:"MSC",             truckerScac:"LAND", trucker:"Log. Andina",       driver:"C. Ríos",      plate:"AM 330 BV", channel:"naranja", appt:"06:30", gateStatus:"SERVED",      hoursToLFD:8,   hold:null,      excl:"Weight discrepancy — reweigh in progress",    grossKg:26_800, isoType:"42G1", sealNumber:"MSC-002441" },
+  { containerId:"HLXU0000004", scac:"HLXU", size:"20ft",    consignee:"ZF Pilar",                carrierName:"Hapag-Lloyd",     truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"E. Méndez",    plate:"AN 551 KQ", channel:"verde",   appt:"06:45", gateStatus:"SERVED",      hoursToLFD:14,  hold:null,      excl:null,                                          grossKg:15_600, isoType:"22G1", sealNumber:"HL-773401"  },
+  { containerId:"CMAU0000007", scac:"CMAU", size:"40ft HC", consignee:"Continental Arg.",        carrierName:"CMA CGM",         truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"H. Quiroga",   plate:"AO 882 YT", channel:"verde",   appt:"07:00", gateStatus:"AT_POSITION", hoursToLFD:22,  hold:null,      excl:null,                                          grossKg:28_900, isoType:"45G1", sealNumber:"CMA-110938" },
+  { containerId:"HLXU0000009", scac:"HLXU", size:"40ft",    consignee:"Valeo BA",                carrierName:"Hapag-Lloyd",     truckerScac:"LAND", trucker:"Log. Andina",       driver:"I. Soria",     plate:"AP 221 NM", channel:"verde",   appt:"07:15", gateStatus:"AT_POSITION", hoursToLFD:36,  hold:null,      excl:null,                                          grossKg:19_700, isoType:"42G1", sealNumber:"HL-992215"  },
+  { containerId:"MSCU0000000", scac:"MSCU", size:"20ft",    consignee:"Magna Rosario",           carrierName:"MSC",             truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"K. Peralta",   plate:"AQ 664 JF", channel:"verde",   appt:"07:30", gateStatus:"CHECKED_IN",  hoursToLFD:48,  hold:null,      excl:null,                                          grossKg:16_100, isoType:"22G1", sealNumber:"MSC-880041" },
+  { containerId:"CMAU0000002", scac:"CMAU", size:"40ft HC", consignee:"Autopartes del Sur SA",   carrierName:"CMA CGM",         truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"L. Ferreyra",  plate:"AB 774 JD", channel:"rojo",    appt:"07:45", gateStatus:"CHECKED_IN",  hoursToLFD:-12, hold:"damage",  excl:"Damage code D4 — surveyor notified",          grossKg:24_300, isoType:"45G1", sealNumber:"CMA-554103" },
+  { containerId:"TCLU0000001", scac:"TCLU", size:"40ft",    consignee:"Denso Sudamérica",        carrierName:"Triton Container", truckerScac:"LAND", trucker:"Log. Andina",       driver:"M. Vargas",    plate:"AR 117 WS", channel:"verde",   appt:"08:00", gateStatus:"IN_QUEUE",    hoursToLFD:56,  hold:null,      excl:null,                                          grossKg:21_800, isoType:"42G1", sealNumber:"TRI-330991" },
+  { containerId:"OOLU0000003", scac:"OOLU", size:"20ft",    consignee:"Bosch Argentina",         carrierName:"OOCL",            truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"N. Vera",      plate:"AJ 905 ZR", channel:"verde",   appt:"08:15", gateStatus:"IN_QUEUE",    hoursToLFD:72,  hold:null,      excl:null,                                          grossKg:13_900, isoType:"22G1", sealNumber:"OOC-773290" },
+  { containerId:"MAEU0000010", scac:"MAEU", size:"40ft HC", consignee:"Toyota Argentina",        carrierName:"Maersk",          truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"F. Altamirano",plate:"AK 213 FW", channel:"verde",   appt:"08:30", gateStatus:"IN_QUEUE",    hoursToLFD:30,  hold:null,      excl:null,                                          grossKg:25_700, isoType:"45G1", sealNumber:"MAE-443012" },
+  { containerId:"CSNU0000011", scac:"CSNU", size:"40ft",    consignee:"Pirelli Arg.",            carrierName:"Cosco Shipping",  truckerScac:"LAND", trucker:"Log. Andina",       driver:"G. Sandoval",  plate:"AL 774 RT", channel:"naranja", appt:"08:45", gateStatus:"APPROACHING", hoursToLFD:16,  hold:null,      excl:"Seal number mismatch — re-inspection required",grossKg:22_400, isoType:"42G1", sealNumber:"CSN-991043" },
+  { containerId:"EGLV0000012", scac:"EGLV", size:"20ft",    consignee:"3M Argentina",            carrierName:"Evergreen",       truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"S. Ojeda",     plate:"AG 018 WX", channel:"verde",   appt:"09:00", gateStatus:"APPROACHING", hoursToLFD:44,  hold:null,      excl:null,                                          grossKg:13_400, isoType:"22G1", sealNumber:"EGL-771204" },
+  { containerId:"YMLU0000013", scac:"YMLU", size:"40ft HC", consignee:"Unilever de Arg.",        carrierName:"Yang Ming",       truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"D. Barrios",   plate:"AH 336 PL", channel:"verde",   appt:"09:15", gateStatus:"APPROACHING", hoursToLFD:60,  hold:null,      excl:null,                                          grossKg:27_100, isoType:"45G1", sealNumber:"YML-220391" },
+  { containerId:"HLXU0000014", scac:"HLXU", size:"40ft",    consignee:"Danone Argentina",        carrierName:"Hapag-Lloyd",     truckerScac:"LAND", trucker:"Log. Andina",       driver:"R. Paz",       plate:"AE 552 RB", channel:"verde",   appt:"09:30", gateStatus:"EXPECTED",    hoursToLFD:80,  hold:null,      excl:null,                                          grossKg:20_900, isoType:"42G1", sealNumber:"HL-334801"  },
+  { containerId:"MSCU0000015", scac:"MSCU", size:"20ft",    consignee:"Nestlé Argentina",        carrierName:"MSC",             truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"A. Lucero",    plate:"AN 334 BT", channel:"verde",   appt:"09:45", gateStatus:"EXPECTED",    hoursToLFD:92,  hold:null,      excl:null,                                          grossKg:15_200, isoType:"22G1", sealNumber:"MSC-990234" },
+  { containerId:"OOLU0000016", scac:"OOLU", size:"40ft HC", consignee:"Bunge Argentina",         carrierName:"OOCL",            truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"B. Ledesma",   plate:"AO 556 NM", channel:"verde",   appt:"10:00", gateStatus:"EXPECTED",    hoursToLFD:40,  hold:null,      excl:null,                                          grossKg:29_300, isoType:"45G1", sealNumber:"OOC-882301" },
+  { containerId:"TCLU0000017", scac:"TCLU", size:"40ft",    consignee:"Cargill Arg.",            carrierName:"Triton Container", truckerScac:"LAND", trucker:"Log. Andina",       driver:"H. Quiroga",   plate:"AP 221 NM", channel:"naranja", appt:"10:15", gateStatus:"EXPECTED",    hoursToLFD:12,  hold:"customs", excl:"AFIP inspection hold — manifest query",        grossKg:22_700, isoType:"42G1", sealNumber:"TRI-112091" },
+  { containerId:"CMAU0000018", scac:"CMAU", size:"20ft",    consignee:"Dow Chemical Arg.",       carrierName:"CMA CGM",         truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"I. Soria",     plate:"AQ 664 JF", channel:"verde",   appt:"10:30", gateStatus:"EXPECTED",    hoursToLFD:64,  hold:null,      excl:null,                                          grossKg:18_800, isoType:"22G1", sealNumber:"CMA-443910" },
+  { containerId:"MAEU0000019", scac:"MAEU", size:"40ft HC", consignee:"Shell Argentina",         carrierName:"Maersk",          truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"K. Peralta",   plate:"AR 443 WS", channel:"verde",   appt:"10:45", gateStatus:"EXPECTED",    hoursToLFD:52,  hold:null,      excl:null,                                          grossKg:26_600, isoType:"45G1", sealNumber:"MAE-330892" },
+  { containerId:"CSNU0000020", scac:"CSNU", size:"40ft",    consignee:"Caterpillar Arg.",        carrierName:"Cosco Shipping",  truckerScac:"LAND", trucker:"Log. Andina",       driver:"M. Coronel",   plate:"AD 190 QT", channel:"verde",   appt:"11:00", gateStatus:"EXPECTED",    hoursToLFD:76,  hold:null,      excl:null,                                          grossKg:24_100, isoType:"42G1", sealNumber:"CSN-110934" },
+  { containerId:"EGLV0000021", scac:"EGLV", size:"20ft",    consignee:"John Deere Arg.",         carrierName:"Evergreen",       truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"M. Vargas",    plate:"AS 885 YT", channel:"verde",   appt:"11:15", gateStatus:"EXPECTED",    hoursToLFD:100, hold:null,      excl:null,                                          grossKg:14_700, isoType:"22G1", sealNumber:"EGL-881012" },
+  { containerId:"YMLU0000022", scac:"YMLU", size:"40ft HC", consignee:"Scania Argentina",        carrierName:"Yang Ming",       truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"P. Giménez",   plate:"AT 227 NM", channel:"rojo",    appt:"11:30", gateStatus:"EXPECTED",    hoursToLFD:-4,  hold:"quality", excl:"Detention fee accruing — $90/day",            grossKg:27_900, isoType:"45G1", sealNumber:"YML-009812" },
+  { containerId:"HLXU0000023", scac:"HLXU", size:"40ft",    consignee:"Volvo Group Arg.",        carrierName:"Hapag-Lloyd",     truckerScac:"LAND", trucker:"Log. Andina",       driver:"F. Altamirano",plate:"AU 669 JF", channel:"verde",   appt:"11:45", gateStatus:"EXPECTED",    hoursToLFD:84,  hold:null,      excl:null,                                          grossKg:21_200, isoType:"42G1", sealNumber:"HL-220933"  },
+  { containerId:"MSCU0000024", scac:"MSCU", size:"20ft",    consignee:"DHL Supply Chain Arg.",   carrierName:"MSC",             truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"G. Sandoval",  plate:"AV 112 RT", channel:"verde",   appt:"12:00", gateStatus:"EXPECTED",    hoursToLFD:58,  hold:null,      excl:null,                                          grossKg:16_400, isoType:"22G1", sealNumber:"MSC-774110" },
+  { containerId:"OOLU0000025", scac:"OOLU", size:"40ft HC", consignee:"Geodis Argentina",        carrierName:"OOCL",            truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"S. Ojeda",     plate:"AW 334 BV", channel:"verde",   appt:"12:15", gateStatus:"EXPECTED",    hoursToLFD:44,  hold:null,      excl:null,                                          grossKg:25_800, isoType:"45G1", sealNumber:"OOC-332011" },
+  { containerId:"TCLU0000026", scac:"TCLU", size:"40ft",    consignee:"Bridgestone Arg.",        carrierName:"Triton Container", truckerScac:"LAND", trucker:"Log. Andina",       driver:"D. Barrios",   plate:"AX 776 KQ", channel:"verde",   appt:"12:30", gateStatus:"EXPECTED",    hoursToLFD:32,  hold:null,      excl:null,                                          grossKg:20_300, isoType:"42G1", sealNumber:"TRI-881023" },
+  { containerId:"CMAU0000027", scac:"CMAU", size:"20ft",    consignee:"Michelin Argentina",      carrierName:"CMA CGM",         truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"N. Vera",      plate:"AY 118 WS", channel:"naranja", appt:"12:45", gateStatus:"EXPECTED",    hoursToLFD:20,  hold:null,      excl:"Late documentation — BL not confirmed",        grossKg:17_900, isoType:"22G1", sealNumber:"CMA-663091" },
+  { containerId:"MAEU0000028", scac:"MAEU", size:"40ft HC", consignee:"Pepsico Arg.",            carrierName:"Maersk",          truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"L. Ferreyra",  plate:"AZ 550 YT", channel:"verde",   appt:"13:00", gateStatus:"EXPECTED",    hoursToLFD:68,  hold:null,      excl:null,                                          grossKg:28_100, isoType:"45G1", sealNumber:"MAE-112034" },
+  { containerId:"CSNU0000029", scac:"CSNU", size:"40ft",    consignee:"ABInBev Argentina",       carrierName:"Cosco Shipping",  truckerScac:"LAND", trucker:"Log. Andina",       driver:"R. Paz",       plate:"BA 221 NM", channel:"verde",   appt:"13:30", gateStatus:"EXPECTED",    hoursToLFD:88,  hold:null,      excl:null,                                          grossKg:23_600, isoType:"42G1", sealNumber:"CSN-441203" },
+  { containerId:"EGLV0000030", scac:"EGLV", size:"20ft",    consignee:"Toyota Argentina",        carrierName:"Evergreen",       truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"E. Méndez",    plate:"BB 663 JF", channel:"verde",   appt:"14:00", gateStatus:"EXPECTED",    hoursToLFD:104, hold:null,      excl:null,                                          grossKg:14_500, isoType:"22G1", sealNumber:"EGL-220831" },
 ]

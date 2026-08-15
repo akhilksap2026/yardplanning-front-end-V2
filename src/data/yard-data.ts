@@ -24,11 +24,23 @@ function makeId(owner: string) {
 }
 
 export const CARRIERS = [
-  { code: "MSCU", name: "MSC", freeDays: 7, basis: "calendar", tiers: [[8,14,45],[15,21,90],[22,99,150]] },
-  { code: "MAEU", name: "Maersk", freeDays: 10, basis: "working", tiers: [[11,17,40],[18,24,85],[25,99,140]] },
-  { code: "CMAU", name: "CMA CGM", freeDays: 7, basis: "calendar", tiers: [[8,14,50],[15,21,95],[22,99,160]] },
-  { code: "HLXU", name: "Hapag-Lloyd", freeDays: 5, basis: "calendar", tiers: [[6,12,55],[13,20,100],[21,99,165]] },
-  { code: "COSU", name: "COSCO", freeDays: 14, basis: "calendar", tiers: [[15,21,38],[22,28,80],[29,99,135]] }
+  { code: "MSCU", name: "MSC",                   freeDays: 7,  basis: "calendar", tiers: [[8,14,45],[15,21,90],[22,99,150]] },
+  { code: "MAEU", name: "Maersk",                freeDays: 10, basis: "working",  tiers: [[11,17,40],[18,24,85],[25,99,140]] },
+  { code: "CMAU", name: "CMA CGM",               freeDays: 7,  basis: "calendar", tiers: [[8,14,50],[15,21,95],[22,99,160]] },
+  { code: "HLXU", name: "Hapag-Lloyd",           freeDays: 5,  basis: "calendar", tiers: [[6,12,55],[13,20,100],[21,99,165]] },
+  { code: "COSU", name: "COSCO",                 freeDays: 14, basis: "calendar", tiers: [[15,21,38],[22,28,80],[29,99,135]] },
+  { code: "OOLU", name: "OOCL",                  freeDays: 7,  basis: "calendar", tiers: [[8,14,48],[15,21,92],[22,99,155]] },
+  { code: "TCLU", name: "Triton Container",      freeDays: 10, basis: "calendar", tiers: [[11,17,42],[18,24,88],[25,99,145]] },
+  { code: "CSNU", name: "Cosco Shipping",        freeDays: 14, basis: "calendar", tiers: [[15,21,38],[22,28,80],[29,99,135]] },
+  { code: "EGLV", name: "Evergreen",             freeDays: 7,  basis: "calendar", tiers: [[8,14,46],[15,21,91],[22,99,152]] },
+  { code: "YMLU", name: "Yang Ming",             freeDays: 7,  basis: "calendar", tiers: [[8,14,47],[15,21,93],[22,99,158]] },
+];
+
+export const TRUCKERS = [
+  { scac: "RIVA", name: "Transportes Rivas",  region: "Buenos Aires Metro" },
+  { scac: "LAND", name: "Log. Andina",         region: "Buenos Aires Metro" },
+  { scac: "DSUR", name: "Drayage Sur",         region: "Gran Buenos Aires"  },
+  { scac: "EDPL", name: "Expreso del Plata",   region: "Buenos Aires Metro" },
 ];
 export const CONSIGNEES = ["Autopartes del Sur SA","Bosch Argentina","Denso Sudamérica","Magna Rosario","Valeo BA","ZF Pilar","Continental Arg."];
 export const VESSELS = ["MSC LUCIA V.412E","MAERSK SALINA V.238W","CMA CGM ANDES V.117N","SANTOS EXPRESS V.902","CAP SAN LORENZO V.331"];
