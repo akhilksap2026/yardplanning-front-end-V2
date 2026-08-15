@@ -14,7 +14,6 @@ const FACTOR_LABELS: Record<string, string> = {
   damage_flag:          "Damage / quarantine",
   rehandle_debt:        "Dig-out cost",
   empty_return:         "Empty-return window",
-  vessel_cutoff:        "Vessel cut-off proximity",
 }
 
 const DEFAULT_WEIGHTS: Record<string, number> = {
@@ -28,7 +27,6 @@ const DEFAULT_WEIGHTS: Record<string, number> = {
   damage_flag:           5,
   rehandle_debt:         5,
   empty_return:          4,
-  vessel_cutoff:         3,
 }
 
 const HARD_CONSTRAINTS = [

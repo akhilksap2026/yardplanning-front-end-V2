@@ -18,7 +18,6 @@ const OPERATION_DISPLAY: Record<string, string> = {
   "Premarshal ahead of retrieval":       "Pre-Marshal",
   "Digout to clear an overstow":         "Extra Move",
   "Outbound staging and truck loading":  "Retrieval/Stage",
-  "Discharge from vessel":               "Putaway D&H",
   "Putaway":                             "Putaway",
 }
 
@@ -67,11 +66,8 @@ export function getDisplayMoveMethod(step: PlanningStep): string {
         // Subsequent lifts = intermediate reshuffles to clear blocking containers
         return seqPos > 1 ? "Reshuffle" : "Pick from Stack"
       }
-      // Discharge from vessel, Outbound staging — picking containers
-      if (
-        operation === "Discharge from vessel" ||
-        operation === "Outbound staging and truck loading"
-      ) {
+      // Outbound staging — picking containers
+      if (operation === "Outbound staging and truck loading") {
         return "Pick from Stack"
       }
       return "Crane Move"
@@ -128,8 +124,6 @@ export function getDisplayContainerId(step: PlanningStep): string {
       return "Blocking unit"
     case "Digout to clear an overstow":
       return "Overstow unit"
-    case "Discharge from vessel":
-      return "Vessel unit"
     default:
       return "Untracked unit"
   }
@@ -174,10 +168,6 @@ export function generateWhyText(step: PlanningStep): string {
       return cid
         ? `${method} ${cid} from ${from} to ${to} — staged for outbound truck loading`
         : `${method} unit from ${from} to ${to} for outbound truck loading`
-    case "Discharge from vessel":
-      return cid
-        ? `Discharge ${cid} from vessel and deliver to ${to}`
-        : `Discharge vessel unit — container ID not yet assigned; deliver to ${to}`
     case "Putaway":
       return cid
         ? `Put away ${cid} from ${from} to assigned storage slot at ${to}`

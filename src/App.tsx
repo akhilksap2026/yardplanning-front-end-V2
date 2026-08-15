@@ -32,7 +32,7 @@ const NAV_GROUPS = [...new Set(NAV_ITEMS.map(i => i.group))]
 
 const STORY = [
   // ── Act 1: The engine thinks at 9 PM ─────────────────────────────────────
-  { screen: "plan"     as Screen, step: "Step 1 of 10",  title: "9 PM · engine reads yard state, vessel schedules, detention deadlines and 6 available operators — builds tomorrow's plan",                       persona: "Yard Manager · Martín R." },
+  { screen: "plan"     as Screen, step: "Step 1 of 10",  title: "9 PM · engine reads yard state, detention deadlines and 6 available operators — builds tomorrow's plan",                                        persona: "Yard Manager · Martín R." },
   { screen: "plan"     as Screen, step: "Step 2 of 10",  title: "Engine asks 'what happens downstream?' — filter to Pre-Marshal to see 49 crane moves needed before target containers become reachable",         persona: "Yard Manager · Martín R." },
   { screen: "plan"     as Screen, step: "Step 3 of 10",  title: "Select any move — WHY callout explains the downstream reason; planning score shows how urgently the engine ranked this step",                   persona: "Yard Manager · Martín R." },
   // ── Act 2: The yard manager sets the strategy ─────────────────────────────
@@ -44,7 +44,7 @@ const STORY = [
   { screen: "yard"     as Screen, step: "Step 7 of 10",  title: "Yard map at shift start — slot occupancy, stack depth and hot containers plotted by position; shows where the plan will create pressure",      persona: "Yard Manager · Martín R." },
   { screen: "gate"     as Screen, step: "Step 8 of 10",  title: "Morning arrivals — each inbound container matched to the plan on entry; mismatches and inspection holds surfaced before they reach the yard",   persona: "Gate Ops · Diego V."      },
   // ── Act 5: Reality changes — engine adapts ────────────────────────────────
-  { screen: "tower"    as Screen, step: "Step 9 of 10",  title: "10:30 AM · vessel delayed — 2 steps blocked, cascade risk across 3 operators identified in seconds; engine flags before the yard feels it",    persona: "Yard Manager · Martín R." },
+  { screen: "tower"    as Screen, step: "Step 9 of 10",  title: "10:30 AM · disruption detected — 2 steps blocked, cascade risk across 3 operators identified in seconds; engine flags before the yard feels it", persona: "Yard Manager · Martín R." },
   { screen: "liveops"  as Screen, step: "Step 10 of 10", title: "Continuous cycle: Predict → Plan → Execute → Monitor → Replan — affected moves redistributed, operators see updated queues, yard keeps moving", persona: "Yard Manager · Martín R." },
 ]
 

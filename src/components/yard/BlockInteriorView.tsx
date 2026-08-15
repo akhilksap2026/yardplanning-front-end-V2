@@ -49,7 +49,7 @@ export default function BlockInteriorView({
   // Search match for a container
   function matchesSearch(c: ViewContainer): boolean {
     if (!ql) return true
-    return (c.id + c.consignee + c.vessel + c.status).toLowerCase().includes(ql)
+    return (c.id + c.consignee + c.status).toLowerCase().includes(ql)
   }
 
   // For rehandle mode we need all containers in the same slot

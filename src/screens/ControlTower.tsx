@@ -15,7 +15,7 @@ interface Props {
 const CATS: Record<string, string> = {
   EQUIPMENT_FAILURE:       "Equipment",
   CUSTOMS_CHANNEL_ASSIGNED:"Customs",
-  SHIP_DELAY:              "Vessel",
+  SHIP_DELAY:              "Shipping",
   DEPOT_REDIRECTION:       "Depot",
   CONTAINER_NOT_FOUND:     "Yard audit",
   APPOINTMENT_NO_SHOW:     "Gate",

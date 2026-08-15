@@ -220,7 +220,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
   const all   = containers
   const ql    = q.trim().toLowerCase()
   const match = (c: Container) =>
-    !ql || (c.id + c.consignee + c.vessel + c.address + c.carrierName).toLowerCase().includes(ql)
+    !ql || (c.id + c.consignee + c.address + c.carrierName).toLowerCase().includes(ql)
 
   // ── Block interior containers (seed) ──────────────────────────────────────
   const selectedBlockViewContainers = useMemo((): ViewContainer[] =>
@@ -231,7 +231,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
             id: c.id, tier: c.tier, slotCol: c.slot, rowNum: c.row,
             zone: c.zone, block: c.block, size: c.size, status: c.status,
             hoursToLFD: c.hoursToLFD, priority: c.priority, consignee: c.consignee,
-            vessel: c.vessel, carrierName: c.carrierName, hazmat: c.hazmat,
+            carrierName: c.carrierName, hazmat: c.hazmat,
             channel: c.channel, dwellDays: c.dwellDays, grossKg: c.grossKg,
             whyHere: c.whyHere, seal: c.seal, terminal: c.terminal, empty: c.empty,
           }))
@@ -255,7 +255,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
           block:       parseInt(activeLiveBlock.split("-")[1] ?? "1", 10) || 1,
           size:        bc ? `${bc.size_ft}ft` : "?",
           status:      bc?.status ?? "UNKNOWN",
-          hoursToLFD:  -9999, priority: "—", consignee: "—", vessel: "—", carrierName: "—",
+          hoursToLFD:  -9999, priority: "—", consignee: "—", carrierName: "—",
           hazmat:      bc?.is_hazmat ?? s.is_hazmat_approved,
           channel:     "verde", dwellDays: 0, grossKg: 0, whyHere: "", seal: "—", terminal: "—", empty: false,
         } satisfies ViewContainer
@@ -271,7 +271,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
     if (!ql) return new Set<string>()
     return new Set(
       containers
-        .filter(c => (c.id + c.consignee + c.vessel + c.address + c.carrierName).toLowerCase().includes(ql))
+        .filter(c => (c.id + c.consignee + c.address + c.carrierName).toLowerCase().includes(ql))
         .map(c => `${c.zone}-${String(c.block).padStart(2, "0")}`),
     )
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -434,7 +434,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="font-mono text-[12px] font-bold text-neutral-900">{c.id}</div>
-                  <div className="text-[10.5px] text-neutral-500 truncate">{c.consignee} · {c.vessel}</div>
+                  <div className="text-[10.5px] text-neutral-500 truncate">{c.consignee} · {c.carrierName}</div>
                 </div>
                 <div className="text-right flex-none">
                   <div className="text-[11px] font-mono" style={{ color: c.hoursToLFD < 24 ? "#dc2626" : c.hoursToLFD < 72 ? "#d97706" : "#6b7280" }}>
@@ -550,7 +550,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
         {/* Search */}
         {view==="map" && (
           <Input
-            placeholder="Container, consignee, vessel, slot…"
+            placeholder="Container, consignee, slot…"
             value={q} onChange={e => setQ(e.target.value)}
             className="w-52 h-7 text-xs"
           />

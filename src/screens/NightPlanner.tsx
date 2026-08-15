@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { TYPE_LABEL, VESSEL_SCHEDULES, CONTAINERS, getHotContainers, EQUIPMENT, OPERATORS, type Move } from "@/data/yard-data"
+import { TYPE_LABEL, CONTAINERS, getHotContainers, EQUIPMENT, OPERATORS, type Move } from "@/data/yard-data"
 import { useData } from "@/lib/DataContext"
 import { adaptMoveForDisplay, REASON_LABELS } from "@/lib/backend-adapters"
 import { checkPlacementRules } from "@/lib/placement-rules"
@@ -18,7 +18,6 @@ interface Props {
 }
 
 const WEIGHTS = [
-  { k: "Vessel cutoff urgency", v: "0.35", pct: 35 },
   { k: "Machine minutes",       v: "0.40", pct: 40 },
   { k: "Weighted lateness",     v: "0.25", pct: 25 },
   { k: "Predicted rehandles",   v: "0.20", pct: 20 },
@@ -191,9 +190,10 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   }, [focus])
 
   // ── Seed derived values (planningData) ────────────────────────────────────
-  const OP_FILTER_TYPES = ["ALL","Putaway","Premarshal ahead of retrieval","Outbound staging and truck loading","Digout to clear an overstow","Discharge from vessel"]
+  const OP_FILTER_TYPES = ["ALL","Putaway","Premarshal ahead of retrieval","Outbound staging and truck loading","Digout to clear an overstow"]
   const ql           = q.trim().toLowerCase()
   const planningRows = allSteps.filter(s =>
+    s.operation !== "Discharge from vessel" &&
     (filter === "ALL" || s.operation === filter) &&
     (!ql || (s.container_id + fmtLoc(s.origin) + fmtLoc(s.destination) + (s.operator ?? "") + s.operation).toLowerCase().includes(ql))
   )
@@ -319,7 +319,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
 
   // ── Step 1: KPI data arrays (planningData) ───────────────────────────────
   const { totalSteps, totalOperators } = dashboardCounts()
-  const inbounds    = allSteps.filter(s => s.operation === "Putaway" || s.operation === "Discharge from vessel").length
+  const inbounds    = allSteps.filter(s => s.operation === "Putaway").length
   const outbounds   = allSteps.filter(s => s.operation === "Outbound staging and truck loading").length
   const equipAvail  = EQUIPMENT.filter(e => e.status === "available").length
   const primaryKpis = [
@@ -385,7 +385,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             </div>
             <p className="text-[11px] text-[#9ca3af] mt-2 leading-relaxed">Weight changes take effect on the next generation, never against a published plan.</p>
             <div className="mt-4 ds-label font-bold">Objective weights</div>
-            {["Vessel cutoff urgency","Machine minutes","Weighted lateness","Predicted rehandles","Detention exposure"].map((k, i) => (
+            {["Machine minutes","Weighted lateness","Predicted rehandles","Detention exposure"].map((k, i) => (
               <div key={k} className="py-2 border-b border-[#f3f4f6]">
                 <div className="flex justify-between text-[11.5px]"><span>{k}</span><span className="font-bold font-mono">{(wRaw[i]/100).toFixed(2)}</span></div>
                 <input type="range" min={0} max={50} value={wRaw[i]}
@@ -558,36 +558,6 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       </div>
 
 
-      {/* ── Vessel schedule (seed mode) ──────────────────────────────────────── */}
-      {planSource === "seed" && (
-        <div className="flex-none overflow-x-auto border-b border-[#e5e7eb] bg-white" style={{ scrollbarWidth:"none" }}>
-          <div className="flex gap-0 min-w-max">
-            <div className="flex items-center px-4 py-2 border-r border-[#e5e7eb] flex-none">
-              <span className="ds-label whitespace-nowrap">Vessel schedule</span>
-            </div>
-            {VESSEL_SCHEDULES.map(v => {
-              const onBoardSet   = new Set(v.containersOnBoard)
-              const inPlan       = moves.filter(m => onBoardSet.has(m.containerId)).length
-              const isHotVessel  = hotContainerIds.size > 0 && v.containersOnBoard.some(id => hotContainerIds.has(id))
-              return (
-                <div key={v.voyage} className="flex items-center gap-4 px-4 py-2 border-r border-[#e5e7eb] flex-none" style={{ background: isHotVessel ? "#fff8f5" : undefined }}>
-                  <div>
-                    <div className="text-[12px] font-semibold leading-tight whitespace-nowrap">
-                      {isHotVessel && <span className="mr-1">🔥</span>}{v.vesselName}
-                      <span className="ml-1.5 font-mono text-[10.5px] text-[#9ca3af]">{v.voyage}</span>
-                    </div>
-                    <div className="flex gap-3 mt-0.5 text-[10.5px] text-[#9ca3af]">
-                      <span>Berth <span className="font-mono text-[#374151]">{v.berthWindow}</span></span>
-                      <span>Cutoff <span className="font-mono text-[#374151]">{v.cutoffTime}</span></span>
-                      <span><span className="font-mono text-[#374151]">{inPlan}</span> moves in plan</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ── Engine: no plan / spinner ─────────────────────────────────────────── */}
       {planSource === "engine" && !viewedPlan && !generating && (

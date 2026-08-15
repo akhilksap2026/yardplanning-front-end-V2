@@ -156,7 +156,7 @@ export default function SlotStackView({
                 <div className="ds-label text-neutral-400">{slotAddr} · Tier {selC.tier}</div>
                 <div className="font-mono font-black text-[22px] mt-1 tracking-tight">{selC.id}</div>
                 <div className="text-[12px] text-neutral-600 mt-0.5">
-                  {selC.consignee} · {selC.carrierName} · {selC.vessel}
+                  {selC.consignee} · {selC.carrierName}
                 </div>
               </div>
 

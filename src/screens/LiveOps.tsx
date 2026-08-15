@@ -20,12 +20,7 @@ function fmt(mins: number | null): string {
   return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0")
 }
 
-// ── Static entity seeds (vessels + equipment stay static; gate + moves pull from DataContext) ─
-const VESSEL_ENTITIES = [
-  { g: "vessel", id: "MSC LUCIA",   what: "Discharge window · Berth 2", sub: "480 boxes · QC-3 + QC-4 · lashing crew 2",  plannedStart: 480, plannedEnd: 840, actualStart: 502, actualEnd: null, blocking: "lashing gang",   cause: "Lashing crew short one hand — replacement en route", owner: "Berth Ops · M. Ruiz", impact: "22′ late start, 8 lifts under plan",     next: "Replacement lasher on-site 10:15 · recover 4 lifts/hr" },
-  { g: "vessel", id: "MAERSK SALINA",what: "Loading window · Berth 4",   sub: "312 boxes export · QC-1",                   plannedStart: 600, plannedEnd: 900, actualStart: 604, actualEnd: null, blocking: null,            cause: null,                                                  owner: "Berth Ops · M. Ruiz", impact: "On plan",                                  next: "Continue load; next bay 11:20" },
-  { g: "vessel", id: "CMA CGM ANDES",what: "Discharge window · Berth 3", sub: "210 boxes · QC-2",                           plannedStart: 840, plannedEnd:1200, actualStart: null,  actualEnd: null, blocking: null,            cause: null,                                                  owner: "Berth Ops · M. Ruiz", impact: "Not yet started",                          next: "Berthing on schedule 14:00" },
-]
+// ── Static entity seeds (equipment stays static; gate + moves pull from DataContext) ─
 const EQUIP_ENTITIES = [
   { g: "equip", id: "RS-01", what: "Reach-stacker · Zone A",     sub: "operator R. Giménez · shift 06:00–14:00",   plannedStart: 360, plannedEnd: 840, actualStart: 360, actualEnd: null, blocking: null,             cause: null,                                   owner: "Ops · R. Giménez",  impact: "Running",               next: "Next job MV-1028 at 06:42" },
   { g: "equip", id: "RS-02", what: "Reach-stacker · Zone B/C",   sub: "operator M. Sosa · shift 06:00–14:00",      plannedStart: 360, plannedEnd: 840, actualStart: 360, actualEnd: null, blocking: null,             cause: null,                                   owner: "Ops · M. Sosa",     impact: "Running",               next: "Pre-marshal MV-1032 at 07:22" },
@@ -50,7 +45,6 @@ const NOW_OPTIONS = [
   { label: "14:00", t: 840 },
 ]
 const GROUP_META: Record<string, { title: string; line: string }> = {
-  vessel: { title: "Vessel windows",      line: "berths, quay cranes and discharge / load windows" },
   gate:   { title: "Gate & appointments", line: "planned truck visits with appointment windows" },
   moves:  { title: "Yard moves",          line: "planned moves from the night plan" },
   equip:  { title: "Equipment & crews",   line: "assignments and availability" },
@@ -147,7 +141,6 @@ export default function LiveOps({ onNavigate }: Props) {
 
   // ── Assemble all entities ─────────────────────────────────────────────────
   const allEntities: Entity[] = [
-    ...VESSEL_ENTITIES,
     ...gateEntities,
     ...moveEntities,
     ...EQUIP_ENTITIES,
@@ -177,7 +170,7 @@ export default function LiveOps({ onNavigate }: Props) {
     "late":        3,
     "blocked":     4,
   }
-  const groups = useMemo(() => ["vessel","gate","moves","equip"].map(g => {
+  const groups = useMemo(() => ["gate","moves","equip"].map(g => {
     const rows   = enriched
       .filter(x => x.g === g)
       .slice()
@@ -250,10 +243,9 @@ export default function LiveOps({ onNavigate }: Props) {
     if (!onNavigate) return
     // Navigate on double-click pattern: if already focused, deep-link
     if (focus === e.id) {
-      if      (e.g === "vessel") onNavigate("plan")
-      else if (e.g === "gate")   onNavigate("gate",     e.id)
-      else if (e.g === "moves")  onNavigate("yard",     e.id)
-      else if (e.g === "equip")  onNavigate("tower")
+      if      (e.g === "gate")  onNavigate("gate",  e.id)
+      else if (e.g === "moves") onNavigate("yard",  e.id)
+      else if (e.g === "equip") onNavigate("tower")
     }
   }
 
@@ -436,8 +428,7 @@ export default function LiveOps({ onNavigate }: Props) {
                   className="flex items-center gap-2 px-5 py-2 border-t border-[#e5e7eb]"
                   style={{ background: "#f0f9ff" }}>
                   <span className="text-[11px] text-blue-700">
-                    {grp.g === "vessel" ? "→ Open in Planner"
-                    : grp.g === "gate"  ? "→ Open in Gate & Appointments"
+                    {grp.g === "gate"  ? "→ Open in Gate & Appointments"
                     : grp.g === "moves" ? "→ Open in Yard Map"
                     :                     "→ Open in Control Tower"}
                   </span>
@@ -445,10 +436,9 @@ export default function LiveOps({ onNavigate }: Props) {
                     onClick={() => {
                       if (!onNavigate) return
                       const row = grp.rows.find(r => r.id === focus)!
-                      if      (grp.g === "vessel") onNavigate("plan")
-                      else if (grp.g === "gate")   onNavigate("gate",  row.id)
-                      else if (grp.g === "moves")  onNavigate("yard",  row.id)
-                      else                          onNavigate("tower")
+                      if      (grp.g === "gate")  onNavigate("gate",  row.id)
+                      else if (grp.g === "moves") onNavigate("yard",  row.id)
+                      else                        onNavigate("tower")
                     }}
                     className="ml-auto text-[10.5px] font-bold px-3 py-1"
                     style={{ background: "#2563eb", color: "#fff", borderRadius: 5 }}>
@@ -512,8 +502,8 @@ export default function LiveOps({ onNavigate }: Props) {
                       <button
                         className="mt-2 text-[10.5px] font-bold px-2.5 py-1"
                         style={{ background: "#111827", color: "#fff", borderRadius: 5 }}
-                        onClick={ev => { ev.stopPropagation(); onNavigate(e.g === "gate" ? "gate" : e.g === "moves" ? "yard" : e.g === "vessel" ? "plan" : "tower", e.id) }}>
-                        → Open in {e.g === "gate" ? "Gate" : e.g === "moves" ? "Yard Map" : e.g === "vessel" ? "Night Plan" : "Control Tower"}
+                        onClick={ev => { ev.stopPropagation(); onNavigate(e.g === "gate" ? "gate" : e.g === "moves" ? "yard" : "tower", e.id) }}>
+                        → Open in {e.g === "gate" ? "Gate" : e.g === "moves" ? "Yard Map" : "Control Tower"}
                       </button>
                     )}
                   </div>

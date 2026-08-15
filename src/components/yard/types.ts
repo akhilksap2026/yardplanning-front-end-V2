@@ -15,7 +15,6 @@ export interface ViewContainer {
   hoursToLFD:  number
   priority:    string
   consignee:   string
-  vessel:      string
   carrierName: string
   hazmat:      boolean
   channel:     string
