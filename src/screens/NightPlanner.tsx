@@ -336,8 +336,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
 
   // ── Step 1: KPI data arrays (planningData) ───────────────────────────────
   const { totalSteps, totalOperators } = dashboardCounts()
-  const inbounds    = allSteps.filter(s => s.operation === "Putaway").length
-  const outbounds   = allSteps.filter(s => s.operation === "Outbound staging and truck loading").length
+  const inbounds    = new Set(allSteps.filter(s => s.operation === "Putaway" && s.container_id).map(s => s.container_id)).size
+  const outbounds   = new Set(allSteps.filter(s => s.operation === "Outbound staging and truck loading" && s.container_id).map(s => s.container_id)).size
   const equipAvail  = EQUIPMENT.filter(e => e.status === "available").length
   const primaryKpis = [
     { k:"Inbound containers",  v:String(inbounds),           sub:"containers today",                                                                      red:false },

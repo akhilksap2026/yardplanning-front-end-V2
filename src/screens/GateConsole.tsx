@@ -8,7 +8,7 @@ import ContainerPicker from "@/components/ContainerPicker"
 import { computeRehandleCost } from "@/lib/utils"
 import GateInspection from "@/components/gate/GateInspection"
 import { allSteps } from "@/data/planningData"
-import { getDisplayOperation } from "@/utils/displayLabels"
+import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
 
 interface Props {
   focus: string | null
@@ -100,9 +100,9 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h)
   }, [moreActionsOpen])
 
-  // ── Derived inbound/outbound container lists (consistent with Planner KPIs) ─
-  const inboundSteps  = allSteps.filter(s => s.operation === "Putaway")
-  const outboundSteps = allSteps.filter(s => s.operation === "Outbound staging and truck loading")
+  // ── Inbound / outbound seed rows (counts match Planner KPI unique-container counts) ─
+  const inboundRows  = INBOUND_SEED
+  const outboundRows = OUTBOUND_SEED
 
   // ── Existing effects ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -319,8 +319,8 @@ export default function GateConsole({ focus, onNavigate }: Props) {
         <div className="flex ml-3" style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden" }}>
           {([
             { k:"visits",    label:"Live visits" },
-            { k:"inbound",   label:`Inbound (${inboundSteps.length})` },
-            { k:"outbound",  label:`Outbound (${outboundSteps.length})` },
+            { k:"inbound",   label:`Inbound (${inboundRows.length})` },
+            { k:"outbound",  label:`Outbound (${outboundRows.length})` },
             { k:"gtx",       label:"Transactions" },
             { k:"appts",     label:"Appointments" },
             { k:"inspection",label:"Inspection" },
@@ -965,21 +965,12 @@ export default function GateConsole({ focus, onNavigate }: Props) {
       {/* ════════════════════ INBOUND / OUTBOUND SHARED RENDERER ════════════════════ */}
       {(tab === "inbound" || tab === "outbound") && (() => {
         const isInbound = tab === "inbound"
-        const steps = isInbound ? inboundSteps : outboundSteps
+        const rows = isInbound ? inboundRows : outboundRows
         const title = isInbound ? "Inbound containers" : "Outbound containers"
         const subtitle = isInbound
-          ? `${steps.length} containers scheduled for putaway today`
-          : `${steps.length} containers staged for truck loading today`
+          ? `${rows.length} containers scheduled for putaway today`
+          : `${rows.length} containers staged for truck loading today`
 
-        // Deduplicate by container_id, keep first occurrence
-        const seen = new Set<string>()
-        const uniqueSteps = steps.filter(s => {
-          const key = s.container_id ?? `anon-${s.step_number}`
-          if (seen.has(key)) return false
-          seen.add(key); return true
-        })
-
-        // Helpers
         const CHAN_PILL: Record<string,[string,string,string]> = {
           verde:   ["#f0fdf4","#15803d","✓ Verde"],
           naranja: ["#fffbeb","#d97706","! Naranja"],
@@ -998,15 +989,10 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           GATE_OUT:"Completed", SERVED:"In yard", AT_POSITION:"At position",
           CHECKED_IN:"Checked in", IN_QUEUE:"In queue", APPROACHING:"Approaching", EXPECTED:"Expected",
         }
-        function fmtEta(iso: string | null | undefined): string {
-          if (!iso) return "—"
-          return iso.slice(11, 16)
-        }
 
         return (
           <div className="flex-1 min-h-0 overflow-auto">
-            {/* Sticky header */}
-            <div className="px-5 pt-3 pb-2 flex items-center gap-3 flex-none border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
+            <div className="px-5 pt-3 pb-2 flex items-center gap-3 border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
               <span className="font-semibold text-[13px]">{title}</span>
               <span className="text-[11px] text-[#9ca3af]">{subtitle}</span>
             </div>
@@ -1014,91 +1000,87 @@ export default function GateConsole({ focus, onNavigate }: Props) {
             <table className="w-full border-collapse text-[12px]">
               <thead className="sticky top-[41px] z-10">
                 <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
-                  {["CONTAINER","SIZE","CONSIGNEE","CARRIER","CHANNEL","EXPECTED","DRIVER","TRUCK","LFD","HOLD","GATE STATUS"].map(h => (
+                  {["CONTAINER","SIZE","CONSIGNEE","CARRIER","TRUCKER","CHANNEL","APPT","DRIVER","TRUCK","LFD","HOLD","STATUS"].map(h => (
                     <th key={h} className="px-3 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {uniqueSteps.map((s, i) => {
-                  const cid    = s.container_id ?? null
-                  const cont   = cid ? containers.find(c => c.id === cid) : null
-                  const visit  = cid ? visits.find(v => v.container === cid) : null
-
-                  const consignee   = cont?.consignee   ?? "—"
-                  const carrierName = cont?.carrierName ?? visit?.carrier ?? "—"
-                  const size        = cont?.size        ?? "—"
-                  const channel     = cont?.channel     ?? "verde"
-                  const lfd         = cont ? (cont.hoursToLFD < 0 ? "BREACHED" : `${cont.hoursToLFD}h`) : "—"
-                  const lfdRed      = cont ? cont.hoursToLFD < 24 : false
-                  const hold        = cont?.hold        ?? null
-
-                  const driver      = visit?.driver ?? "—"
-                  const plate       = visit?.plate  ?? "—"
-                  const eta         = visit?.appt ?? fmtEta(s.estimated_start)
-                  const gState      = visit?.state ?? (isInbound ? "EXPECTED" : "Planned")
-                  const excl        = visit?.excl  ?? null
-
-                  const [chanBg, chanFg, chanLabel] = CHAN_PILL[channel] ?? ["#f3f4f6","#6b7280","—"]
-                  const [gBg, gFg] = GATE_STATE[gState] ?? ["#f3f4f6","#6b7280"]
+                {rows.map((r, i) => {
+                  const lfdLabel  = r.hoursToLFD < 0 ? "BREACHED" : `${r.hoursToLFD}h`
+                  const lfdRed    = r.hoursToLFD < 24
+                  const [chanBg, chanFg, chanLabel] = CHAN_PILL[r.channel] ?? ["#f3f4f6","#6b7280","—"]
+                  const [gBg, gFg] = GATE_STATE[r.gateStatus] ?? ["#f3f4f6","#6b7280"]
+                  const rowBg = r.excl ? "#fffbeb" : "#fff"
 
                   return (
                     <tr key={i}
                       className="border-b border-[#f3f4f6] transition-colors"
-                      style={{ background: excl ? "#fffbeb" : "#fff" }}
+                      style={{ background: rowBg }}
                       onMouseEnter={e => (e.currentTarget.style.background = "#f0f9ff")}
-                      onMouseLeave={e => (e.currentTarget.style.background = excl ? "#fffbeb" : "#fff")}>
+                      onMouseLeave={e => (e.currentTarget.style.background = rowBg)}>
 
-                      {/* Container */}
+                      {/* Container ID */}
                       <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="font-mono font-bold text-[12px] text-neutral-900">{cid ?? <span className="text-neutral-400 font-normal italic">Unassigned</span>}</div>
-                        {excl && <div className="text-[9.5px] text-[#d97706] mt-0.5 leading-tight">{excl}</div>}
+                        <div className="font-mono font-bold text-[12px] text-neutral-900">{r.containerId}</div>
+                        {r.excl && <div className="text-[9.5px] text-[#d97706] mt-0.5 leading-tight max-w-[160px]">{r.excl}</div>}
                       </td>
 
-                      {/* Size */}
-                      <td className="px-3 py-3 font-mono text-[11px] text-neutral-600 whitespace-nowrap">{size}</td>
-
-                      {/* Consignee (owner / company) */}
+                      {/* Size + ISO type */}
                       <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-[11.5px] font-semibold text-neutral-800 leading-tight">{consignee}</div>
+                        <div className="text-[11.5px] font-semibold text-neutral-700">{r.size}</div>
+                        <div className="text-[10px] text-neutral-400 font-mono">{r.isoType}</div>
                       </td>
 
-                      {/* Carrier */}
-                      <td className="px-3 py-3 text-[11.5px] text-neutral-600 whitespace-nowrap">{carrierName}</td>
+                      {/* Consignee */}
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="text-[11.5px] font-semibold text-neutral-900">{r.consignee}</div>
+                        <div className="text-[10px] text-neutral-400">{(r.grossKg / 1000).toFixed(1)} t gross</div>
+                      </td>
 
-                      {/* Channel */}
+                      {/* Shipping carrier */}
+                      <td className="px-3 py-3 text-[11.5px] text-neutral-700 whitespace-nowrap">{r.carrierName}</td>
+
+                      {/* Road trucker */}
+                      <td className="px-3 py-3 text-[11.5px] text-neutral-600 whitespace-nowrap">{r.trucker}</td>
+
+                      {/* Customs channel */}
                       <td className="px-3 py-3 whitespace-nowrap">
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold"
-                          style={{ background: chanBg, color: chanFg }}>{chanLabel}</span>
+                          style={{ background: chanBg, color: chanFg, border: `1px solid ${chanFg}30` }}>
+                          {chanLabel}
+                        </span>
                       </td>
 
-                      {/* Expected time */}
-                      <td className="px-3 py-3 font-mono text-[11.5px] text-neutral-700 whitespace-nowrap">{eta}</td>
+                      {/* Appointment */}
+                      <td className="px-3 py-3 font-mono text-[12px] font-semibold text-neutral-700 whitespace-nowrap">{r.appt}</td>
 
                       {/* Driver */}
-                      <td className="px-3 py-3 text-[11.5px] text-neutral-700 whitespace-nowrap">{driver}</td>
+                      <td className="px-3 py-3 text-[11.5px] text-neutral-700 whitespace-nowrap">{r.driver}</td>
 
                       {/* Truck plate */}
-                      <td className="px-3 py-3 font-mono text-[11px] text-neutral-500 whitespace-nowrap">{plate}</td>
+                      <td className="px-3 py-3 font-mono text-[11px] text-neutral-500 whitespace-nowrap">
+                        <span className="px-1.5 py-0.5 rounded" style={{ background:"#f3f4f6" }}>{r.plate}</span>
+                      </td>
 
                       {/* LFD */}
-                      <td className="px-3 py-3 font-mono text-[11.5px] whitespace-nowrap"
-                        style={{ color: lfdRed ? "#dc2626" : "#374151", fontWeight: lfdRed ? 700 : 400 }}>
-                        {lfd}
+                      <td className="px-3 py-3 font-mono text-[11.5px] whitespace-nowrap font-bold"
+                        style={{ color: lfdRed ? "#dc2626" : "#374151" }}>
+                        {lfdLabel}
                       </td>
 
                       {/* Hold */}
                       <td className="px-3 py-3 whitespace-nowrap">
-                        {hold
-                          ? <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#fef2f2] text-[#dc2626] capitalize">{hold}</span>
-                          : <span className="text-[#9ca3af] text-[11px]">—</span>}
+                        {r.hold
+                          ? <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#fef2f2] text-[#dc2626] capitalize">{r.hold}</span>
+                          : <span className="text-[11px] text-neutral-300">—</span>}
                       </td>
 
                       {/* Gate status */}
                       <td className="px-3 py-3 whitespace-nowrap">
                         <span className="px-2 py-0.5 rounded text-[10.5px] font-semibold"
                           style={{ background: gBg, color: gFg }}>
-                          {gateStateLabel[gState] ?? gState}
+                          {gateStateLabel[r.gateStatus] ?? r.gateStatus}
                         </span>
                       </td>
                     </tr>
