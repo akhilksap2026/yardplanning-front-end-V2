@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import TabBar from "@/components/ui/TabBar"
 import { TYPE_LABEL, CONTAINERS, getHotContainers, EQUIPMENT, OPERATORS, type Move } from "@/data/yard-data"
 import { useData } from "@/lib/DataContext"
 import { adaptMoveForDisplay, REASON_LABELS } from "@/lib/backend-adapters"
@@ -13,6 +13,8 @@ import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type Planni
 import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
 import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, isExtraMovement, getStatusStyle, getDisplayContainerId, isAnonymousContainer, generateWhyText } from "@/utils/displayLabels"
 import { useLang } from "@/lib/i18n"
+import { fmtTime } from "@/utils/time"
+import { isoToMin } from "@/utils/plannerHelpers"
 
 interface Props {
   focus: string | null
@@ -51,15 +53,6 @@ function stepId(s: PlanningStep): string {
 function stepDur(s: PlanningStep): number {
   if (!s.estimated_start || !s.estimated_end) return 2.5
   return Math.round((new Date(s.estimated_end).getTime() - new Date(s.estimated_start).getTime()) / 60000 * 10) / 10
-}
-function fmtIso(iso: string | null | undefined): string {
-  if (!iso) return "—"
-  return iso.slice(11, 16)
-}
-function isoToMin(iso: string | null | undefined): number | null {
-  if (!iso) return null
-  const d = new Date(iso)
-  return d.getUTCHours() * 60 + d.getUTCMinutes()
 }
 
 // Step 3: column definitions
@@ -263,7 +256,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     const frozen       = m.source === "planning" ? m.move.step_status === "Blocked" : m.move.frozen
     const windowStr    = m.source === "planning"
       ? (m.move.estimated_start
-          ? fmtIso(m.move.estimated_start) + "–" + fmtIso(m.move.estimated_end)
+          ? fmtTime(m.move.estimated_start) + "–" + fmtTime(m.move.estimated_end)
           : m.move.step_status === "Completed" ? "✓ done" : "not scheduled")
       : m.source === "seed" ? `${m.move.start}–${m.move.end}` : `seq ${m.move.sequence_number}`
     const containerId  = m.source === "planning" ? m.move.container_id : m.move.containerId
@@ -281,15 +274,15 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     return (
       <tr
         onClick={onClick}
-        className="cursor-pointer hover:bg-[#f9fafb] transition-colors"
+        className="cursor-pointer hover:bg-[var(--ds-surface-hover)] transition-colors"
         style={{
           background: isSelected ? "#fef3f2" : isHot ? "#fff8f5" : isCompleted ? "#fafafa" : isExtra ? "#fffbeb" : undefined,
-          borderBottom: "1px solid #f3f4f6",
+          borderBottom: "1px solid var(--ds-border-lt)",
           minHeight: 44,
         }}
       >
         {visibleCols.has("SEQ") && (
-          <td className="py-2.5 pl-4 pr-2.5 font-mono text-[#9ca3af]" style={{ fontSize: 11, borderLeft: `3px solid ${isSelected ? "#dc2626" : isHot ? "#f97316" : frozen ? "#9ca3af" : isExtra ? "#fbbf24" : "transparent"}` }}>
+          <td className="py-2.5 pl-4 pr-2.5 font-mono text-[var(--ds-subtle)]" style={{ fontSize: 11, borderLeft: `3px solid ${isSelected ? "var(--ds-red)" : isHot ? "#f97316" : frozen ? "var(--ds-subtle)" : isExtra ? "#fbbf24" : "transparent"}` }}>
             {String(seqNum).padStart(3,"0")}
           </td>
         )}
@@ -300,7 +293,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           <td className="px-3 py-2.5" style={{ fontSize: 11 }}>
             <div className="font-bold">{typeDisplay}</div>
             <div className="text-[10px] font-mono" style={{
-              color: m.source === "planning" && isAnonymousContainer(m.move) ? "#d1d5db" : "#9ca3af",
+              color: m.source === "planning" && isAnonymousContainer(m.move) ? "#d1d5db" : "var(--ds-subtle)",
               fontStyle: m.source === "planning" && isAnonymousContainer(m.move) ? "italic" : undefined,
             }}>
               {isHot && <span title="Hot container" className="mr-1">🔥</span>}
@@ -309,7 +302,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           </td>
         )}
         {visibleCols.has("ROUTE") && (
-          <td className="px-3 py-2.5 font-mono text-[#374151] whitespace-nowrap" style={{ fontSize: 11 }}>{fromStr} → {toStr}</td>
+          <td className="px-3 py-2.5 font-mono text-[var(--ds-fg-secondary)] whitespace-nowrap" style={{ fontSize: 11 }}>{fromStr} → {toStr}</td>
         )}
         {visibleCols.has("ASSIGNED") && (
           <td className="px-3 py-2.5 whitespace-nowrap" style={{ fontSize: 11 }}>
@@ -326,7 +319,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                 </span>
               </div>
             ) : (
-              <div className="text-[10px] text-[#9ca3af]">{equipLabel} · {stateDisplay.toLowerCase()}</div>
+              <div className="text-[10px] text-[var(--ds-subtle)]">{equipLabel} · {stateDisplay.toLowerCase()}</div>
             )}
           </td>
         )}
@@ -369,18 +362,15 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     return (
       <div
         onClick={onClick}
-        className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-1 transition-colors"
-        style={{ cursor: onClick ? "pointer" : "default" }}
-        onMouseEnter={e => { if (onClick) (e.currentTarget as HTMLDivElement).style.background = "#f9fafb" }}
-        onMouseLeave={e => { if (onClick) (e.currentTarget as HTMLDivElement).style.background = "" }}
+        className={`flex-1 basis-36 px-5 py-2.5 border-r border-[var(--ds-border)] flex flex-col gap-1 transition-colors ${onClick ? "cursor-pointer hover:bg-[var(--ds-surface-hover)]" : "cursor-default"}`}
       >
         <div className="flex items-center gap-1">
           <span className="ds-label">{m.k}</span>
-          {onClick && <span className="text-[9px] text-[#9ca3af]">↗</span>}
+          {onClick && <span className="text-[9px] text-[var(--ds-subtle)]">↗</span>}
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="font-mono font-semibold leading-none" style={{ fontSize: 24, color: m.red ? "#dc2626" : undefined }}>{m.v}</span>
-          <span className="text-[11px] text-[#9ca3af]">{m.sub}</span>
+          <span className="font-mono font-semibold leading-none" style={{ fontSize: 24, color: m.red ? "var(--ds-red)" : undefined }}>{m.v}</span>
+          <span className="text-[11px] text-[var(--ds-subtle)]">{m.sub}</span>
         </div>
       </div>
     )
@@ -391,11 +381,11 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     return (
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-2 text-left hover:bg-[#f9fafb] transition-colors"
-        style={{ borderTop: "1px solid #e5e7eb" }}
+        className="w-full flex items-center justify-between px-4 py-2 text-left hover:bg-[var(--ds-surface-hover)] transition-colors"
+        style={{ borderTop: "1px solid var(--ds-border)" }}
       >
         <span className="ds-label font-bold">{label}</span>
-        <span style={{ fontSize: 9, color: "#9ca3af" }}>{open ? "▲" : "▼"}</span>
+        <span style={{ fontSize: 9, color: "var(--ds-subtle)" }}>{open ? "▲" : "▼"}</span>
       </button>
     )
   }
@@ -407,36 +397,36 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       {configOpen && (
         <>
           <div className="absolute inset-0 z-10 bg-black/40" onClick={() => setConfigOpen(false)} />
-          <div className="absolute top-0 right-0 bottom-0 w-96 z-20 bg-white overflow-auto p-4" style={{ borderLeft: "1px solid #e5e7eb" }}>
+          <div className="absolute top-0 right-0 bottom-0 w-96 z-20 bg-white overflow-auto p-4" style={{ borderLeft: "1px solid var(--ds-border)" }}>
             <div className="flex justify-between items-baseline">
               <div className="font-semibold text-base">Configure this plan</div>
-              <button onClick={() => setConfigOpen(false)} className="text-xs text-[#9ca3af] hover:text-neutral-800">Close ✕</button>
+              <button onClick={() => setConfigOpen(false)} className="text-xs text-[var(--ds-subtle)] hover:text-neutral-800">Close ✕</button>
             </div>
-            <p className="text-[11px] text-[#9ca3af] mt-2 leading-relaxed">Weight changes take effect on the next generation, never against a published plan.</p>
+            <p className="text-[11px] text-[var(--ds-subtle)] mt-2 leading-relaxed">Weight changes take effect on the next generation, never against a published plan.</p>
             <div className="mt-4 ds-label font-bold">Objective weights</div>
             {([
               { k: "Relocation risk (α)",   desc: "How much the engine penalises unnecessary moves that put a container further from its exit." },
               { k: "Detention urgency (β)",  desc: "How hard the engine chases containers approaching their free-day deadline to avoid demurrage." },
               { k: "Container priority (γ)", desc: "How strongly customer or order-level priority scores push a container up the sequence." },
             ] as const).map(({ k, desc }, i) => (
-              <div key={k} className="py-3 border-b border-[#f3f4f6]">
+              <div key={k} className="py-3 border-b border-[var(--ds-border-lt)]">
                 <div className="flex justify-between text-[11.5px]">
                   <span className="font-semibold text-neutral-800">{k}</span>
                   <span className="font-bold font-mono text-neutral-700">{(wRaw[i]/100).toFixed(2)}</span>
                 </div>
-                <p className="text-[10.5px] text-[#9ca3af] mt-0.5 leading-snug">{desc}</p>
+                <p className="text-[10.5px] text-[var(--ds-subtle)] mt-0.5 leading-snug">{desc}</p>
                 <input type="range" min={0} max={50} value={wRaw[i]}
                   onChange={e => { const w=[...wRaw]; w[i]=+e.target.value; setWRaw(w) }}
-                  className="w-full mt-2 accent-[#dc2626]" />
+                  className="w-full mt-2 accent-[var(--ds-red)]" />
               </div>
             ))}
             <div className="mt-4 ds-label font-bold">Targets</div>
             {[["Per job target turn around time","5 min"],["Per trailer target turn around time","15 min"],["Reassignment cap","1 min"]].map(([k,v]) => (
-              <div key={k} className="flex justify-between py-2 border-b border-[#f3f4f6] text-[11.5px]">
-                <span className="text-[#374151]">{k}</span><span className="font-semibold font-mono">{v}</span>
+              <div key={k} className="flex justify-between py-2 border-b border-[var(--ds-border-lt)] text-[11.5px]">
+                <span className="text-[var(--ds-fg-secondary)]">{k}</span><span className="font-semibold font-mono">{v}</span>
               </div>
             ))}
-            <Button className="w-full mt-4 text-xs" style={{ borderRadius:5, background:"#111827", color:"#fff" }} onClick={() => setConfigOpen(false)}>
+            <Button className="w-full mt-4 text-xs" style={{ borderRadius:5, background:"var(--ds-fg)", color:"#fff" }} onClick={() => setConfigOpen(false)}>
               Apply on next regenerate
             </Button>
           </div>
@@ -449,11 +439,11 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           <div className="absolute inset-0 z-20 bg-black/30" onClick={() => setDrawerOpen(false)} />
           <div
             className="absolute top-0 left-0 bottom-0 z-30 bg-white flex flex-col overflow-auto"
-            style={{ width: 300, borderRight: "1px solid #e5e7eb", boxShadow: "4px 0 16px rgba(0,0,0,0.12)" }}
+            style={{ width: 300, borderRight: "1px solid var(--ds-border)", boxShadow: "4px 0 16px rgba(0,0,0,0.12)" }}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[#e5e7eb]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--ds-border)]">
               <span className="font-semibold text-[13px]">{t("planner.assumptions")}</span>
-              <button onClick={() => setDrawerOpen(false)} className="text-[#9ca3af] hover:text-neutral-800 text-[12px]">✕</button>
+              <button onClick={() => setDrawerOpen(false)} className="text-[var(--ds-subtle)] hover:text-neutral-800 text-[12px]">✕</button>
             </div>
             {([
               {
@@ -489,11 +479,11 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
               <div key={group.label} className="px-4 pb-3">
                 {/* Section header with hovering description tooltip */}
                 <div className="relative group/sec flex items-center gap-1 cursor-default mb-2"
-                  style={{ borderBottom:"1px solid #f3f4f6", paddingBottom:4 }}>
-                  <span className="text-[9.5px] font-bold tracking-widest text-[#9ca3af] uppercase">{group.label}</span>
+                  style={{ borderBottom:"1px solid var(--ds-border-lt)", paddingBottom:4 }}>
+                  <span className="text-[9.5px] font-bold tracking-widest text-[var(--ds-subtle)] uppercase">{group.label}</span>
                   <span className="text-[9px] text-[#c4c9d4] select-none">ⓘ</span>
                   <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover/sec:block w-60
-                    bg-[#111827] text-white text-[10px] leading-snug rounded px-3 py-2 shadow-lg pointer-events-none">
+                    bg-[var(--ds-fg)] text-white text-[10px] leading-snug rounded px-3 py-2 shadow-lg pointer-events-none">
                     {group.desc}
                   </div>
                 </div>
@@ -506,7 +496,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     return (
                       <div key={item.name}
                         className="relative group/rule flex items-center gap-2 py-1.5"
-                        style={{ borderBottom: "1px solid #f9fafb", opacity: isOn ? 1 : 0.45 }}>
+                        style={{ borderBottom: "1px solid var(--ds-surface-hover)", opacity: isOn ? 1 : 0.45 }}>
 
                         {/* Toggle pill */}
                         <button
@@ -514,7 +504,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                           className="flex-none relative transition-colors"
                           style={{
                             width: 28, height: 16, borderRadius: 8,
-                            background: isOn ? "#111827" : "#d1d5db",
+                            background: isOn ? "var(--ds-fg)" : "#d1d5db",
                             cursor: mandatory ? "not-allowed" : "pointer",
                           }}>
                           <span
@@ -533,14 +523,14 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                         {/* Mandatory badge or info icon */}
                         {mandatory ? (
                           <span className="flex-none text-[8.5px] font-bold tracking-wide uppercase px-1.5 py-0.5 rounded"
-                            style={{ background: "#f3f4f6", color: "#6b7280", letterSpacing: "0.05em" }}>
+                            style={{ background: "var(--ds-border-lt)", color: "var(--ds-muted)", letterSpacing: "0.05em" }}>
                             Mandatory
                           </span>
                         ) : (
                           <div className="relative flex-none">
-                            <span className="text-[10px] text-[#c4c9d4] select-none cursor-default group-hover/rule:text-[#9ca3af]">ⓘ</span>
+                            <span className="text-[10px] text-[#c4c9d4] select-none cursor-default group-hover/rule:text-[var(--ds-subtle)]">ⓘ</span>
                             <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover/rule:block w-64
-                              bg-[#111827] text-white text-[10px] leading-snug rounded px-3 py-2 shadow-lg pointer-events-none">
+                              bg-[var(--ds-fg)] text-white text-[10px] leading-snug rounded px-3 py-2 shadow-lg pointer-events-none">
                               {item.detail}
                             </div>
                           </div>
@@ -551,11 +541,11 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                 </div>
               </div>
             ))}
-            <div className="h-px bg-[#e5e7eb] my-1 mx-4" />
+            <div className="h-px bg-[var(--ds-border)] my-1 mx-4" />
             <div className="px-4 pt-3 pb-2 ds-label font-bold">Targets</div>
             {[["Per job target TAT","5 min"],["Per trailer target TAT","15 min"],["Reassignment cap","1 min"]].map(([k,v]) => (
               <div key={k} className="flex justify-between px-4 pb-2 text-[11.5px]">
-                <span className="text-[#374151]">{k}</span><span className="font-semibold font-mono">{v}</span>
+                <span className="text-[var(--ds-fg-secondary)]">{k}</span><span className="font-semibold font-mono">{v}</span>
               </div>
             ))}
           </div>
@@ -563,7 +553,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       )}
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-5 pt-3 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
+      <div className="flex items-center gap-3 px-5 pt-3 pb-3 border-b border-[var(--ds-border)] flex-none bg-white">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-base tracking-tight">{t("planner.title")}</span>
@@ -576,7 +566,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
               </Badge>
             )}
           </div>
-          <div className="flex gap-3 text-[11px] text-[#9ca3af]">
+          <div className="flex gap-3 text-[11px] text-[var(--ds-subtle)]">
             {planSource === "seed"
               ? <><span className="font-mono">P-2026-08-11</span><span>{t("planner.generated")} <span className="font-mono">22:14</span></span><span>{t("planner.engine")} <span className="font-mono">41.8 s</span></span><span>{t("planner.snapshot")} <span className="font-mono">#a41f9c</span></span><span>{t("planner.horizon")} <span className="font-mono">06:00–14:00</span></span></>
               : viewedPlan
@@ -589,12 +579,12 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         {/* Plan source toggle */}
         <div className="flex items-center gap-2 ml-2">
           <span className="ds-label whitespace-nowrap">{t("planner.source")}</span>
-          <div style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden", display:"flex" }}>
+          <div style={{ border:"1px solid var(--ds-border)", borderRadius:5, overflow:"hidden", display:"flex" }}>
             {(["seed","engine"] as PlanSource[]).map(src => (
               <button key={src} disabled={src==="engine" && !backendConnected}
                 onClick={() => setPlanSource(src)}
                 className="text-[10.5px] px-3 py-1 font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: planSource===src ? "#111827":"transparent", color: planSource===src ? "#fff":"#374151" }}
+                style={{ background: planSource===src ? "var(--ds-fg)":"transparent", color: planSource===src ? "#fff":"var(--ds-fg-secondary)" }}
               >
                 {src === "seed" ? t("planner.seedData") : backendConnected ? t("planner.engineOnline") : t("planner.engineOffline")}
               </button>
@@ -606,8 +596,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         {planSource === "seed" && (
           <button
             onClick={() => setDrawerOpen(true)}
-            className="text-xs px-3 py-1.5 text-[#374151] bg-white"
-            style={{ border: "1px solid #e5e7eb", borderRadius: 5, whiteSpace: "nowrap" }}
+            className="text-xs px-3 py-1.5 text-[var(--ds-fg-secondary)] bg-white"
+            style={{ border: "1px solid var(--ds-border)", borderRadius: 5, whiteSpace: "nowrap" }}
           >
             {t("planner.assumptions")}
           </button>
@@ -617,9 +607,9 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         <div className="ml-auto flex gap-2">
           {planSource === "seed" ? (
             <>
-              <button className="text-xs px-3 py-1 text-[#374151] bg-white" style={{ border:"1px solid #e5e7eb", borderRadius:5 }} onClick={() => setConfigOpen(true)}>{t("planner.configure")}</button>
-              <button className="text-xs px-3 py-1 text-[#374151] bg-white" style={{ border:"1px solid #e5e7eb", borderRadius:5 }} onClick={() => setPublished(false)}>{t("planner.regenerate")}</button>
-              <button className="text-xs px-3 py-1 text-white disabled:opacity-50" style={{ background:"#111827", borderRadius:5, border:"1px solid #111827" }} onClick={handlePublish} disabled={publishing}>
+              <button className="text-xs px-3 py-1 text-[var(--ds-fg-secondary)] bg-white" style={{ border:"1px solid var(--ds-border)", borderRadius:5 }} onClick={() => setConfigOpen(true)}>{t("planner.configure")}</button>
+              <button className="text-xs px-3 py-1 text-[var(--ds-fg-secondary)] bg-white" style={{ border:"1px solid var(--ds-border)", borderRadius:5 }} onClick={() => setPublished(false)}>{t("planner.regenerate")}</button>
+              <button className="text-xs px-3 py-1 text-white disabled:opacity-50" style={{ background:"var(--ds-fg)", borderRadius:5, border:"1px solid var(--ds-fg)" }} onClick={handlePublish} disabled={publishing}>
                 {publishing ? t("planner.publishing") : published ? t("planner.published") : t("planner.approve")}
               </button>
             </>
@@ -627,16 +617,16 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             <>
               {plans.length > 0 && (
                 <select disabled={historyLoading} onChange={e => handleHistorySelect(Number(e.target.value))} value={viewedPlan?.id ?? ""}
-                  className="text-[11px] px-2 py-1 bg-white text-[#374151] disabled:opacity-50 font-mono" style={{ border:"1px solid #e5e7eb", borderRadius:5 }}>
+                  className="text-[11px] px-2 py-1 bg-white text-[var(--ds-fg-secondary)] disabled:opacity-50 font-mono" style={{ border:"1px solid var(--ds-border)", borderRadius:5 }}>
                   <option value="" disabled>Plan history ({plans.length})</option>
                   {plans.map(p => <option key={p.id} value={p.id}>#{p.id} · {p.plan_date} · {p.status}</option>)}
                 </select>
               )}
-              <button className="text-xs px-3 py-1 text-[#374151] bg-white disabled:opacity-50" style={{ border:"1px solid #e5e7eb", borderRadius:5 }} onClick={handleGenerate} disabled={generating}>
+              <button className="text-xs px-3 py-1 text-[var(--ds-fg-secondary)] bg-white disabled:opacity-50" style={{ border:"1px solid var(--ds-border)", borderRadius:5 }} onClick={handleGenerate} disabled={generating}>
                 {generating ? t("planner.solverRunning") : t("planner.generate")}
               </button>
               {viewedPlan?.status === "draft" && (
-                <button className="text-xs px-3 py-1 text-white disabled:opacity-50" style={{ background:"#111827", borderRadius:5, border:"1px solid #111827" }} onClick={handleConfirm} disabled={confirming}>
+                <button className="text-xs px-3 py-1 text-white disabled:opacity-50" style={{ background:"var(--ds-fg)", borderRadius:5, border:"1px solid var(--ds-fg)" }} onClick={handleConfirm} disabled={confirming}>
                   {confirming ? t("planner.confirming") : t("planner.confirmPlan")}
                 </button>
               )}
@@ -650,10 +640,10 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       {/* ── Engine: no plan / spinner ─────────────────────────────────────────── */}
       {planSource === "engine" && !viewedPlan && !generating && (
         <div className="flex-1 flex items-center justify-center bg-[#f4f5f7]">
-          <div className="bg-white px-8 py-8 max-w-sm text-center" style={{ border:"1px solid #e5e7eb", borderRadius:5 }}>
+          <div className="bg-white px-8 py-8 max-w-sm text-center" style={{ border:"1px solid var(--ds-border)", borderRadius:5 }}>
             <div className="font-semibold text-base mb-2">No plan generated yet</div>
-            <div className="text-[12.5px] text-[#374151] leading-relaxed mb-5">The planning engine has no plan on record. Generate one to see the solver's move sequence.</div>
-            <button className="text-xs px-4 py-2 text-white" style={{ background:"#111827", borderRadius:5 }} onClick={handleGenerate}>Generate plan (CP-SAT)</button>
+            <div className="text-[12.5px] text-[var(--ds-fg-secondary)] leading-relaxed mb-5">The planning engine has no plan on record. Generate one to see the solver's move sequence.</div>
+            <button className="text-xs px-4 py-2 text-white" style={{ background:"var(--ds-fg)", borderRadius:5 }} onClick={handleGenerate}>Generate plan (CP-SAT)</button>
           </div>
         </div>
       )}
@@ -662,14 +652,14 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           <div className="text-center">
             <div className="text-[28px] mb-3 animate-spin select-none">⟳</div>
             <div className="font-semibold text-base">Solver running…</div>
-            <div className="text-[12px] text-[#9ca3af] mt-1">CP-SAT optimising the move sequence</div>
+            <div className="text-[12px] text-[var(--ds-subtle)] mt-1">CP-SAT optimising the move sequence</div>
           </div>
         </div>
       )}
 
       {/* ── Step 1: Collapsible KPI bar ──────────────────────────────────────── */}
       {(planSource === "seed" || (planSource === "engine" && viewedPlan && !generating)) && (
-        <div className="flex-none border-b border-[#e5e7eb] bg-white">
+        <div className="flex-none border-b border-[var(--ds-border)] bg-white">
           {/* Primary row: always visible */}
           <div className="flex items-stretch">
             {(planSource === "seed" ? primaryKpis : engineKpis.slice(0,2)).map(m => (
@@ -683,7 +673,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             ))}
             <button
               onClick={() => setKpiExpanded(v => !v)}
-              className="flex items-center gap-1.5 px-4 text-[11px] text-[#6b7280] hover:text-[#374151] hover:bg-[#f9fafb] transition-colors"
+              className="flex items-center gap-1.5 px-4 text-[11px] text-[var(--ds-muted)] hover:text-[var(--ds-fg-secondary)] hover:bg-[var(--ds-surface-hover)] transition-colors"
               style={{ whiteSpace: "nowrap" }}
             >
               {kpiExpanded ? t("planner.fewerMetrics") : t("planner.moreMetrics")}
@@ -691,7 +681,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           </div>
           {/* Secondary row: expandable with height transition */}
           <div style={{ overflow:"hidden", maxHeight: kpiExpanded ? 120 : 0, transition:"max-height 200ms ease" }}>
-            <div className="flex border-t border-[#e5e7eb]">
+            <div className="flex border-t border-[var(--ds-border)]">
               {(planSource === "seed" ? secondaryKpis : engineKpis.slice(2)).map(m => <KpiCell key={m.k} m={m} />)}
             </div>
           </div>
@@ -707,13 +697,13 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           {/* ── Center: moves table ─────────────────────────────────────────── */}
           <div className="flex flex-col min-h-0 bg-white">
             {/* Table toolbar */}
-            <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[#e5e7eb] flex-none">
+            <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[var(--ds-border)] flex-none">
               <Input placeholder={t("common.search")} value={q} onChange={e => setQ(e.target.value)} className="w-48 h-7 text-xs" />
               {/* Operation filter */}
-              <div style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden", display:"flex" }}>
+              <div style={{ border:"1px solid var(--ds-border)", borderRadius:5, overflow:"hidden", display:"flex" }}>
                 {OP_FILTER_TYPES.map(type => (
                   <button key={type} onClick={() => setFilter(type)} className="text-[10.5px] px-2 py-1 font-semibold transition-colors"
-                    style={{ background: filter===type ? "#111827":"transparent", color: filter===type ? "#fff":"#374151" }}>
+                    style={{ background: filter===type ? "var(--ds-fg)":"transparent", color: filter===type ? "#fff":"var(--ds-fg-secondary)" }}>
                     {type === "ALL" ? t("planner.filter.all")
                       : type === "Putaway" ? t("planner.filter.putaway")
                       : type === "Premarshal ahead of retrieval" ? t("planner.filter.preMarshal")
@@ -727,23 +717,23 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
               <div ref={colChooserRef} className="relative">
                 <button
                   onClick={() => setColChooserOpen(v => !v)}
-                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] text-[#374151]"
-                  style={{ border:"1px solid #e5e7eb", borderRadius:5 }}
+                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] text-[var(--ds-fg-secondary)]"
+                  style={{ border:"1px solid var(--ds-border)", borderRadius:5 }}
                 >
                   {t("common.columns")} <span style={{ fontSize:8 }}>{colChooserOpen ? "▲" : "▼"}</span>
                 </button>
                 {colChooserOpen && (
-                  <div className="absolute left-0 top-full mt-1 z-30 bg-white" style={{ border:"1px solid #e5e7eb", borderRadius:5, boxShadow:"0 4px 12px rgba(0,0,0,0.10)", padding:"6px 0", minWidth:140 }}>
+                  <div className="absolute left-0 top-full mt-1 z-30 bg-white" style={{ border:"1px solid var(--ds-border)", borderRadius:5, boxShadow:"0 4px 12px rgba(0,0,0,0.10)", padding:"6px 0", minWidth:140 }}>
                     {ALL_COLS.map(col => (
-                      <label key={col} className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[#f9fafb] text-[11px]">
-                        <input type="checkbox" checked={visibleCols.has(col)} onChange={() => toggleCol(col)} className="accent-[#111827]" />
+                      <label key={col} className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[var(--ds-surface-hover)] text-[11px]">
+                        <input type="checkbox" checked={visibleCols.has(col)} onChange={() => toggleCol(col)} className="accent-[var(--ds-fg)]" />
                         {col}
                       </label>
                     ))}
                   </div>
                 )}
               </div>
-              <span className="ml-auto text-[11px] text-[#9ca3af]">
+              <span className="ml-auto text-[11px] text-[var(--ds-subtle)]">
                 <span className="font-mono">{planningRows.length}</span> of <span className="font-mono">{allSteps.length}</span> · <span className="font-mono">{frozenCount}</span> blocked
               </span>
             </div>
@@ -767,7 +757,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                 </thead>
                 <tbody>
                   {planningRows.length === 0 ? (
-                    <tr><td colSpan={visibleCols.size} className="px-4 py-4 text-[11px] text-[#9ca3af]">No steps match {q ? `"${q}"` : "this filter"}.</td></tr>
+                    <tr><td colSpan={visibleCols.size} className="px-4 py-4 text-[11px] text-[var(--ds-subtle)]">No steps match {q ? `"${q}"` : "this filter"}.</td></tr>
                   ) : planningRows.map((s, i) => (
                     <MoveRow key={`pr-${i}`} m={{ source:"planning", move:s }} isSelected={stepId(s)===sel} onClick={() => { setSel(stepId(s)); setTab("detail") }} />
                   ))}
@@ -777,24 +767,28 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           </div>
 
           {/* ── Right: detail panel with accordions (Step 4) ───────────────── */}
-          <div className="bg-white flex flex-col min-h-0" style={{ borderLeft:"1px solid #e5e7eb" }}>
-            <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
-              <TabsList className="flex-none">
-                <TabsTrigger value="detail">{t("planner.move.move")}</TabsTrigger>
-                <TabsTrigger value="exceptions">Exceptions {exceptions.length}</TabsTrigger>
-                <TabsTrigger value="projection">Projected KPI</TabsTrigger>
-              </TabsList>
+          <div className="bg-white flex flex-col min-h-0" style={{ borderLeft:"1px solid var(--ds-border)" }}>
+            <div className="flex flex-col flex-1 min-h-0">
+              <TabBar
+                items={[
+                  { id: "detail",     label: t("planner.move.move") },
+                  { id: "exceptions", label: "Exceptions", count: exceptions.length },
+                  { id: "projection", label: "Projected KPI" },
+                ]}
+                active={tab}
+                onChange={setTab}
+              />
 
-              <TabsContent value="detail" className="flex-1 overflow-auto">
+              {tab === "detail" && <div className="flex-1 min-h-0 overflow-auto">
                 {selStep ? (
                   <div>
                     {/* Step header */}
                     <div className="px-4 pt-3 pb-3">
                       <div className="ds-label flex items-center gap-2">
-                        <span className={`font-mono${isAnonymousContainer(selStep) ? " italic text-[#9ca3af]" : ""}`}>
+                        <span className={`font-mono${isAnonymousContainer(selStep) ? " italic text-[var(--ds-subtle)]" : ""}`}>
                            {getDisplayContainerId(selStep)}
                          </span>
-                        {selStep.planned_step != null && <span className="text-[#9ca3af]">· step <span className="font-mono">{selStep.planned_step}</span></span>}
+                        {selStep.planned_step != null && <span className="text-[var(--ds-subtle)]">· step <span className="font-mono">{selStep.planned_step}</span></span>}
                         {/* Equipment badge */}
                         {(() => {
                           const b = getEquipmentType(selStep)
@@ -807,8 +801,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                         })()}
                       </div>
                       <div className="font-semibold text-base mt-1 tracking-tight">{getDisplayOperation(selStep.operation)}</div>
-                      <div className="text-[12px] mt-1 font-mono text-[#374151]">{fmtLoc(selStep.origin)}</div>
-                      <div className="text-[12px] font-mono text-[#9ca3af]">→ {fmtLoc(selStep.destination)}</div>
+                      <div className="text-[12px] mt-1 font-mono text-[var(--ds-fg-secondary)]">{fmtLoc(selStep.origin)}</div>
+                      <div className="text-[12px] font-mono text-[var(--ds-subtle)]">→ {fmtLoc(selStep.destination)}</div>
                     </div>
 
                     {/* Extra-movement indicator */}
@@ -846,7 +840,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                       [t("planner.move.operator"),    selStep.operator ?? "—"],
                       [t("planner.move.moveMethod"), getDisplayMoveMethod(selStep)],
                       [t("planner.move.window"),      selStep.estimated_start
-                        ? fmtIso(selStep.estimated_start) + "–" + fmtIso(selStep.estimated_end) + " (" + stepDur(selStep).toFixed(1) + "′)"
+                        ? fmtTime(selStep.estimated_start) + "–" + fmtTime(selStep.estimated_end) + " (" + stepDur(selStep).toFixed(1) + "′)"
                         : selStep.step_status === "Completed" ? "Completed · no window recorded"
                         : selStep.step_status === "Blocked"   ? "Blocked · not scheduled"
                         : "Not yet scheduled"],
@@ -856,8 +850,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                         : selStep.step_status === "Completed"  ? "N/A · completed"
                         : "—"],
                     ].map(([k,v]) => (
-                      <div key={k} className="flex justify-between gap-3 px-4 py-2 border-b border-[#f3f4f6] text-[11.5px]">
-                        <span className="text-[#9ca3af]">{k}</span>
+                      <div key={k} className="flex justify-between gap-3 px-4 py-2 border-b border-[var(--ds-border-lt)] text-[11.5px]">
+                        <span className="text-[var(--ds-subtle)]">{k}</span>
                         <span className="font-semibold font-mono text-right">{v}</span>
                       </div>
                     ))}
@@ -868,8 +862,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     ].map(([k, v]) => {
                       const st = getStatusStyle(v)
                       return (
-                        <div key={k} className="flex justify-between items-center gap-3 px-4 py-2 border-b border-[#f3f4f6] text-[11.5px]">
-                          <span className="text-[#9ca3af]">{k}</span>
+                        <div key={k} className="flex justify-between items-center gap-3 px-4 py-2 border-b border-[var(--ds-border-lt)] text-[11.5px]">
+                          <span className="text-[var(--ds-subtle)]">{k}</span>
                           <span className="text-[9.5px] font-bold px-2 py-0.5 rounded"
                             style={{ background: st.bg, color: st.text }}>
                             {v}
@@ -889,9 +883,9 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                         ["C12","Destination zone below utilisation ceiling","PASS"],
                       ].map(([id,label,verdict]) => (
                         <div key={id} className="flex gap-2 items-baseline px-4 py-1.5 text-[11.5px]">
-                          <span className="w-6 font-bold font-mono text-[#9ca3af]">{id}</span>
-                          <span className="flex-1 text-[#374151] leading-tight">{label}</span>
-                          <span className="text-[10px] font-bold tracking-wider text-[#9ca3af]">{verdict}</span>
+                          <span className="w-6 font-bold font-mono text-[var(--ds-subtle)]">{id}</span>
+                          <span className="flex-1 text-[var(--ds-fg-secondary)] leading-tight">{label}</span>
+                          <span className="text-[10px] font-bold tracking-wider text-[var(--ds-subtle)]">{verdict}</span>
                         </div>
                       ))}
                     </div>
@@ -900,65 +894,65 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     <AccordionHeader label={t("planner.move.stepHistory")} open={moveHistoryOpen} onToggle={() => setMoveHistoryOpen(v => !v)} />
                     <div style={{ overflow:"hidden", maxHeight: moveHistoryOpen ? 200 : 0, transition:"max-height 200ms ease" }}>
                       {[
-                        ...(selStep.estimated_start ? [[fmtIso(selStep.estimated_start), "Planned by engine", "auto"]] : []),
-                        ...(selStep.actual_start ? [[fmtIso(selStep.actual_start), "Actual start recorded", "system"]] : []),
-                        ...(selStep.actual_end   ? [[fmtIso(selStep.actual_end),   "Actual end recorded",   "system"]] : []),
+                        ...(selStep.estimated_start ? [[fmtTime(selStep.estimated_start), "Planned by engine", "auto"]] : []),
+                        ...(selStep.actual_start ? [[fmtTime(selStep.actual_start), "Actual start recorded", "system"]] : []),
+                        ...(selStep.actual_end   ? [[fmtTime(selStep.actual_end),   "Actual end recorded",   "system"]] : []),
                         ...(selStep.estimated_start == null ? [["—", "No window recorded for this step", "engine"]] : []),
                       ].map(([time,event,src]) => (
-                        <div key={time+event} className="flex items-baseline gap-3 px-4 py-1.5 text-[11.5px] border-b border-[#f9fafb]">
-                          <span className="font-mono text-[#9ca3af] w-10">{time}</span>
-                          <span className="flex-1 text-[#374151]">{event}</span>
-                          <span className="text-[10px] text-[#9ca3af]">{src}</span>
+                        <div key={time+event} className="flex items-baseline gap-3 px-4 py-1.5 text-[11.5px] border-b border-[var(--ds-surface-hover)]">
+                          <span className="font-mono text-[var(--ds-subtle)] w-10">{time}</span>
+                          <span className="flex-1 text-[var(--ds-fg-secondary)]">{event}</span>
+                          <span className="text-[10px] text-[var(--ds-subtle)]">{src}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="px-4 py-4 text-[12.5px] leading-relaxed text-[#374151]">
+                  <div className="px-4 py-4 text-[12.5px] leading-relaxed text-[var(--ds-fg-secondary)]">
                     {focus || q || "This container"} has no step in plan P-2026-08-11 — {allSteps.length} steps planned today.
                   </div>
                 )}
-              </TabsContent>
+              </div>}
 
-              <TabsContent value="exceptions">
+              {tab === "exceptions" && <div className="flex-1 min-h-0 overflow-auto">
                 <div>
                   {exceptions.map(e => (
-                    <div key={e.id} className="px-4 py-3 border-b border-[#f3f4f6]">
+                    <div key={e.id} className="px-4 py-3 border-b border-[var(--ds-border-lt)]">
                       <div className="flex justify-between items-baseline">
-                        <span className={`text-[10px] font-bold tracking-wider ${e.severity==="high"?"text-[#dc2626]":"text-[#9ca3af]"}`}>{e.type}</span>
-                        <span className="text-[10px] font-mono text-[#9ca3af]">{e.id}</span>
+                        <span className={`text-[10px] font-bold tracking-wider ${e.severity==="high"?"text-[var(--ds-red)]":"text-[var(--ds-subtle)]"}`}>{e.type}</span>
+                        <span className="text-[10px] font-mono text-[var(--ds-subtle)]">{e.id}</span>
                       </div>
                       <div className="text-[13px] font-bold mt-1">{e.subject}</div>
-                      <div className="text-[12px] leading-relaxed text-[#374151] mt-1">{e.detail}</div>
-                      <button className="mt-2 text-[11.5px] px-3 py-1 text-[#374151] bg-white" style={{ border:"1px solid #e5e7eb", borderRadius:5 }}>{e.action}</button>
+                      <div className="text-[12px] leading-relaxed text-[var(--ds-fg-secondary)] mt-1">{e.detail}</div>
+                      <button className="mt-2 text-[11.5px] px-3 py-1 text-[var(--ds-fg-secondary)] bg-white" style={{ border:"1px solid var(--ds-border)", borderRadius:5 }}>{e.action}</button>
                     </div>
                   ))}
-                  <div className="px-4 py-3 text-[11.5px] text-[#374151] leading-relaxed">Infeasible assignments escalate after three resequencing iterations.</div>
+                  <div className="px-4 py-3 text-[11.5px] text-[var(--ds-fg-secondary)] leading-relaxed">Infeasible assignments escalate after three resequencing iterations.</div>
                 </div>
-              </TabsContent>
+              </div>}
 
-              <TabsContent value="projection">
+              {tab === "projection" && <div className="flex-1 min-h-0 overflow-auto">
                 <div>
                   {projection.map(p => (
-                    <div key={p.k} className="px-4 py-3 border-b border-[#f3f4f6]">
+                    <div key={p.k} className="px-4 py-3 border-b border-[var(--ds-border-lt)]">
                       <div className="flex justify-between text-[11.5px]">
                         <span className="font-bold">{p.k}</span>
-                        <span className="text-[#9ca3af]">target <span className="font-mono">{p.target}</span></span>
+                        <span className="text-[var(--ds-subtle)]">target <span className="font-mono">{p.target}</span></span>
                       </div>
-                      <div className="flex items-baseline gap-3 mt-1 text-[11px] text-[#9ca3af]">
+                      <div className="flex items-baseline gap-3 mt-1 text-[11px] text-[var(--ds-subtle)]">
                         <span className="font-mono">{p.opt}</span>
                         <span className="font-mono font-semibold leading-none text-neutral-900" style={{ fontSize:24 }}>{p.exp}</span>
                         <span className="font-mono">{p.pes}</span>
                       </div>
-                      <div className="relative h-1 bg-[#f3f4f6] mt-2">
+                      <div className="relative h-1 bg-[var(--ds-border-lt)] mt-2">
                         <div className="absolute top-0 h-1" style={{ left:p.bandLeft+"%", width:p.bandWidth+"%", background:"#fca5a5" }} />
                         <div className="absolute top-[-3px] h-2 w-px bg-neutral-900" style={{ left:p.mark+"%" }} />
                       </div>
                     </div>
                   ))}
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>}
+            </div>
           </div>
         </div>
       )}
@@ -969,8 +963,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       {planSource === "engine" && viewedPlan && !generating && (
         <div className="grid flex-1 min-h-0 overflow-auto" style={{ gridTemplateColumns: "minmax(400px,1fr) clamp(280px,28vw,380px)" }}>
           <div className="flex flex-col min-h-0 bg-white">
-            <div className="flex items-center gap-2 px-4 py-2 border-b border-[#e5e7eb] flex-none">
-              <span className="text-[11px] text-[#9ca3af]"><span className="font-mono">{engineMoves.length}</span> moves · Plan <span className="font-mono">#{viewedPlan.id}</span></span>
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--ds-border)] flex-none">
+              <span className="text-[11px] text-[var(--ds-subtle)]"><span className="font-mono">{engineMoves.length}</span> moves · Plan <span className="font-mono">#{viewedPlan.id}</span></span>
             </div>
             <div className="flex-1 min-h-0 overflow-auto">
               <table className="w-full border-collapse" style={{ fontSize:11 }}>
@@ -990,7 +984,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                 </thead>
                 <tbody>
                   {engineMoves.length === 0 ? (
-                    <tr><td colSpan={visibleCols.size} className="px-4 py-4 text-[11px] text-[#9ca3af]">No moves in this plan.</td></tr>
+                    <tr><td colSpan={visibleCols.size} className="px-4 py-4 text-[11px] text-[var(--ds-subtle)]">No moves in this plan.</td></tr>
                   ) : engineMoves.map(m => (
                     <MoveRow key={m.id} m={{ source:"engine", move:m }} isSelected={m.id===engineSel} onClick={() => setEngineSel(m.id)} />
                   ))}
@@ -998,14 +992,14 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
               </table>
             </div>
           </div>
-          <div className="bg-white flex flex-col min-h-0 overflow-auto" style={{ borderLeft:"1px solid #e5e7eb", width:300 }}>
+          <div className="bg-white flex flex-col min-h-0 overflow-auto" style={{ borderLeft:"1px solid var(--ds-border)", width:300 }}>
             {engineSelMove ? (
               <div>
                 <div className="px-4 pt-3 pb-3">
                   <div className="ds-label">{t("planner.move.move")} <span className="font-mono">#{engineSelMove.id}</span> · seq <span className="font-mono">{engineSelMove.seq}</span></div>
                   <div className="font-semibold text-base mt-1 tracking-tight">{REASON_LABELS[engineSelMove.reason] ?? engineSelMove.typeLabel ?? "Move"}</div>
-                  <div className="text-[12px] mt-1 font-mono text-[#374151]">{engineSelMove.containerId}</div>
-                  <div className="text-[12px] font-mono text-[#9ca3af]">{engineSelMove.from} → {engineSelMove.to}</div>
+                  <div className="text-[12px] mt-1 font-mono text-[var(--ds-fg-secondary)]">{engineSelMove.containerId}</div>
+                  <div className="text-[12px] font-mono text-[var(--ds-subtle)]">{engineSelMove.from} → {engineSelMove.to}</div>
                 </div>
                 {engineSelMove.reason && (
                   <div className="ds-callout mx-4 mb-3">
@@ -1019,14 +1013,14 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                   ["State", engineSelMove.stateLabel ?? "—"],
                   ["Frozen", engineSelMove.frozen ? "yes" : "no"],
                 ].map(([k,v]) => (
-                  <div key={k} className="flex justify-between gap-3 px-4 py-2 border-b border-[#f3f4f6] text-[11.5px]">
-                    <span className="text-[#9ca3af]">{k}</span>
+                  <div key={k} className="flex justify-between gap-3 px-4 py-2 border-b border-[var(--ds-border-lt)] text-[11.5px]">
+                    <span className="text-[var(--ds-subtle)]">{k}</span>
                     <span className="font-semibold font-mono text-right">{v}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="px-4 py-4 text-[12px] text-[#9ca3af] leading-relaxed">Select a move from the table to see its details.</div>
+              <div className="px-4 py-4 text-[12px] text-[var(--ds-subtle)] leading-relaxed">Select a move from the table to see its details.</div>
             )}
           </div>
         </div>
@@ -1034,21 +1028,21 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
 
       {/* ── Step 5: Operator schedule — collapsed summary ─────────────────────── */}
       {planSource === "seed" && (
-        <div className="flex-none border-t border-[#e5e7eb] bg-white">
+        <div className="flex-none border-t border-[var(--ds-border)] bg-white">
           {/* Summary bar — always visible */}
           <div className="flex items-center gap-3 px-4 py-2">
             <span className="ds-label font-bold">Operator schedule</span>
-            <span className="text-[11px] text-[#374151]">
+            <span className="text-[11px] text-[var(--ds-fg-secondary)]">
               <span className="font-semibold">{onShift.length}</span> operators on shift
-              <span className="text-[#9ca3af] mx-1.5">·</span>
+              <span className="text-[var(--ds-subtle)] mx-1.5">·</span>
               <span className="font-semibold">{frozenCount}</span> moves frozen
-              <span className="text-[#9ca3af] mx-1.5">·</span>
+              <span className="text-[var(--ds-subtle)] mx-1.5">·</span>
               next break <span className="font-mono font-semibold">09:30</span>
             </span>
             <button
               onClick={() => setGanttExpanded(v => !v)}
-              className="ml-auto text-[11px] px-2.5 py-1 text-[#374151]"
-              style={{ border:"1px solid #e5e7eb", borderRadius:5 }}
+              className="ml-auto text-[11px] px-2.5 py-1 text-[var(--ds-fg-secondary)]"
+              style={{ border:"1px solid var(--ds-border)", borderRadius:5 }}
             >
               {ganttExpanded ? "Collapse ▲" : t("planner.move.showGantt") + " ▼"}
             </button>
@@ -1056,26 +1050,26 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
 
           {/* Full Gantt — expanded via max-height transition */}
           <div style={{ overflow:"hidden", maxHeight: ganttExpanded ? 200 : 0, transition:"max-height 220ms ease" }}>
-            <div className="border-t border-[#e5e7eb]">
-              <div className="px-4 py-1 text-[11px] text-[#9ca3af]">
+            <div className="border-t border-[var(--ds-border)]">
+              <div className="px-4 py-1 text-[11px] text-[var(--ds-subtle)]">
                 {published ? "Frozen window 20 min · in-progress moves immutable" : "Preview — freeze applies at publication"}
               </div>
               <div className="grid" style={{ gridTemplateColumns:"132px 1fr" }}>
                 <div />
-                <div className="flex border-b border-[#e5e7eb]">
+                <div className="flex border-b border-[var(--ds-border)]">
                   {HOURS.map(h => (
-                    <div key={h} className="flex-1 font-mono text-[9px] text-[#9ca3af] border-l border-[#e5e7eb] px-1 py-1">{h}</div>
+                    <div key={h} className="flex-1 font-mono text-[9px] text-[var(--ds-subtle)] border-l border-[var(--ds-border)] px-1 py-1">{h}</div>
                   ))}
                 </div>
                 {operatorNames().map(opName => {
                   const opSteps = stepsForOperator(opName)
                   return (
                     <div key={opName} className="contents">
-                      <div className="px-4 py-1 text-[11.5px] border-b border-[#e5e7eb] flex justify-between gap-2">
+                      <div className="px-4 py-1 text-[11.5px] border-b border-[var(--ds-border)] flex justify-between gap-2">
                         <span className="font-semibold">{opName}</span>
-                        <span className="text-[#9ca3af]">{opSteps.length} steps</span>
+                        <span className="text-[var(--ds-subtle)]">{opSteps.length} steps</span>
                       </div>
-                      <div className="relative h-8 border-b border-[#e5e7eb] border-l border-[#e5e7eb]">
+                      <div className="relative h-8 border-b border-[var(--ds-border)] border-l border-[var(--ds-border)]">
                         {opSteps.map((s, gi) => {
                           const startMin = isoToMin(s.estimated_start)
                           const endMin   = isoToMin(s.estimated_end)
@@ -1084,12 +1078,12 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                           return (
                             <div key={`g-${gi}`}
                               onClick={() => { setSel(sid); setTab("detail") }}
-                              title={`${getDisplayContainerId(s)} · ${getDisplayOperation(s.operation)} · ${fmtIso(s.estimated_start)}–${fmtIso(s.estimated_end)}`}
+                              title={`${getDisplayContainerId(s)} · ${getDisplayOperation(s.operation)} · ${fmtTime(s.estimated_start)}–${fmtTime(s.estimated_end)}`}
                               className="absolute top-2 h-3 cursor-pointer hover:opacity-80"
                               style={{
                                 left: (Math.max(0, startMin - 360) / 480 * 100).toFixed(2) + "%",
                                 width: Math.max(0.5, (endMin - startMin) / 480 * 100).toFixed(2) + "%",
-                                background: sid === sel ? "#dc2626" : s.step_status === "Blocked" ? "#9ca3af" : "#111827",
+                                background: sid === sel ? "var(--ds-red)" : s.step_status === "Blocked" ? "var(--ds-subtle)" : "var(--ds-fg)",
                               }}
                             />
                           )

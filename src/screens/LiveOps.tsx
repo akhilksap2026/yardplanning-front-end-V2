@@ -2,6 +2,7 @@ import { useState, useMemo } from "react"
 import { useData } from "@/lib/DataContext"
 import type { Visit } from "@/data/yard-ops"
 import { CONTAINERS } from "@/data/yard-data"
+import { fmtTime } from "@/utils/time"
 
 interface Props {
   onNavigate?: (target: string, focus?: string) => void
@@ -13,13 +14,6 @@ function toMin(hhmm: string | null | undefined): number | null {
   const [h, m] = hhmm.split(":").map(Number)
   return h * 60 + m
 }
-function fmt(mins: number | null): string {
-  if (mins == null) return "—"
-  const h = Math.floor(Math.abs(mins) / 60)
-  const m = Math.abs(mins) % 60
-  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0")
-}
-
 // ── Static entity seeds (equipment stays static; gate + moves pull from DataContext) ─
 const EQUIP_ENTITIES = [
   { g: "equip", id: "RS-01", what: "Reach-stacker · Zone A",     sub: "operator R. Giménez · shift 06:00–14:00",   plannedStart: 360, plannedEnd: 840, actualStart: 360, actualEnd: null, blocking: null,             cause: null,                                   owner: "Ops · R. Giménez",  impact: "Running",               next: "Next job MV-1028 at 06:42" },
@@ -152,7 +146,7 @@ export default function LiveOps({ onNavigate }: Props) {
     const stateColor = STATE_COLOR[state] ?? "#6b7280"
     const mark       = MARK_COLOR[state]  ?? "#e5e7eb"
     const deltaLabel = state === "scheduled"
-      ? "starts " + fmt(e.plannedStart)
+      ? "starts " + fmtTime(e.plannedStart)
       : deltaMin === 0 ? "on time"
       : (deltaMin > 0 ? "+" : "") + deltaMin + "′"
     const deltaColor = (state === "blocked" || state === "late" || (state !== "scheduled" && Math.abs(deltaMin) > 5))
@@ -258,7 +252,7 @@ export default function LiveOps({ onNavigate }: Props) {
         <div className="flex flex-col gap-0.5">
           <span className="font-black text-[19px] tracking-tight leading-none">Live Operations</span>
           <span className="text-[11px] text-neutral-500 mt-0.5">
-            Day shift · {fmt(shiftStart)}–{fmt(shiftEnd)} · {shiftPct}% elapsed · {doneMoves} of {yardRows.length} planned yard moves complete
+            Day shift · {fmtTime(shiftStart)}–{fmtTime(shiftEnd)} · {shiftPct}% elapsed · {doneMoves} of {yardRows.length} planned yard moves complete
           </span>
         </div>
         {/* Shift status pill */}
@@ -350,7 +344,7 @@ export default function LiveOps({ onNavigate }: Props) {
       <div className="flex flex-col px-5 py-3 border-b-2 border-[#e5e7eb] flex-none bg-[#f9fafb]">
         <div className="flex items-baseline gap-3 mb-2">
           <span className="ds-label text-neutral-500">Shift progress · planned throughput vs actual</span>
-          <span className="text-[11px] text-neutral-500">now marker at {fmt(now)}</span>
+          <span className="text-[11px] text-neutral-500">now marker at {fmtTime(now)}</span>
         </div>
         <div className="flex gap-1.5 items-end h-16">
           {hourBars.map(h => (
@@ -412,7 +406,7 @@ export default function LiveOps({ onNavigate }: Props) {
                       </span>
                       {/* Planned + delta */}
                       <span className="flex-none flex flex-col items-end gap-0.5 tabular-nums" style={{ minWidth: 110 }}>
-                        <span className="text-[11.5px] font-semibold">{fmt(row.plannedStart)} – {fmt(row.plannedEnd)}</span>
+                        <span className="text-[11.5px] font-semibold">{fmtTime(row.plannedStart)} – {fmtTime(row.plannedEnd)}</span>
                         <span className="text-[10.5px] font-bold" style={{ color: row.deltaColor }}>{row.deltaLabel}</span>
                       </span>
                       {/* State */}
@@ -462,7 +456,7 @@ export default function LiveOps({ onNavigate }: Props) {
             <div className="flex flex-col items-center justify-center flex-1 gap-2 text-center px-6">
               <span className="text-[22px]">✓</span>
               <span className="font-semibold text-[13px] text-neutral-700">All entities on plan</span>
-              <span className="text-[11px] text-neutral-400">No exceptions as of {fmt(now)}</span>
+              <span className="text-[11px] text-neutral-400">No exceptions as of {fmtTime(now)}</span>
             </div>
           ) : (
             <>

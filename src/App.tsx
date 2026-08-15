@@ -226,22 +226,22 @@ function AppShell() {
           className="flex flex-col overflow-y-auto overflow-x-hidden"
           style={{
             gridRow: "1 / -1",
-            background: "#ffffff",
-            borderRight: "1px solid #e5e7eb",
-            boxShadow: "1px 0 0 0 #f3f4f6",
+            background: "var(--ds-surface)",
+            borderRight: "1px solid var(--ds-border)",
+            boxShadow: "1px 0 0 0 var(--ds-border-lt)",
           }}
         >
           {/* Logo */}
           <div
             className="flex items-center gap-2.5 px-4 py-3.5 flex-none"
-            style={{ borderBottom: "1px solid #f3f4f6" }}
+            style={{ borderBottom: "1px solid var(--ds-border-lt)" }}
           >
             <div
               className="flex-none flex items-center justify-center text-white font-black text-[11px] tracking-tight"
-              style={{ width: 32, height: 32, background: "#4f46e5", borderRadius: 8 }}
+              style={{ width: 32, height: 32, background: "var(--ds-accent)", borderRadius: 8 }}
             >YO</div>
             <div className="flex flex-col gap-0.5 leading-none">
-              <span className="font-bold text-[13px] tracking-tight" style={{ color: "#111827" }}>{t("app.title")}</span>
+              <span className="font-bold text-[13px] tracking-tight text-[var(--ds-fg)]">{t("app.title")}</span>
               <span className="ds-label">{t("app.subtitle")}</span>
             </div>
           </div>
@@ -252,16 +252,16 @@ function AppShell() {
               onClick={() => setPaletteOpen(true)}
               className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left"
               style={{
-                background: "#f9fafb",
-                border: "1px solid #e5e7eb",
+                background: "var(--ds-surface-hover)",
+                border: "1px solid var(--ds-border)",
                 borderRadius: 7,
                 fontSize: 11,
-                color: "#9ca3af",
+                color: "var(--ds-subtle)",
               }}
             >
               <span style={{ opacity: 0.7, fontSize: 13 }}>⌕</span>
               <span>{t("app.search")}</span>
-              <span className="ml-auto font-mono" style={{ fontSize: 10, color: "#c4c9d4", background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: 4, padding: "1px 5px" }}>⌘K</span>
+              <span className="ml-auto font-mono" style={{ fontSize: 10, color: "#c4c9d4", background: "var(--ds-border-lt)", border: "1px solid var(--ds-border)", borderRadius: 4, padding: "1px 5px" }}>⌘K</span>
             </button>
           </div>
 
@@ -278,7 +278,7 @@ function AppShell() {
                   <button
                     onClick={() => toggleGroup(groupKey)}
                     className="w-full flex items-center gap-1 px-2 py-1 text-left rounded"
-                    style={{ color: "#9ca3af" }}
+                    style={{ color: "var(--ds-subtle)" }}
                   >
                     <span className="ds-label flex-1" style={{ color: "inherit", letterSpacing: "0.08em" }}>{groupLabel}</span>
                     <span style={{ fontSize: 8, opacity: 0.5 }}>{isExpanded ? "▲" : "▼"}</span>
@@ -295,24 +295,25 @@ function AppShell() {
                         key={item.id}
                         onClick={() => { if (isAllowed) setScreen(item.id) }}
                         title={!isAllowed ? t("app.noAccess", pName, itemName) : undefined}
-                        className="w-full flex items-center gap-2.5 px-3 py-[7px] mt-0.5 text-left"
+                        className={`w-full flex items-center gap-2.5 px-3 py-[7px] mt-0.5 text-left ${
+                          isActive
+                            ? "bg-[var(--ds-accent-bg)]"
+                            : isAllowed ? "hover:bg-[var(--ds-surface-hover)]" : ""
+                        }`}
                         style={{
                           fontSize: 12,
                           fontWeight: isActive ? 600 : 400,
-                          color: isActive ? "#4f46e5" : isAllowed ? "#4b5563" : "#c4c9d4",
-                          background: isActive ? "#eef2ff" : "transparent",
+                          color: isActive ? "var(--ds-accent)" : isAllowed ? "#4b5563" : "#c4c9d4",
                           borderRadius: 7,
                           opacity: isAllowed ? 1 : 0.45,
                           cursor: isAllowed ? "pointer" : "not-allowed",
-                          borderLeft: `2px solid ${isActive ? "#4f46e5" : "transparent"}`,
+                          borderLeft: `2px solid ${isActive ? "var(--ds-accent)" : "transparent"}`,
                           paddingLeft: isActive ? 10 : 12,
                         }}
-                        onMouseEnter={e => { if (!isActive && isAllowed) (e.currentTarget as HTMLElement).style.background = "#f8fafc" }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isActive ? "#eef2ff" : "transparent" }}
                       >
                         <span
                           className="flex-none text-[11px] select-none"
-                          style={{ color: isActive ? "#4f46e5" : "#9ca3af", lineHeight: 1 }}
+                          style={{ color: isActive ? "var(--ds-accent)" : "var(--ds-subtle)", lineHeight: 1 }}
                         >
                           {NAV_ICONS[item.id]}
                         </span>
@@ -322,8 +323,8 @@ function AppShell() {
                             className="flex-none flex items-center justify-center font-semibold"
                             style={{
                               minWidth: 18, height: 18, borderRadius: 9, fontSize: 10,
-                              background: item.alert ? "#4f46e5" : "#e5e7eb",
-                              color: item.alert ? "#fff" : "#6b7280",
+                              background: item.alert ? "var(--ds-accent)" : "var(--ds-border)",
+                              color: item.alert ? "#fff" : "var(--ds-muted)",
                               padding: "0 5px",
                             }}
                           >{badge}</span>
@@ -339,15 +340,15 @@ function AppShell() {
           {/* User row — pinned to bottom */}
           <div
             className="flex items-center gap-2.5 px-3 py-3 flex-none"
-            style={{ borderTop: "1px solid #f3f4f6" }}
+            style={{ borderTop: "1px solid var(--ds-border-lt)" }}
           >
             <div
               className="flex-none flex items-center justify-center text-white font-black text-[11px]"
-              style={{ width: 32, height: 32, background: "#4f46e5", borderRadius: 8 }}
+              style={{ width: 32, height: 32, background: "var(--ds-accent)", borderRadius: 8 }}
             >{pName[0]}</div>
             <div className="flex flex-col leading-tight min-w-0">
-              <span className="text-[12px] font-semibold truncate" style={{ color: "#111827" }}>{pName}</span>
-              <span className="text-[10px] truncate" style={{ color: "#9ca3af" }}>{pSub}</span>
+              <span className="text-[12px] font-semibold truncate" style={{ color: "var(--ds-fg)" }}>{pName}</span>
+              <span className="text-[10px] truncate" style={{ color: "var(--ds-subtle)" }}>{pSub}</span>
             </div>
           </div>
         </div>
@@ -355,13 +356,13 @@ function AppShell() {
         {/* ── Topbar ───────────────────────────────────────────────────────── */}
         <div
           className="col-start-2 flex items-center gap-3 px-5 bg-white"
-          style={{ borderBottom: "1px solid #e5e7eb", height: 52, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+          style={{ borderBottom: "1px solid var(--ds-border)", height: 52, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
         >
           {/* Breadcrumb */}
           <div className="flex items-baseline gap-1.5" style={{ fontSize: 12 }}>
-            <span style={{ color: "#9ca3af" }}>Operations</span>
+            <span style={{ color: "var(--ds-subtle)" }}>Operations</span>
             <span style={{ color: "#d1d5db" }}>/</span>
-            <span className="font-semibold" style={{ color: "#111827", fontSize: 13 }}>{crumb}</span>
+            <span className="font-semibold" style={{ color: "var(--ds-fg)", fontSize: 13 }}>{crumb}</span>
           </div>
 
           <div className="ml-auto flex items-center gap-2">
@@ -369,7 +370,7 @@ function AppShell() {
             {dbLoading && (
               <span
                 className="flex items-center gap-1.5 px-2.5 py-1"
-                style={{ fontSize: 11, color: "#d97706", border: "1px solid #fde68a", background: "#fffbeb", borderRadius: 6 }}
+                style={{ fontSize: 11, color: "var(--ds-amber)", border: "1px solid #fde68a", background: "#fffbeb", borderRadius: 6 }}
               >
                 <span className="animate-spin text-[10px]">↻</span> {t("app.syncing")}
               </span>
@@ -377,12 +378,12 @@ function AppShell() {
 
             {/* Live sync dot */}
             <div className="relative group">
-              <span className="flex items-center gap-1.5 select-none" style={{ fontSize: 11, color: "#6b7280", cursor: "default" }}>
+              <span className="flex items-center gap-1.5 select-none" style={{ fontSize: 11, color: "var(--ds-muted)", cursor: "default" }}>
                 <span
                   className="flex-none rounded-full"
                   style={{
                     width: 7, height: 7,
-                    background: refreshing ? "#d97706" : "#22c55e",
+                    background: refreshing ? "var(--ds-amber)" : "#22c55e",
                     boxShadow: refreshing ? "none" : "0 0 0 3px rgba(34,197,94,0.18)",
                   }}
                 />
@@ -402,7 +403,7 @@ function AppShell() {
                 onClick={handleReconnect}
                 disabled={reconnecting}
                 className="px-3 py-1.5 font-semibold disabled:opacity-50"
-                style={{ fontSize: 11, background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", borderRadius: 6 }}
+                style={{ fontSize: 11, background: "#fef2f2", border: "1px solid #fecaca", color: "var(--ds-red)", borderRadius: 6 }}
               >
                 {reconnecting ? t("app.connecting") : t("app.reconnect")}
               </button>
@@ -413,11 +414,11 @@ function AppShell() {
               <button
                 onClick={() => setPersonaOpen(v => !v)}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 font-semibold"
-                style={{ fontSize: 11, background: "#f8fafc", color: "#374151", border: "1px solid #e5e7eb", borderRadius: 6 }}
+                style={{ fontSize: 11, background: "var(--ds-surface-hover)", color: "var(--ds-fg-secondary)", border: "1px solid var(--ds-border)", borderRadius: 6 }}
               >
                 <span
                   className="flex-none flex items-center justify-center text-white font-black"
-                  style={{ width: 18, height: 18, background: "#4f46e5", borderRadius: 5, fontSize: 10 }}
+                  style={{ width: 18, height: 18, background: "var(--ds-accent)", borderRadius: 5, fontSize: 10 }}
                 >{pName[0]}</span>
                 {pName}
                 <span style={{ fontSize: 8, opacity: 0.5, marginLeft: 1 }}>{personaOpen ? "▲" : "▼"}</span>
@@ -427,8 +428,8 @@ function AppShell() {
                 <div
                   className="absolute right-0 top-full mt-1.5 z-50"
                   style={{
-                    background: "#ffffff",
-                    border: "1px solid #e5e7eb",
+                    background: "var(--ds-surface)",
+                    border: "1px solid var(--ds-border)",
                     borderRadius: 8,
                     overflow: "hidden",
                     minWidth: 200,
@@ -438,28 +439,28 @@ function AppShell() {
                   {PERSONA_DEFS.map(px => {
                     const pxName = t(px.nameKey)
                     const pxSub  = t(px.subKey)
+                    const isSelected = persona === px.id
                     return (
                       <button
                         key={px.id}
                         onClick={() => { switchPersona(px.id); setPersonaOpen(false) }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left"
+                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left ${
+                          isSelected ? "bg-[var(--ds-accent-bg)]" : "hover:bg-[var(--ds-surface-hover)]"
+                        }`}
                         style={{
                           fontSize: 11,
-                          color: persona === px.id ? "#4f46e5" : "#374151",
-                          fontWeight: persona === px.id ? 600 : 400,
-                          background: persona === px.id ? "#eef2ff" : "transparent",
-                          borderLeft: `2px solid ${persona === px.id ? "#4f46e5" : "transparent"}`,
+                          color: isSelected ? "var(--ds-accent)" : "var(--ds-fg-secondary)",
+                          fontWeight: isSelected ? 600 : 400,
+                          borderLeft: `2px solid ${isSelected ? "var(--ds-accent)" : "transparent"}`,
                         }}
-                        onMouseEnter={e => { if (persona !== px.id) (e.currentTarget as HTMLElement).style.background = "#f8fafc" }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = persona === px.id ? "#eef2ff" : "transparent" }}
                       >
                         <span
                           className="flex-none flex items-center justify-center text-white font-black"
-                          style={{ width: 20, height: 20, background: persona === px.id ? "#4f46e5" : "#e5e7eb", color: persona === px.id ? "#fff" : "#6b7280", borderRadius: 5, fontSize: 10 }}
+                          style={{ width: 20, height: 20, background: isSelected ? "var(--ds-accent)" : "var(--ds-border)", color: isSelected ? "#fff" : "var(--ds-muted)", borderRadius: 5, fontSize: 10 }}
                         >{pxName[0]}</span>
                         <div className="flex flex-col gap-0.5">
                           <span>{pxName}</span>
-                          <span style={{ fontSize: 9.5, color: "#9ca3af", fontWeight: 400 }}>{pxSub}</span>
+                          <span style={{ fontSize: 9.5, color: "var(--ds-subtle)", fontWeight: 400 }}>{pxSub}</span>
                         </div>
                       </button>
                     )
@@ -472,11 +473,11 @@ function AppShell() {
             <button
               onClick={() => void setLang(lang === "en" ? "es" : "en")}
               className="flex items-center gap-0.5 font-mono font-semibold"
-              style={{ fontSize: 10.5, background: "#f8fafc", border: "1px solid #e5e7eb", color: "#374151", borderRadius: 6, padding: "3px 10px", letterSpacing: "0.04em" }}
+              style={{ fontSize: 10.5, background: "var(--ds-surface-hover)", border: "1px solid var(--ds-border)", color: "var(--ds-fg-secondary)", borderRadius: 6, padding: "3px 10px", letterSpacing: "0.04em" }}
             >
-              <span style={{ color: lang === "en" ? "#4f46e5" : "#9ca3af" }}>EN</span>
+              <span style={{ color: lang === "en" ? "var(--ds-accent)" : "var(--ds-subtle)" }}>EN</span>
               <span style={{ color: "#d1d5db", margin: "0 3px" }}>|</span>
-              <span style={{ color: lang === "es" ? "#4f46e5" : "#9ca3af" }}>ES</span>
+              <span style={{ color: lang === "es" ? "var(--ds-accent)" : "var(--ds-subtle)" }}>ES</span>
             </button>
 
             {/* Refresh */}
@@ -484,7 +485,7 @@ function AppShell() {
               onClick={handleRefresh}
               disabled={refreshing}
               className="px-3 py-1.5 font-semibold disabled:opacity-50"
-              style={{ fontSize: 11, background: "#f8fafc", border: "1px solid #e5e7eb", color: "#374151", borderRadius: 6 }}
+              style={{ fontSize: 11, background: "var(--ds-surface-hover)", border: "1px solid var(--ds-border)", color: "var(--ds-fg-secondary)", borderRadius: 6 }}
             >
               {refreshing ? t("app.syncing_btn") : t("app.refresh")}
             </button>
@@ -496,9 +497,9 @@ function AppShell() {
               className="px-3 py-1.5 font-semibold"
               style={{
                 fontSize: 11,
-                background: showDemo ? "#4f46e5" : "#f8fafc",
-                border: `1px solid ${showDemo ? "#4f46e5" : "#e5e7eb"}`,
-                color: showDemo ? "#fff" : "#6b7280",
+                background: showDemo ? "var(--ds-accent)" : "var(--ds-surface-hover)",
+                border: `1px solid ${showDemo ? "var(--ds-accent)" : "var(--ds-border)"}`,
+                color: showDemo ? "#fff" : "var(--ds-muted)",
                 borderRadius: 6,
               }}
             >
@@ -511,9 +512,9 @@ function AppShell() {
               className="flex items-center justify-center"
               style={{
                 width: 32, height: 32,
-                fontSize: 14, color: "#9ca3af",
-                background: "#f8fafc",
-                border: "1px solid #e5e7eb",
+                fontSize: 14, color: "var(--ds-subtle)",
+                background: "var(--ds-surface-hover)",
+                border: "1px solid var(--ds-border)",
                 borderRadius: 6,
               }}
             >
@@ -551,7 +552,7 @@ function AppShell() {
                   <button
                     onClick={() => setFocus(null)}
                     className="font-semibold"
-                    style={{ fontSize: 10.5, padding: "1px 8px", border: "1px solid #d97706", background: "#fffbeb", color: "#b45309", borderRadius: 5 }}
+                    style={{ fontSize: 10.5, padding: "1px 8px", border: "1px solid var(--ds-amber)", background: "#fffbeb", color: "#b45309", borderRadius: 5 }}
                   >
                     {t("app.tracking", focus)} ✕
                   </button>
@@ -570,7 +571,7 @@ function AppShell() {
               <button
                 onClick={() => goStory(1)}
                 className="flex items-center gap-1 px-2.5 py-1 font-semibold"
-                style={{ fontSize: 11, background: "#4f46e5", color: "#fff", border: "1px solid #4f46e5", borderRadius: 5 }}
+                style={{ fontSize: 11, background: "var(--ds-accent)", color: "#fff", border: "1px solid var(--ds-accent)", borderRadius: 5 }}
               >
                 {storyExpanded ? t("app.next") : "→"}
               </button>
@@ -581,18 +582,18 @@ function AppShell() {
         {/* ── Main content ──────────────────────────────────────────────────── */}
         <div
           className="col-start-2 row-start-3 min-w-0 min-h-0 overflow-hidden relative"
-          style={{ background: "#f1f5f9" }}
+          style={{ background: "var(--ds-background)" }}
         >
           {!ok ? (
             <div className="h-full flex items-start p-5">
               <div
                 className="p-5"
-                style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, maxWidth: 420, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
+                style={{ background: "var(--ds-surface)", border: "1px solid var(--ds-border)", borderRadius: 8, maxWidth: 420, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
               >
-                <div className="font-semibold text-[13px] mb-1" style={{ color: "#111827" }}>
+                <div className="font-semibold text-[13px] mb-1" style={{ color: "var(--ds-fg)" }}>
                   {t("app.noAccess", pName, crumb)}
                 </div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>{t("app.switchPersona")}</div>
+                <div style={{ fontSize: 12, color: "var(--ds-muted)" }}>{t("app.switchPersona")}</div>
               </div>
             </div>
           ) : screen === "liveops"  ? <LiveOps       onNavigate={navigate} />

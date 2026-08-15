@@ -39,7 +39,8 @@ const KIND_BADGE: Record<ResultKind, string> = {
   event: "Event",
 }
 
-// Status palette — container=blue, move=purple, visit=green, event=red
+// Status palette — keep raw hex here because values are used for alpha-suffix
+// concatenation (`KIND_COLOR[r.kind] + "15"`), which doesn't work with var().
 const KIND_COLOR: Record<ResultKind, string> = {
   container: "#2563eb",
   move: "#7c3aed",
@@ -172,15 +173,15 @@ export default function CommandPalette({ open, onClose, onNavigate }: Props) {
           style={{
             maxHeight: "60vh",
             borderRadius: 12,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ds-border)",
             boxShadow: "0 20px 40px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.08)",
           }}
           aria-label="Search command palette"
           onEscapeKeyDown={onClose}
         >
           {/* Input row */}
-          <div className="flex items-center gap-2 px-4 py-3.5 flex-none" style={{ borderBottom: "1px solid #f3f4f6" }}>
-            <span style={{ color: "#9ca3af", fontSize: 16, lineHeight: 1 }}>⌕</span>
+          <div className="flex items-center gap-2 px-4 py-3.5 flex-none" style={{ borderBottom: "1px solid var(--ds-border-lt)" }}>
+            <span style={{ color: "var(--ds-subtle)", fontSize: 16, lineHeight: 1 }}>⌕</span>
             <input
               ref={inputRef}
               value={query}
@@ -188,20 +189,20 @@ export default function CommandPalette({ open, onClose, onNavigate }: Props) {
               onKeyDown={handleKey}
               placeholder="Search container, plate, order, move, event…"
               className="flex-1 text-[13.5px] outline-none bg-transparent placeholder:text-[#c4c9d4]"
-              style={{ color: "#111827" }}
+              style={{ color: "var(--ds-fg)" }}
             />
             {query && (
               <button
                 onClick={() => { setQuery(""); inputRef.current?.focus() }}
                 className="flex items-center justify-center"
-                style={{ width: 20, height: 20, borderRadius: 5, background: "#f3f4f6", color: "#9ca3af", fontSize: 11 }}
+                style={{ width: 20, height: 20, borderRadius: 5, background: "var(--ds-border-lt)", color: "var(--ds-subtle)", fontSize: 11 }}
               >
                 ✕
               </button>
             )}
             <kbd
-              className="text-[10px] text-[#9ca3af] font-mono select-none"
-              style={{ border: "1px solid #e5e7eb", borderRadius: 5, padding: "2px 6px", background: "#f9fafb" }}
+              className="text-[10px] text-[var(--ds-subtle)] font-mono select-none"
+              style={{ border: "1px solid var(--ds-border)", borderRadius: 5, padding: "2px 6px", background: "var(--ds-surface-hover)" }}
             >
               ESC
             </kbd>
@@ -210,12 +211,12 @@ export default function CommandPalette({ open, onClose, onNavigate }: Props) {
           {/* Results */}
           <div className="flex-1 overflow-auto">
             {!query.trim() ? (
-              <div className="px-5 py-10 text-center" style={{ fontSize: 12.5, color: "#9ca3af" }}>
+              <div className="px-5 py-10 text-center" style={{ fontSize: 12.5, color: "var(--ds-subtle)" }}>
                 Type to search containers, moves, visits, or events
               </div>
             ) : results.length === 0 ? (
-              <div className="px-5 py-10 text-center" style={{ fontSize: 12.5, color: "#9ca3af" }}>
-                No results for <strong style={{ color: "#6b7280" }}>"{query}"</strong>
+              <div className="px-5 py-10 text-center" style={{ fontSize: 12.5, color: "var(--ds-subtle)" }}>
+                No results for <strong style={{ color: "var(--ds-muted)" }}>"{query}"</strong>
               </div>
             ) : (
               <ul ref={listRef} role="listbox" aria-label="Search results" className="py-1.5 px-1.5">
@@ -230,12 +231,12 @@ export default function CommandPalette({ open, onClose, onNavigate }: Props) {
                     style={{
                       minHeight: 40,
                       borderRadius: 7,
-                      background: i === activeIdx ? "#eef2ff" : "transparent",
+                      background: i === activeIdx ? "var(--ds-accent-bg)" : "transparent",
                       paddingTop: 8,
                       paddingBottom: 8,
                     }}
                   >
-                    {/* Kind badge */}
+                    {/* Kind badge — raw hex kept because values are alpha-suffixed */}
                     <span
                       className="flex-none text-[9px] font-bold tracking-wider uppercase"
                       style={{
@@ -254,8 +255,8 @@ export default function CommandPalette({ open, onClose, onNavigate }: Props) {
 
                     {/* Label + sub */}
                     <span className="flex-1 min-w-0">
-                      <span className="font-bold text-[13px] font-mono" style={{ color: "#111827" }}>{r.label}</span>
-                      <span className="ml-2 text-[11.5px] truncate" style={{ color: "#9ca3af" }}>{r.sub}</span>
+                      <span className="font-bold text-[13px] font-mono" style={{ color: "var(--ds-fg)" }}>{r.label}</span>
+                      <span className="ml-2 text-[11.5px] truncate" style={{ color: "var(--ds-subtle)" }}>{r.sub}</span>
                     </span>
 
                     {/* Destination screen */}
@@ -272,15 +273,15 @@ export default function CommandPalette({ open, onClose, onNavigate }: Props) {
           {results.length > 0 && (
             <div
               className="flex items-center gap-4 px-4 py-2.5 flex-none"
-              style={{ borderTop: "1px solid #f3f4f6", background: "#f9fafb", fontSize: 10.5, color: "#9ca3af", borderRadius: "0 0 12px 12px" }}
+              style={{ borderTop: "1px solid var(--ds-border-lt)", background: "var(--ds-surface-hover)", fontSize: 10.5, color: "var(--ds-subtle)", borderRadius: "0 0 12px 12px" }}
             >
               <span>
-                <kbd className="font-mono border border-[#e5e7eb] px-1 rounded" style={{ background: "#fff" }}>↑</kbd>{" "}
-                <kbd className="font-mono border border-[#e5e7eb] px-1 rounded" style={{ background: "#fff" }}>↓</kbd>{" "}
+                <kbd className="font-mono border border-[var(--ds-border)] px-1 rounded" style={{ background: "#fff" }}>↑</kbd>{" "}
+                <kbd className="font-mono border border-[var(--ds-border)] px-1 rounded" style={{ background: "#fff" }}>↓</kbd>{" "}
                 navigate
               </span>
-              <span><kbd className="font-mono border border-[#e5e7eb] px-1 rounded" style={{ background: "#fff" }}>↵</kbd> open</span>
-              <span><kbd className="font-mono border border-[#e5e7eb] px-1 rounded" style={{ background: "#fff" }}>Esc</kbd> close</span>
+              <span><kbd className="font-mono border border-[var(--ds-border)] px-1 rounded" style={{ background: "#fff" }}>↵</kbd> open</span>
+              <span><kbd className="font-mono border border-[var(--ds-border)] px-1 rounded" style={{ background: "#fff" }}>Esc</kbd> close</span>
               <span className="ml-auto font-mono">{results.length} result{results.length !== 1 ? "s" : ""}</span>
             </div>
           )}

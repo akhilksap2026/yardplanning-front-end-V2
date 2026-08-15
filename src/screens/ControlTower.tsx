@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import TabBar from "@/components/ui/TabBar"
 import { useData } from "@/lib/DataContext"
 import type { Event } from "@/data/yard-ops"
 import { backendApi } from "@/lib/backend-api"
@@ -7,6 +8,7 @@ import { computePlanDiff, slotAddressById, REASON_LABELS } from "@/lib/backend-a
 import ContainerPicker from "@/components/ContainerPicker"
 import InventoryTab from "@/components/InventoryTab"
 import { useLang } from "@/lib/i18n"
+import { fmtTime } from "@/utils/time"
 
 interface Props {
   focus: string | null
@@ -48,7 +50,7 @@ const DISRUPTION_SEVERITY: Record<DisruptionType, "high" | "medium" | "low"> = {
   out_of_sequence_arrival: "low",
 }
 
-const SEV_COLOR: Record<string, string> = { high: "#dc2626", medium: "#d97706", low: "#2563eb" }
+const SEV_COLOR: Record<string, string> = { high: "var(--ds-red)", medium: "var(--ds-amber)", low: "#2563eb" }
 
 type EngineDiffRow  = { moveId: string; action: string; type: string; before: string; after: string; note: string }
 type EngineDiffStats = { cancelled: number; added: number; reassigned: number; frozenKept: number; deltaMin: number | string; adherence: number | string }
@@ -57,8 +59,8 @@ type EngineDiffStats = { cancelled: number; added: number; reassigned: number; f
 function statusLabel(e: Event, acked: Set<string>): { text: string; color: string; bg: string } {
   if (acked.has(e.id))        return { text: "Done",       color: "#15803d", bg: "#f0fdf4" }
   if (e.state === "replanned") return { text: "Resolved",   color: "#2563eb", bg: "#eff6ff" }
-  if (e.state === "suppressed")return { text: "No change",  color: "#6b7280", bg: "#f3f4f6" }
-  return                              { text: "Needs action", color: "#d97706", bg: "#fffbeb" }
+  if (e.state === "suppressed")return { text: "No change",  color: "var(--ds-muted)",  bg: "var(--ds-border-lt)" }
+  return                              { text: "Needs action", color: "var(--ds-amber)", bg: "#fffbeb" }
 }
 
 export default function ControlTower({ focus, onNavigate }: Props) {
@@ -172,8 +174,8 @@ export default function ControlTower({ focus, onNavigate }: Props) {
       {modalOpen && (
         <>
           <div className="fixed inset-0 z-20 bg-black/40" onClick={() => setModalOpen(false)} />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[420px] bg-white" style={{ border: "1px solid #e5e7eb", borderRadius: 6 }}>
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[#e5e7eb]">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[420px] bg-white" style={{ border: "1px solid var(--ds-border)", borderRadius: 6 }}>
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[var(--ds-border)]">
               <div className="font-semibold text-[15px]">Simulate a disruption</div>
               <button onClick={() => setModalOpen(false)} className="text-neutral-400 hover:text-neutral-800 text-sm">✕</button>
             </div>
@@ -181,7 +183,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
               <div>
                 <div className="ds-label mb-1">{t("tower.whatHappened")}</div>
                 <select value={modalType} onChange={e => { setModalType(e.target.value as DisruptionType); setModalJockey("") }}
-                  className="w-full border border-[#e5e7eb] px-3 py-2 text-[12.5px] bg-white" style={{ borderRadius: 5 }}>
+                  className="w-full border border-[var(--ds-border)] px-3 py-2 text-[12.5px] bg-white" style={{ borderRadius: 5 }}>
                   {DISRUPTION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
@@ -194,7 +196,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                 <div>
                   <div className="ds-label mb-1">{t("tower.affectedOperator")}</div>
                   <select value={modalJockey} onChange={e => setModalJockey(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="w-full border border-[#e5e7eb] px-3 py-2 text-[12.5px] bg-white" style={{ borderRadius: 5 }}>
+                    className="w-full border border-[var(--ds-border)] px-3 py-2 text-[12.5px] bg-white" style={{ borderRadius: 5 }}>
                     <option value="">{t("tower.noneOperator")}</option>
                     {backendJockeys.map(j => <option key={j.id} value={j.id}>{j.name} · {j.status}</option>)}
                   </select>
@@ -204,12 +206,12 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                 <div className="ds-label mb-1">{t("tower.notes")} <span className="normal-case text-neutral-400 tracking-normal">(optional)</span></div>
                 <textarea rows={2} placeholder={`Describe the ${DISRUPTION_LABELS[modalType].toLowerCase()}…`}
                   value={modalDescription} onChange={e => setModalDescription(e.target.value)}
-                  className="w-full border border-[#e5e7eb] px-3 py-2 text-[12.5px] resize-none" style={{ borderRadius: 5 }} />
+                  className="w-full border border-[var(--ds-border)] px-3 py-2 text-[12.5px] resize-none" style={{ borderRadius: 5 }} />
               </div>
             </div>
             <div className="px-5 pb-4 flex justify-between items-center">
-              <button onClick={() => setModalOpen(false)} className="text-xs px-3 py-2 border border-[#e5e7eb] text-[#374151] bg-white" style={{ borderRadius: 5 }}>{t("common.cancel")}</button>
-              <button onClick={handleInject} disabled={injecting} className="text-xs px-3 py-2 text-white" style={{ background: "#111827", borderRadius: 5, opacity: injecting ? 0.6 : 1 }}>
+              <button onClick={() => setModalOpen(false)} className="text-xs px-3 py-2 border border-[var(--ds-border)] text-[var(--ds-fg-secondary)] bg-white" style={{ borderRadius: 5 }}>{t("common.cancel")}</button>
+              <button onClick={handleInject} disabled={injecting} className="text-xs px-3 py-2 text-white" style={{ background: "var(--ds-fg)", borderRadius: 5, opacity: injecting ? 0.6 : 1 }}>
                 {injecting ? "Submitting…" : t("tower.submitDisruption")}
               </button>
             </div>
@@ -218,7 +220,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
       )}
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 px-5 pt-3 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
+      <div className="flex items-center gap-4 px-5 pt-3 pb-3 border-b border-[var(--ds-border)] flex-none bg-white">
         <div className="flex flex-col gap-0.5">
           <span className="font-semibold text-[15px] tracking-tight">{t("tower.title")}</span>
           <span className="text-[11px] text-neutral-500">{t("tower.subtitle")}</span>
@@ -226,27 +228,26 @@ export default function ControlTower({ focus, onNavigate }: Props) {
         <div className="ml-auto flex gap-2">
           <div title={!backendConnected ? "Requires backend connection" : undefined}>
             <button disabled={!backendConnected} onClick={() => setModalOpen(true)}
-              className="text-xs px-3 py-2 border border-[#e5e7eb] text-[#374151] bg-white" style={{ borderRadius: 5, opacity: !backendConnected ? 0.5 : 1 }}>
+              className="text-xs px-3 py-2 border border-[var(--ds-border)] text-[var(--ds-fg-secondary)] bg-white" style={{ borderRadius: 5, opacity: !backendConnected ? 0.5 : 1 }}>
               {t("tower.simulateDisruption")}
             </button>
           </div>
           <button onClick={() => selEvent && setAcked(prev => new Set(prev).add(selEvent.id))} disabled={ackedEvent}
-            className="text-xs px-3 py-2 text-white" style={{ background: "#111827", borderRadius: 5, opacity: ackedEvent ? 0.5 : 1 }}>
+            className="text-xs px-3 py-2 text-white" style={{ background: "var(--ds-fg)", borderRadius: 5, opacity: ackedEvent ? 0.5 : 1 }}>
             {ackedEvent ? t("tower.acknowledged") : t("tower.acknowledge")}
           </button>
         </div>
       </div>
 
       {/* ── Tab bar ──────────────────────────────────────────────────────────── */}
-      <div className="flex flex-none border-b bg-white" style={{ borderColor: "#e5e7eb" }}>
-        {(["events", "inventory"] as const).map(k => (
-          <button key={k} onClick={() => setTab(k)}
-            className="text-[11.5px] px-4 py-2.5 font-bold transition-colors"
-            style={{ background: tab === k ? "#111827" : "transparent", color: tab === k ? "#fff" : "#374151" }}>
-            {k === "events" ? t("tower.alerts") : t("tower.inventory")}
-          </button>
-        ))}
-      </div>
+      <TabBar
+        items={[
+          { id: "events",    label: t("tower.alerts")    },
+          { id: "inventory", label: t("tower.inventory") },
+        ]}
+        active={tab}
+        onChange={id => setTab(id as typeof tab)}
+      />
 
       {tab === "inventory" && <InventoryTab />}
 
@@ -255,7 +256,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
 
           {/* ── Replan banner ──────────────────────────────────────────────── */}
           {replanBanner && (
-            <div className="flex items-center gap-3 px-5 py-2 border-b border-[#e5e7eb] flex-none bg-white">
+            <div className="flex items-center gap-3 px-5 py-2 border-b border-[var(--ds-border)] flex-none bg-white">
               <span className="text-[11px] font-bold tracking-wide" style={{ color: "#059669" }}>{t("tower.planUpdated")}</span>
               <span className="text-[12px] text-neutral-700">
                 {t("tower.engineAdjusted")} <span className="font-semibold">{replanBanner.reassigned} moves</span>
@@ -270,17 +271,17 @@ export default function ControlTower({ focus, onNavigate }: Props) {
           )}
 
           {/* ── KPI strip ──────────────────────────────────────────────────── */}
-          <div className="flex border-b border-[#e5e7eb] flex-none bg-white">
+          <div className="flex border-b border-[var(--ds-border)] flex-none bg-white">
             {[
               { k: t("tower.kpi.alertsToday"),   v: String(events.length + localDisruptions.length), sub: t("tower.kpi.sinceShift") },
               { k: t("tower.kpi.replans"),        v: String(5 + (replanBanner ? 1 : 0)),              sub: "engine-generated" },
               { k: t("tower.kpi.adherence"),      v: "89%",                                            sub: "target ≥ 85%" },
               { k: t("tower.kpi.needsAttn"),      v: String(awaitingCount),                            sub: awaitingCount > 0 ? t("tower.kpi.awaiting") : t("tower.kpi.allClear"), red: awaitingCount > 0 },
             ].map(m => (
-              <div key={m.k} className="flex-1 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-0.5">
+              <div key={m.k} className="flex-1 px-5 py-2.5 border-r border-[var(--ds-border)] flex flex-col gap-0.5">
                 <span className="ds-label">{m.k}</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-mono font-semibold leading-none" style={{ fontSize: 24, color: (m as { red?: boolean }).red ? "#dc2626" : undefined }}>{m.v}</span>
+                  <span className="font-mono font-semibold leading-none" style={{ fontSize: 24, color: (m as { red?: boolean }).red ? "var(--ds-red)" : undefined }}>{m.v}</span>
                   <span className="text-[11px] text-neutral-500">{m.sub}</span>
                 </div>
               </div>
@@ -291,17 +292,17 @@ export default function ControlTower({ focus, onNavigate }: Props) {
           <div className="grid flex-1 min-h-0 overflow-hidden" style={{ gridTemplateColumns: "clamp(260px,28vw,360px) minmax(340px,1fr)" }}>
 
             {/* ── Left: event list ─────────────────────────────────────────── */}
-            <div className="border-r border-[#e5e7eb] flex flex-col overflow-hidden bg-white">
+            <div className="border-r border-[var(--ds-border)] flex flex-col overflow-hidden bg-white">
 
               {/* Category filter chips */}
-              <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b border-[#e5e7eb]">
+              <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border-b border-[var(--ds-border)]">
                 {cats.map(c => (
                   <button key={c} onClick={() => setCat(c)}
                     className="text-[10.5px] font-bold px-2.5 py-1 transition-colors"
                     style={{
                       borderRadius: 4,
-                      background: cat === c ? "#111827" : "#f3f4f6",
-                      color:      cat === c ? "#fff"    : "#374151",
+                      background: cat === c ? "var(--ds-fg)" : "var(--ds-border-lt)",
+                      color:      cat === c ? "#fff"    : "var(--ds-fg-secondary)",
                     }}>
                     {c === "ALL" ? t("tower.tab.all") : c}
                   </button>
@@ -316,7 +317,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                   const stat = statusLabel(e, acked)
                   return (
                     <button key={e.id} onClick={() => setSel(e.id)}
-                      className="block w-full text-left px-4 py-3 border-b border-[#f3f4f6] hover:bg-[#f9fafb] transition-colors"
+                      className="block w-full text-left px-4 py-3 border-b border-[var(--ds-border-lt)] hover:bg-[var(--ds-surface-hover)] transition-colors"
                       style={{
                         borderLeft: `3px solid ${isSelected ? dot : "transparent"}`,
                         background: isSelected ? "#fafafa" : undefined,
@@ -341,17 +342,16 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                 {/* Backend disruptions */}
                 {localDisruptions.length > 0 && (
                   <>
-                    <div className="px-4 py-2 bg-[#f9fafb] border-b border-t border-[#e5e7eb]">
+                    <div className="px-4 py-2 bg-[var(--ds-surface-hover)] border-b border-t border-[var(--ds-border)]">
                       <span className="ds-label">{t("tower.simulatedCount")}</span>
                       <span className="ml-2 text-[10px] text-neutral-400 font-mono">{localDisruptions.length} {t("tower.thisSession")}</span>
                     </div>
                     {localDisruptions.map(d => {
                       const sev   = DISRUPTION_SEVERITY[d.event_type] ?? "low"
                       const color = SEV_COLOR[sev]
-                      const ts    = new Date(d.occurred_at)
-                      const time  = `${String(ts.getHours()).padStart(2, "0")}:${String(ts.getMinutes()).padStart(2, "0")}`
+                      const time  = fmtTime(d.occurred_at)
                       return (
-                        <div key={d.id} className="px-4 py-3 border-b border-[#f3f4f6]" style={{ borderLeft: `3px solid ${color}` }}>
+                        <div key={d.id} className="px-4 py-3 border-b border-[var(--ds-border-lt)]" style={{ borderLeft: `3px solid ${color}` }}>
                           <div className="flex justify-between gap-2 mb-0.5">
                             <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color }}>{DISRUPTION_LABELS[d.event_type]}</span>
                             <span className="font-mono text-[10px] text-neutral-400">{time}</span>
@@ -377,7 +377,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
             <div className="flex flex-col min-h-0 overflow-auto bg-white">
 
               {/* Event header */}
-              <div className="px-5 pt-4 pb-3 border-b border-[#e5e7eb]">
+              <div className="px-5 pt-4 pb-3 border-b border-[var(--ds-border)]">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="rounded-full flex-none" style={{ width: 8, height: 8, background: SEV_COLOR[selEvent.severity] ?? SEV_COLOR.low }} />
                   <span className="text-[10.5px] font-bold uppercase tracking-widest" style={{ color: SEV_COLOR[selEvent.severity] ?? SEV_COLOR.low }}>
@@ -391,7 +391,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
 
               {/* Plan impact summary */}
               {activeDiffStats && (
-                <div className="px-5 py-3 border-b border-[#e5e7eb] bg-[#f0fdf4]">
+                <div className="px-5 py-3 border-b border-[var(--ds-border)] bg-[#f0fdf4]">
                   <div className="text-[11px] font-bold uppercase tracking-widest text-emerald-700 mb-1">{t("tower.engineResponse")}</div>
                   <div className="text-[13px] text-neutral-800 leading-relaxed">
                     {t("tower.planAdjusted")}
@@ -437,16 +437,16 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                         </thead>
                         <tbody>
                           {activeDiffRows.map((r, i) => {
-                            const actionColor = (r as { action: string }).action === "CANCELLED" ? "#dc2626"
+                            const actionColor = (r as { action: string }).action === "CANCELLED" ? "var(--ds-red)"
                               : (r as { action: string }).action === "ADDED" ? "#059669"
-                              : (r as { action: string }).action === "HELD"  ? "#9ca3af"
-                              : "#d97706"
+                              : (r as { action: string }).action === "HELD"  ? "var(--ds-subtle)"
+                              : "var(--ds-amber)"
                             const actionLabel = (r as { action: string }).action === "CANCELLED" ? "Removed"
                               : (r as { action: string }).action === "ADDED" ? "Added"
                               : (r as { action: string }).action === "REASSIGNED" ? "Reassigned"
                               : "Kept"
                             return (
-                              <tr key={(r as { moveId: string }).moveId + i} className="border-b border-[#f3f4f6]">
+                              <tr key={(r as { moveId: string }).moveId + i} className="border-b border-[var(--ds-border-lt)]">
                                 <td className="py-2 pl-5 pr-2 align-top">
                                   <div className="font-mono font-semibold text-[11.5px]">{(r as { moveId: string }).moveId}</div>
                                   <div className="text-[10px] font-bold mt-0.5" style={{ color: actionColor }}>{actionLabel}</div>
@@ -465,7 +465,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                                         value={live.state}
                                         disabled={patchingMove === moveId}
                                         onChange={e => handleMoveStateChange(moveId, e.target.value)}
-                                        className="border border-[#e5e7eb] bg-white text-[11px] px-1.5 py-1"
+                                        className="border border-[var(--ds-border)] bg-white text-[11px] px-1.5 py-1"
                                         style={{ borderRadius: 4, opacity: patchingMove === moveId ? 0.5 : 1 }}>
                                         {["PLANNED", "ASSIGNED", "IN_PROGRESS"].map(s => (
                                           <option key={s} value={s}>{s === "IN_PROGRESS" ? "In progress" : s.charAt(0) + s.slice(1).toLowerCase()}</option>

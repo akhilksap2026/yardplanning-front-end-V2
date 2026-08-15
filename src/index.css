@@ -33,14 +33,17 @@
     --ds-sidebar:       #ffffff;
     --ds-sidebar-bdr:   #e5e7eb;
     --ds-fg:            #111827;
-    --ds-muted:         #6b7280;
-    --ds-subtle:        #9ca3af;
+    --ds-muted:         #4b5563;   /* gray-600 — secondary body text, 7:1 on white */
+    --ds-subtle:        #6b7280;   /* gray-500 — de-emphasis labels/headers, 4.6:1 on white ✓ AA */
+    --ds-decorative:    #9ca3af;   /* gray-400 — borders, dividers, purely decorative (no contrast req) */
     --ds-border:        #e5e7eb;
     --ds-border-lt:     #f3f4f6;
     --ds-accent:        #4f46e5;
     --ds-accent-bg:     #eef2ff;
     --ds-accent-border: #c7d2fe;
     --ds-active-nav:    rgba(79,70,229,0.08);
+    --ds-fg-secondary:  #374151;   /* secondary / body text — one step lighter than --ds-fg */
+    --ds-surface-hover: #f8fafc;   /* row / item hover background (#f8fafc ≈ #f9fafb unified) */
 
     /* ── Status palette (only these, nowhere else) ─────────────────── */
     --ds-blue:   #2563eb;
@@ -93,9 +96,9 @@
 
 /* ── Design-system utility classes ─────────────────────────────────── */
 
-/* Label: 9px uppercase 0.1em tracking, subtle color */
+/* Label: 10px uppercase 0.1em tracking, subtle color */
 .ds-label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -139,7 +142,7 @@
 /* Table header cell */
 .ds-th {
   background: #f8fafc;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;

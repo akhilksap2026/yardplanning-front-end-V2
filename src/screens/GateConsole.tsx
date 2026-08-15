@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react"
+import TabBar             from "@/components/ui/TabBar"
 import { Button } from "@/components/ui/button"
 import { useData } from "@/lib/DataContext"
 import type { Visit } from "@/data/yard-ops"
 import { backendApi, type BackendGateTransaction, type LiveGateRow } from "@/lib/backend-api"
 import ContainerPicker from "@/components/ContainerPicker"
 import { computeRehandleCost } from "@/lib/utils"
+import { fmtTime, fmtTimestamp } from "@/utils/time"
 import GateInspection from "@/components/gate/GateInspection"
 import { allSteps } from "@/data/planningData"
 import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
@@ -220,10 +222,6 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     }).sort((a,b)=>b.latestAt-a.latestAt)
   })()
 
-  function fmtTime(iso:string|null):string {
-    if (!iso) return "—"
-    const d=new Date(iso); return d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})
-  }
   function fmtTurnaround(inIso:string|null,outIso:string|null):string {
     if (!inIso) return "—"
     const mins=Math.round((( outIso?new Date(outIso).getTime():Date.now())-new Date(inIso).getTime())/60_000)
@@ -345,26 +343,10 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
 
       {/* Header */}
-      <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
+      <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[var(--ds-border)] flex-none bg-white">
         <div className="flex flex-col gap-1">
           <span className="font-semibold text-[15px] tracking-tight">{t("gate.title")}</span>
           <span className="text-[11px] text-neutral-500">{t("gate.subtitle")}</span>
-        </div>
-        <div className="flex ml-3" style={{ border:"1px solid #e5e7eb", borderRadius:5, overflow:"hidden" }}>
-          {([
-            { k:"visits",    label:t("gate.tab.visits") },
-            { k:"inbound",   label:t("gate.tab.inbound", inboundRows.length) },
-            { k:"outbound",  label:t("gate.tab.outbound", outboundRows.length) },
-            { k:"gtx",       label:t("gate.tab.transactions") },
-            { k:"appts",     label:t("gate.tab.appointments") },
-            { k:"inspection",label:t("gate.tab.inspection") },
-          ] as const).map(({ k, label }) => (
-            <button key={k} onClick={()=>setTab(k)}
-              className="text-[11.5px] px-3 py-1.5 font-bold transition-colors"
-              style={{ background:tab===k?"#111827":"transparent", color:tab===k?"#fff":"#374151" }}>
-              {label}
-            </button>
-          ))}
         </div>
         <div className="ml-auto">
           {tab==="gtx"&&backendConnected ? (
@@ -380,6 +362,20 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           )}
         </div>
       </div>
+
+      {/* ── Tab bar ──────────────────────────────────────────────────────────── */}
+      <TabBar
+        items={[
+          { id: "visits",    label: t("gate.tab.visits")                       },
+          { id: "inbound",   label: t("gate.tab.inbound",   inboundRows.length)  },
+          { id: "outbound",  label: t("gate.tab.outbound",  outboundRows.length) },
+          { id: "gtx",       label: t("gate.tab.transactions")                 },
+          { id: "appts",     label: t("gate.tab.appointments")                 },
+          { id: "inspection",label: t("gate.tab.inspection")                   },
+        ]}
+        active={tab}
+        onChange={id => setTab(id as typeof tab)}
+      />
 
       {/* ── Collapsible KPI bar — computed live from inbound/outbound rows ─── */}
       {(() => {
@@ -1084,7 +1080,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                   <span className="flex items-center gap-1 text-[10px] text-[#059669] font-medium px-2 py-0.5 rounded"
                     style={{ background:"#f0fdf4" }}>
                     <span className="w-1.5 h-1.5 rounded-full bg-[#059669] inline-block animate-pulse" />
-                    Live · {fetchedAt.slice(11,19)} UTC
+                    Live · {fmtTimestamp(fetchedAt)} UTC
                   </span>
                 )}
               </div>
