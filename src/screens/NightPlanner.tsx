@@ -82,6 +82,23 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   const [publishing,   setPublishing]   = useState(false)
   const [configOpen,   setConfigOpen]   = useState(false)
   const [wRaw,         setWRaw]         = useState([35, 40, 25])
+
+  // ── Constraint toggles + weights ────────────────────────────────────────────
+  type ConstraintState = { enabled: boolean; weight: number }
+  const CONSTRAINT_KEYS = [
+    "Size eligibility","Reefer match","Slot status","Tier status","Weight limits","Max stack height",
+    "Hazmat allowed","Spatial hazmat segregation","Active holds",
+    "Certification","Chassis prerequisites",
+  ]
+  const [constraints, setConstraints] = useState<Record<string, ConstraintState>>(
+    () => Object.fromEntries(CONSTRAINT_KEYS.map(k => [k, { enabled: true, weight: 50 }]))
+  )
+  function toggleConstraint(k: string) {
+    setConstraints(prev => ({ ...prev, [k]: { ...prev[k], enabled: !prev[k].enabled } }))
+  }
+  function setConstraintWeight(k: string, w: number) {
+    setConstraints(prev => ({ ...prev, [k]: { ...prev[k], weight: w } }))
+  }
   const [planSource,   setPlanSource]   = useState<PlanSource>("seed")
   const [generating,   setGenerating]   = useState(false)
   const [confirming,   setConfirming]   = useState(false)
@@ -468,18 +485,59 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     {group.desc}
                   </div>
                 </div>
-                {/* Items — detail shown in tooltip on hover */}
-                <div className="flex flex-col gap-1.5">
-                  {group.items.map(item => (
-                    <div key={item.name} className="relative group/rule flex items-center gap-1 cursor-default">
-                      <span className="text-[11.5px] font-semibold text-neutral-800 leading-tight">{item.name}</span>
-                      <span className="text-[9px] text-[#c4c9d4] select-none">ⓘ</span>
-                      <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover/rule:block w-64
-                        bg-[#111827] text-white text-[10px] leading-snug rounded px-3 py-2 shadow-lg pointer-events-none">
-                        {item.detail}
+                {/* Items — toggle + weight + tooltip */}
+                <div className="flex flex-col gap-0">
+                  {group.items.map(item => {
+                    const cs = constraints[item.name] ?? { enabled: true, weight: 50 }
+                    return (
+                      <div key={item.name}
+                        className="relative group/rule flex items-center gap-2 py-1.5"
+                        style={{ borderBottom: "1px solid #f9fafb", opacity: cs.enabled ? 1 : 0.45 }}>
+
+                        {/* Toggle pill */}
+                        <button
+                          onClick={() => toggleConstraint(item.name)}
+                          className="flex-none relative transition-colors"
+                          style={{
+                            width: 28, height: 16, borderRadius: 8,
+                            background: cs.enabled ? "#111827" : "#d1d5db",
+                          }}>
+                          <span
+                            className="absolute top-[2px] transition-all"
+                            style={{
+                              left: cs.enabled ? 14 : 2, width: 12, height: 12,
+                              background: "#fff", borderRadius: "50%",
+                            }} />
+                        </button>
+
+                        {/* Name + info icon */}
+                        <div className="flex items-center gap-1 flex-1 min-w-0">
+                          <span className="text-[11.5px] font-semibold text-neutral-800 leading-tight truncate">{item.name}</span>
+                          <span className="text-[9px] text-[#c4c9d4] select-none flex-none">ⓘ</span>
+                          <div className="absolute left-8 top-full mt-1 z-50 hidden group-hover/rule:block w-64
+                            bg-[#111827] text-white text-[10px] leading-snug rounded px-3 py-2 shadow-lg pointer-events-none">
+                            {item.detail}
+                          </div>
+                        </div>
+
+                        {/* Weight input */}
+                        <div className="flex items-center gap-1 flex-none">
+                          <input
+                            type="number" min={0} max={100}
+                            disabled={!cs.enabled}
+                            value={cs.weight}
+                            onChange={e => setConstraintWeight(item.name, Math.min(100, Math.max(0, +e.target.value)))}
+                            className="w-10 text-center font-mono text-[11px] border border-[#e5e7eb] rounded"
+                            style={{
+                              height: 22, background: cs.enabled ? "#fff" : "#f9fafb",
+                              color: cs.enabled ? "#111827" : "#9ca3af",
+                              outline: "none", padding: "0 2px",
+                            }} />
+                          <span className="text-[9.5px] text-[#9ca3af]">%</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             ))}
