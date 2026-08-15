@@ -64,7 +64,7 @@ export const ZONES: Zone[] = [
   { id:"E", name:"Zone E — Empty depot", blocks:4, rows:3, slots:10, maxTiers:4, ceiling:0.90, hazmat:false, customs:false },
   { id:"R", name:"Gate-in / receiving", blocks:1, rows:1, slots:12, maxTiers:1, ceiling:1.0, hazmat:false, customs:false },
   { id:"S", name:"Staging (drop & hook)", blocks:1, rows:1, slots:10, maxTiers:1, ceiling:1.0, hazmat:false, customs:false },
-  { id:"F", name:"Zone F — Reefer / food-grade", blocks:2, rows:2, slots:8, maxTiers:3, ceiling:0.80, hazmat:false, customs:false, reefer:true },
+  { id:"F", name:"Zone F — Reefer / chemical-sensitive", blocks:2, rows:2, slots:8, maxTiers:3, ceiling:0.80, hazmat:false, customs:false, reefer:true },
   { id:"Q", name:"Zone Q — Quarantine / M&R", blocks:1, rows:1, slots:6, maxTiers:1, ceiling:1.0, hazmat:false, customs:false, quarantine:true },
 ];
 
@@ -200,7 +200,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     vessel:"MAERSK SALINA V.238W", terminal:"Terminal 4 BACTSSA",
     hazmat:false, imdg:null, channel:"verde", status:"IN_YARD",
     hoursToLFD:52, dwellDays:3, priority:"P2", empty:false,
-    whyHere:"Reefer zone: food-grade pharmaceutical shipment; continuous monitoring active.",
+    whyHere:"Reefer zone: temperature-sensitive primer concentrate; Valeo spec requires 2–8 °C cold-chain throughout transit.",
     seal:"AR620841"
   },
   {
@@ -222,7 +222,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     vessel:"SANTOS EXPRESS V.902", terminal:"Terminales Río de la Plata",
     hazmat:false, imdg:null, channel:"verde", status:"IN_YARD",
     hoursToLFD:72, dwellDays:2, priority:"P3", empty:false,
-    whyHere:"Reefer zone: frozen auto-parts requiring sub-zero storage per shipper instruction.",
+    whyHere:"Reefer zone: solvent-based e-coat additive requiring −18 °C cold-chain; ZF Pilar specification sheet on file.",
     seal:"AR344987"
   },
   {
@@ -258,7 +258,7 @@ const ZONE_Q_CONTAINERS: Container[] = [
     vessel:"MAERSK SALINA V.238W", terminal:"Terminal 4 BACTSSA",
     hazmat:false, imdg:null, channel:"naranja", status:"CUSTOMS_CONTROLLED",
     hoursToLFD:120, dwellDays:8, priority:"P2", empty:false,
-    whyHere:"Quarantine hold: awaiting SENASA phytosanitary clearance before release.",
+    whyHere:"Quarantine hold: awaiting AFIP/ARCA Licencia No Automática (LNA) approval — auto-parts import, declaration DUA-2026-08-14-00441 lodged.",
     seal:"AR473629"
   },
   {
