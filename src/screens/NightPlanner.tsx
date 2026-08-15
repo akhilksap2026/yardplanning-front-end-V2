@@ -448,12 +448,12 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                 label: "Physical & Spatial Constraints",
                 desc:  "Rules that check whether a container physically fits in the slot.",
                 items: [
-                  { name: "Size eligibility",    detail: "Container.size_type vs Slot.size_eligibility (20ft / 40ft)" },
-                  { name: "Reefer match",         detail: "Container.reefer_unit_flag vs Slot.reefer_capable + tier power_available" },
-                  { name: "Slot status",          detail: "Slot.slot_status must allow placement" },
-                  { name: "Tier status",          detail: "Tier.tier_status must be Available (not Occupied / Blocked)" },
-                  { name: "Weight limits",        detail: "Container gross weight vs Tier.weight_limit and Slot.max_gross_weight_capacity" },
-                  { name: "Max stack height",     detail: "Current stack height vs Block default or Slot.max_tier_height override" },
+                  { name: "Size eligibility",    detail: "Container.size_type vs Slot.size_eligibility (20ft / 40ft)",                                              mandatory: true },
+                  { name: "Reefer match",         detail: "Container.reefer_unit_flag vs Slot.reefer_capable + tier power_available",                                mandatory: true },
+                  { name: "Slot status",          detail: "Slot.slot_status must allow placement",                                                                   mandatory: true },
+                  { name: "Tier status",          detail: "Tier.tier_status must be Available (not Occupied / Blocked)",                                             mandatory: true },
+                  { name: "Weight limits",        detail: "Container gross weight vs Tier.weight_limit and Slot.max_gross_weight_capacity",                          mandatory: true },
+                  { name: "Max stack height",     detail: "Current stack height vs Block default or Slot.max_tier_height override",                                  mandatory: true },
                 ],
               },
               {
@@ -485,27 +485,30 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     {group.desc}
                   </div>
                 </div>
-                {/* Items — toggle + weight + tooltip */}
+                {/* Items — toggle + tooltip */}
                 <div className="flex flex-col gap-0">
                   {group.items.map(item => {
+                    const mandatory = "mandatory" in item && item.mandatory
                     const cs = constraints[item.name] ?? { enabled: true, weight: 50 }
+                    const isOn = mandatory ? true : cs.enabled
                     return (
                       <div key={item.name}
                         className="relative group/rule flex items-center gap-2 py-1.5"
-                        style={{ borderBottom: "1px solid #f9fafb", opacity: cs.enabled ? 1 : 0.45 }}>
+                        style={{ borderBottom: "1px solid #f9fafb", opacity: isOn ? 1 : 0.45 }}>
 
                         {/* Toggle pill */}
                         <button
-                          onClick={() => toggleConstraint(item.name)}
+                          onClick={() => { if (!mandatory) toggleConstraint(item.name) }}
                           className="flex-none relative transition-colors"
                           style={{
                             width: 28, height: 16, borderRadius: 8,
-                            background: cs.enabled ? "#111827" : "#d1d5db",
+                            background: isOn ? "#111827" : "#d1d5db",
+                            cursor: mandatory ? "not-allowed" : "pointer",
                           }}>
                           <span
                             className="absolute top-[2px] transition-all"
                             style={{
-                              left: cs.enabled ? 14 : 2, width: 12, height: 12,
+                              left: isOn ? 14 : 2, width: 12, height: 12,
                               background: "#fff", borderRadius: "50%",
                             }} />
                         </button>
@@ -515,14 +518,21 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                           {item.name}
                         </span>
 
-                        {/* Info icon — right-aligned, tooltip anchors right */}
-                        <div className="relative flex-none">
-                          <span className="text-[10px] text-[#c4c9d4] select-none cursor-default group-hover/rule:text-[#9ca3af]">ⓘ</span>
-                          <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover/rule:block w-64
-                            bg-[#111827] text-white text-[10px] leading-snug rounded px-3 py-2 shadow-lg pointer-events-none">
-                            {item.detail}
+                        {/* Mandatory badge or info icon */}
+                        {mandatory ? (
+                          <span className="flex-none text-[8.5px] font-bold tracking-wide uppercase px-1.5 py-0.5 rounded"
+                            style={{ background: "#f3f4f6", color: "#6b7280", letterSpacing: "0.05em" }}>
+                            Mandatory
+                          </span>
+                        ) : (
+                          <div className="relative flex-none">
+                            <span className="text-[10px] text-[#c4c9d4] select-none cursor-default group-hover/rule:text-[#9ca3af]">ⓘ</span>
+                            <div className="absolute right-0 top-full mt-1 z-50 hidden group-hover/rule:block w-64
+                              bg-[#111827] text-white text-[10px] leading-snug rounded px-3 py-2 shadow-lg pointer-events-none">
+                              {item.detail}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     )
                   })}
