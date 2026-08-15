@@ -61,7 +61,7 @@ export default function SettingsScreen() {
       {/* ── Content ────────────────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
 
-        {tab === "weights" && (
+        {(tab === "weights" || tab === "weights-seed" || tab === "weights-live") && (
           <>
             {/* Sub-tabs: seed weights vs live backend weights */}
             <TabBar
@@ -73,12 +73,9 @@ export default function SettingsScreen() {
                 { id: "live", label: t("settings.liveWeights") + (!backendConnected ? ` (${t("common.offline")})` : "") },
               ]}
             />
-            <WeightFactorsTab />
+            {tab === "weights-live" ? <PriorityFactorsTab /> : <WeightFactorsTab />}
           </>
         )}
-
-        {tab === "weights-seed" && <WeightFactorsTab />}
-        {tab === "weights-live" && <PriorityFactorsTab />}
 
         {tab === "connections" && <AdapterHealthTab />}
         {tab === "yard"        && <MasterDataTab />}
