@@ -261,7 +261,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
           status:      bc?.status ?? "UNKNOWN",
           hoursToLFD:  -9999, priority: "—", consignee: "—", carrierName: "—",
           hazmat:      bc?.is_hazmat ?? s.is_hazmat_approved,
-          channel:     "verde", dwellDays: 0, grossKg: 0, whyHere: "", seal: "—", terminal: "—", empty: false,
+          channel:     "road", dwellDays: 0, grossKg: 0, whyHere: "", seal: "—", terminal: "—", empty: false,
         } satisfies ViewContainer
       })
   }, [activeLiveBlock, activeLiveSlots, backendContainers])

@@ -3,7 +3,7 @@ export type ColorMode = "status" | "lfd" | "channel" | "dwell" | "priority" | "r
 export const LEGENDS: Record<ColorMode, [string, string][]> = {
   status:   [["In yard","#9ca3af"],["Staged","#fbbf24"],["Receiving","#4b5563"],["Customs held","#9b1c1c"]],
   lfd:      [["Breached","#9b1c1c"],["≤24 h","#dc2626"],["≤72 h","#f59e0b"],[">72 h","#d1d5db"]],
-  channel:  [["Rojo","#9b1c1c"],["Naranja","#f97316"],["Verde","#d1d5db"]],
+  channel:  [["Rail","#9b1c1c"],["Sea","#f97316"],["Road","#d1d5db"]],
   dwell:    [["<5 d","#d1d5db"],["5–10 d","#6b7280"],["10–18 d","#374151"],[">18 d","#111827"]],
   priority: [["P1 — critical","#dc2626"],["P2 — high","#f97316"],["P3 — normal","#3b82f6"],["P4 — low","#9ca3af"]],
   rehandle: [["0 rehandles","#16a34a"],["1 rehandle","#f59e0b"],["2+ rehandles","#dc2626"]],
@@ -37,7 +37,7 @@ export function containerColor(
 
     case "channel":
       return (
-        ({ rojo:"#9b1c1c", naranja:"#f97316", verde:"#d1d5db" } as Record<string,string>)[c.channel]
+        ({ rail:"#9b1c1c", sea:"#f97316", road:"#d1d5db" } as Record<string,string>)[c.channel]
         ?? "#e5e7eb"
       )
 

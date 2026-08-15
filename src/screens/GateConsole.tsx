@@ -245,9 +245,9 @@ export default function GateConsole({ focus, onNavigate }: Props) {
 
   // ── Seed-derived GTX rows (always available, no backend needed) ──────────
   const CHAN_COLOR: Record<string,[string,string]> = {
-    rojo:    ["#fef2f2","#dc2626"],
-    naranja: ["#fffbeb","#d97706"],
-    verde:   ["#f0fdf4","#16a34a"],
+    rail:  ["#fef2f2","#dc2626"],
+    sea:   ["#fffbeb","#d97706"],
+    road:  ["#f0fdf4","#16a34a"],
   }
   const STATE_STYLE: Record<string,[string,string]> = {
     GATE_OUT:    ["#f3f4f6","#6b7280"],
@@ -263,7 +263,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
 
   const seedGtxRows = visits.map(v => {
     const cont = containers.find(c => c.id === v.container)
-    const ch = cont?.channel ?? "verde"
+    const ch = cont?.channel ?? "road"
     const dir = dirFromPurpose(v.purpose)
     return { visit:v, cont, ch, dir }
   }).sort((a,b) => {
@@ -279,9 +279,9 @@ export default function GateConsole({ focus, onNavigate }: Props) {
 
   const gtxKpis = {
     total:   seedGtxRows.length,
-    verde:   seedGtxRows.filter(r=>r.ch==="verde").length,
-    naranja: seedGtxRows.filter(r=>r.ch==="naranja").length,
-    rojo:    seedGtxRows.filter(r=>r.ch==="rojo").length,
+    road:  seedGtxRows.filter(r=>r.ch==="road").length,
+    sea:   seedGtxRows.filter(r=>r.ch==="sea").length,
+    rail:  seedGtxRows.filter(r=>r.ch==="rail").length,
     avgTurn: (seedGtxRows.filter(r=>r.visit.turn>0).reduce((s,r)=>s+r.visit.turn,0)/Math.max(1,seedGtxRows.filter(r=>r.visit.turn>0).length)).toFixed(1),
     completed: seedGtxRows.filter(r=>r.visit.state==="GATE_OUT").length,
   }
@@ -459,7 +459,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
         const isOut = tab === "outbound"
 
         const ibTotal    = inboundRows.length
-        const ibCleared  = inboundRows.filter(r => r.channel === "verde" && !r.hold).length
+        const ibCleared  = inboundRows.filter(r => r.channel === "road" && !r.hold).length
         const ibHolds    = inboundRows.filter(r => r.hold).length
         const ibLfdRisk  = inboundRows.filter(r => r.hoursToLFD < 24 && r.hoursToLFD >= 0).length
         const ibBreached = inboundRows.filter(r => r.hoursToLFD < 0).length
@@ -806,9 +806,9 @@ export default function GateConsole({ focus, onNavigate }: Props) {
             {[
               { k:"Visits today",  v:String(gtxKpis.total),     sub:"all states",        color:undefined },
               { k:"Completed",     v:String(gtxKpis.completed), sub:"gate-out issued",   color:undefined },
-              { k:"Verde ✓",       v:String(gtxKpis.verde),     sub:"standard channel",  color:"#16a34a" },
-              { k:"Naranja !",     v:String(gtxKpis.naranja),   sub:"inspection routed", color:"#d97706" },
-              { k:"Rojo ✕",        v:String(gtxKpis.rojo),      sub:"customs controlled",color:"#dc2626" },
+              { k:"Road ✓",        v:String(gtxKpis.road),      sub:"road transport",    color:"#16a34a" },
+              { k:"Sea ▲",         v:String(gtxKpis.sea),       sub:"sea freight",       color:"#d97706" },
+              { k:"Rail ✕",        v:String(gtxKpis.rail),      sub:"rail / customs",    color:"#dc2626" },
               { k:"Avg turn",      v:`${gtxKpis.avgTurn}′`,     sub:"vs 15′ target",     color:parseFloat(gtxKpis.avgTurn)>15?"#dc2626":undefined },
             ].map(m => (
               <div key={m.k} className="flex-1 px-4 py-2.5 flex flex-col gap-0.5 border-r border-[#e5e7eb]">
@@ -822,13 +822,13 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           {/* ── Filter bar ────────────────────────────────────────────────── */}
           <div className="flex items-center gap-3 px-5 py-2 border-b border-[#e5e7eb] bg-white flex-none">
             <span className="text-[10.5px] font-semibold text-neutral-400 tracking-wide">CHANNEL</span>
-            {(["all","verde","naranja","rojo"] as const).map(ch => (
+            {(["all","road","sea","rail"] as const).map(ch => (
               <button key={ch} onClick={()=>setGtxChanFilter(ch)}
                 className="text-[11px] px-2.5 py-1 font-semibold rounded capitalize transition-colors"
                 style={{
-                  background: gtxChanFilter===ch ? (ch==="all"?"#111827":CHAN_COLOR[ch]?.[0]??"#f3f4f6") : "#f3f4f6",
-                  color:      gtxChanFilter===ch ? (ch==="all"?"#fff":CHAN_COLOR[ch]?.[1]??"#374151") : "#6b7280",
-                  border:     `1px solid ${gtxChanFilter===ch ? (ch==="all"?"#111827":CHAN_COLOR[ch]?.[1]??"#d1d5db") : "#e5e7eb"}`,
+                  background: gtxChanFilter===ch ? (ch==="all"?"#111827":(CHAN_COLOR as Record<string,[string,string]>)[ch]?.[0]??"#f3f4f6") : "#f3f4f6",
+                  color:      gtxChanFilter===ch ? (ch==="all"?"#fff":(CHAN_COLOR as Record<string,[string,string]>)[ch]?.[1]??"#374151") : "#6b7280",
+                  border:     `1px solid ${gtxChanFilter===ch ? (ch==="all"?"#111827":(CHAN_COLOR as Record<string,[string,string]>)[ch]?.[1]??"#d1d5db") : "#e5e7eb"}`,
                 }}>
                 {ch==="all"?"All channels":ch}
               </button>
@@ -942,7 +942,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                       <td className="px-3 py-2.5">
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold capitalize"
                           style={{ background:chanBg, color:chanFg, border:`1px solid ${chanFg}30` }}>
-                          {ch==="verde"?"✓":ch==="naranja"?"!":"✕"} {ch}
+                          {ch==="road"?"✓":ch==="sea"?"▲":"✕"} {ch==="road"?"Road":ch==="sea"?"Sea":"Rail"}
                         </span>
                       </td>
 
@@ -1140,11 +1140,11 @@ export default function GateConsole({ focus, onNavigate }: Props) {
         const yardCount   = allRows.filter(r => r.gateStatus === "SERVED").length
 
         // ── Channel badge config ──────────────────────────────────────────
-        const chanIcon: Record<string, string> = { verde:"✓", naranja:"▲", rojo:"✕" }
+        const chanIcon: Record<string, string> = { road:"✓", sea:"▲", rail:"✕" }
         const chanBgFg: Record<string,[string,string]> = {
-          verde:   ["#dcfce7","#15803d"],
-          naranja: ["#fef3c7","#b45309"],
-          rojo:    ["#fee2e2","#dc2626"],
+          road:  ["#dcfce7","#15803d"],
+          sea:   ["#fef3c7","#b45309"],
+          rail:  ["#fee2e2","#dc2626"],
         }
 
         // ── Status chip config ────────────────────────────────────────────
@@ -1353,7 +1353,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                         <td style={tdStyle}>
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold"
                             style={{ fontSize:11, background: chBg, color: chFg, border:`1px solid ${chFg}40` }}>
-                            {chanIcon[r.channel] ?? "?"} {r.channel.charAt(0).toUpperCase() + r.channel.slice(1)}
+                            {chanIcon[r.channel] ?? "?"} {r.channel === "road" ? "Road" : r.channel === "sea" ? "Sea" : "Rail"}
                           </span>
                         </td>
 

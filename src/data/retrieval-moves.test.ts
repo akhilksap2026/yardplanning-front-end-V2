@@ -8,7 +8,7 @@ function makeContainer(overrides: Partial<Container> & Pick<Container, "id" | "h
     size: "40GP", grossKg: 15000,
     carrier: "MSCU", carrierName: "MSC",
     consignee: "Test Co", vessel: "TEST V.1", terminal: "Terminal 1",
-    hazmat: false, imdg: null, channel: "verde",
+    hazmat: false, imdg: null, channel: "road",
     dwellDays: 5, seal: "AR123456", whyHere: "test",
     ...overrides,
   }

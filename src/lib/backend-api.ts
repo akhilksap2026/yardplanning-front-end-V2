@@ -46,7 +46,7 @@ export interface LiveGateRow {
   truckerRegion:   string | null
   driver:          string
   plate:           string
-  channel:         "verde" | "naranja" | "rojo"
+  channel:         "road" | "sea" | "rail"
   appt:            string
   gateStatus:      string
   hoursToLFD:      number

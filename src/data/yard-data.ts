@@ -84,7 +84,7 @@ export const OPERATORS = [
   { id:"OP-402", name:"C. Ledesma", equipment:"RS-01", certs:["IMDG","RS"], shift:"14:00–22:00", status:"off shift" }
 ];
 
-const CHANNELS = ["verde","verde","verde","naranja","rojo"];
+const CHANNELS = ["road","road","road","sea","rail"];
 const STATUSES = ["IN_YARD","IN_YARD","IN_YARD","IN_YARD","STAGED","AT_RECEIVING_LANE","CUSTOMS_CONTROLLED"];
 
 export interface Container {
@@ -124,7 +124,7 @@ function buildContainers(): Container[] {
             const carrier = pick(CARRIERS);
             const empty = z.id === "E";
             const hoursToLFD = empty ? int(4, 60) : int(-18, 190);
-            const channel = z.id === "C" ? pick(["naranja","rojo"]) : pick(CHANNELS);
+            const channel = z.id === "C" ? pick(["sea","rail"]) : pick(CHANNELS);
             const imdg = z.id === "D" ? pick(["3","8","9","5.1"]) : null;
 
             // Zone-specific placement reason
@@ -187,7 +187,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     address:"F-01-1-1-1", size:"40HC", grossKg:18400,
     carrier:"MSCU", carrierName:"MSC", consignee:"Bosch Argentina",
     vessel:"MSC LUCIA V.412E", terminal:"TRP Terminal 5",
-    hazmat:false, imdg:null, channel:"verde", status:"IN_YARD",
+    hazmat:false, imdg:null, channel:"road", status:"IN_YARD",
     hoursToLFD:36, dwellDays:4, priority:"P2", empty:false,
     whyHere:"Reefer zone: temperature-controlled cargo requires plug-in bay; set-point −18 °C.",
     seal:"AR481293"
@@ -198,7 +198,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     address:"F-01-1-2-1", size:"40HC", grossKg:14200,
     carrier:"MAEU", carrierName:"Maersk", consignee:"Denso Sudamérica",
     vessel:"MAERSK SALINA V.238W", terminal:"Terminal 4 BACTSSA",
-    hazmat:false, imdg:null, channel:"verde", status:"IN_YARD",
+    hazmat:false, imdg:null, channel:"road", status:"IN_YARD",
     hoursToLFD:52, dwellDays:3, priority:"P2", empty:false,
     whyHere:"Reefer zone: temperature-sensitive primer concentrate; Valeo spec requires 2–8 °C cold-chain throughout transit.",
     seal:"AR620841"
@@ -209,7 +209,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     address:"F-01-2-1-1", size:"20GP", grossKg:11800,
     carrier:"CMAU", carrierName:"CMA CGM", consignee:"Valeo BA",
     vessel:"CMA CGM ANDES V.117N", terminal:"Exolgan Dock Sud",
-    hazmat:false, imdg:null, channel:"verde", status:"IN_YARD",
+    hazmat:false, imdg:null, channel:"road", status:"IN_YARD",
     hoursToLFD:18, dwellDays:6, priority:"P1", empty:false,
     whyHere:"Reefer zone: LFD in 18 h, pre-positioned for earliest retrieval window.",
     seal:"AR715503"
@@ -220,7 +220,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     address:"F-02-1-1-1", size:"40HC", grossKg:22100,
     carrier:"HLXU", carrierName:"Hapag-Lloyd", consignee:"ZF Pilar",
     vessel:"SANTOS EXPRESS V.902", terminal:"Terminales Río de la Plata",
-    hazmat:false, imdg:null, channel:"verde", status:"IN_YARD",
+    hazmat:false, imdg:null, channel:"road", status:"IN_YARD",
     hoursToLFD:72, dwellDays:2, priority:"P3", empty:false,
     whyHere:"Reefer zone: solvent-based e-coat additive requiring −18 °C cold-chain; ZF Pilar specification sheet on file.",
     seal:"AR344987"
@@ -231,7 +231,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     address:"F-02-1-2-1", size:"40GP", grossKg:16500,
     carrier:"COSU", carrierName:"COSCO", consignee:"Magna Rosario",
     vessel:"MSC LUCIA V.412E", terminal:"TRP Terminal 5",
-    hazmat:false, imdg:null, channel:"naranja", status:"IN_YARD",
+    hazmat:false, imdg:null, channel:"sea", status:"IN_YARD",
     hoursToLFD:44, dwellDays:5, priority:"P2", empty:false,
     whyHere:"Reefer zone: orange-channel inspection pending; held in temp-controlled bay during review.",
     seal:"AR562104"
@@ -245,7 +245,7 @@ const ZONE_Q_CONTAINERS: Container[] = [
     address:"Q-01-1-1-1", size:"40GP", grossKg:21300,
     carrier:"MSCU", carrierName:"MSC", consignee:"Autopartes del Sur SA",
     vessel:"CMA CGM ANDES V.117N", terminal:"Exolgan Dock Sud",
-    hazmat:false, imdg:null, channel:"rojo", status:"CUSTOMS_CONTROLLED",
+    hazmat:false, imdg:null, channel:"rail", status:"CUSTOMS_CONTROLLED",
     hoursToLFD:96, dwellDays:11, priority:"P1", empty:false,
     whyHere:"Quarantine hold: M&R inspection booked 10:00 — door seal damage reported at gate-in.",
     seal:"AR839201"
@@ -256,7 +256,7 @@ const ZONE_Q_CONTAINERS: Container[] = [
     address:"Q-01-1-2-1", size:"20GP", grossKg:9700,
     carrier:"MAEU", carrierName:"Maersk", consignee:"Continental Arg.",
     vessel:"MAERSK SALINA V.238W", terminal:"Terminal 4 BACTSSA",
-    hazmat:false, imdg:null, channel:"naranja", status:"CUSTOMS_CONTROLLED",
+    hazmat:false, imdg:null, channel:"sea", status:"CUSTOMS_CONTROLLED",
     hoursToLFD:120, dwellDays:8, priority:"P2", empty:false,
     whyHere:"Quarantine hold: awaiting AFIP/ARCA Licencia No Automática (LNA) approval — auto-parts import, declaration DUA-2026-08-14-00441 lodged.",
     seal:"AR473629"

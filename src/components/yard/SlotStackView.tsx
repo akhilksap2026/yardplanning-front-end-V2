@@ -177,7 +177,7 @@ export default function SlotStackView({
                       selC.hoursToLFD <= 24]] as [string, string, boolean?][]
                   : []),
                 ...(selC.channel !== "—"
-                  ? [["Customs channel", selC.channel, selC.channel === "rojo" || selC.channel === "naranja"]] as [string, string, boolean?][]
+                  ? [["Customs channel", selC.channel, selC.channel === "rail" || selC.channel === "sea"]] as [string, string, boolean?][]
                   : []),
                 ["Dwell",          `${selC.dwellDays} days`],
                 ["Priority",       selC.priority],

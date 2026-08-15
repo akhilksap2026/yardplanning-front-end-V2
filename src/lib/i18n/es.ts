@@ -100,12 +100,9 @@ export const es: Record<string, string> = {
   "priority.high":           "ALTA",
   "priority.normal":         "NORMAL",
   "priority.low":            "BAJA",
-  "channel.green":           "VERDE",
-  "channel.orange":          "NARANJA",
-  "channel.red":             "ROJO",
-  "channel.verde":           "VERDE",
-  "channel.naranja":         "NARANJA",
-  "channel.rojo":            "ROJO",
+  "channel.road":            "CARRETERA",
+  "channel.sea":             "MARÍTIMO",
+  "channel.rail":            "FERROVIARIO",
 
   // ── Planner screen ────────────────────────────────────────────────────────
   "planner.title":                   "Planificador",
