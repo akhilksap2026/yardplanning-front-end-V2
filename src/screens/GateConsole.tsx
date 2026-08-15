@@ -114,10 +114,14 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           backendApi.fetchGateContainers("outbound"),
         ])
         if (cancelled) return
-        setLiveInbound(ib.rows)
-        setLiveOutbound(ob.rows)
-        setFetchedAt(ib.fetchedAt)
-        setLiveError(false)
+        // Only replace seed when the API returns actual data.
+        // An empty array means the table isn't seeded in this environment — keep seed fallback.
+        if (ib.rows.length > 0) setLiveInbound(ib.rows)
+        if (ob.rows.length > 0) setLiveOutbound(ob.rows)
+        if (ib.rows.length > 0 || ob.rows.length > 0) {
+          setFetchedAt(ib.fetchedAt)
+          setLiveError(false)
+        }
       } catch {
         if (!cancelled) setLiveError(true)
       }
