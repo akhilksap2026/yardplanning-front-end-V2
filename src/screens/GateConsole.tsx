@@ -245,18 +245,18 @@ export default function GateConsole({ focus, onNavigate }: Props) {
 
   // ── Seed-derived GTX rows (always available, no backend needed) ──────────
   const CHAN_COLOR: Record<string,[string,string]> = {
-    rail:  ["#fef2f2","#dc2626"],
-    sea:   ["#fffbeb","#d97706"],
-    road:  ["#f0fdf4","#16a34a"],
+    rail:  ["#fef2f2","#991b1b"],   // red-50 / red-800
+    sea:   ["#fffbeb","#92400e"],   // amber-50 / amber-800
+    road:  ["#f0fdf4","#166534"],   // green-50 / green-800
   }
   const STATE_STYLE: Record<string,[string,string]> = {
-    GATE_OUT:    ["#f3f4f6","#6b7280"],
-    SERVED:      ["#f0fdf4","#059669"],
-    AT_POSITION: ["#eff6ff","#2563eb"],
-    CHECKED_IN:  ["#fffbeb","#d97706"],
-    IN_QUEUE:    ["#fff7ed","#ea580c"],
-    APPROACHING: ["#faf5ff","#7c3aed"],
-    EXPECTED:    ["#f9fafb","#9ca3af"],
+    GATE_OUT:    ["#f0fdf4","#166534"],   // success  — green-50 / green-800
+    SERVED:      ["#eff6ff","#1e40af"],   // active   — blue-50  / blue-800
+    AT_POSITION: ["#fffbeb","#92400e"],   // warning  — amber-50 / amber-800
+    CHECKED_IN:  ["#faf5ff","#6b21a8"],   // planned  — purple-50 / purple-800
+    IN_QUEUE:    ["#f3f4f6","#374151"],   // neutral  — gray-100 / gray-700
+    APPROACHING: ["#faf5ff","#6b21a8"],   // planned  — purple-50 / purple-800
+    EXPECTED:    ["#f3f4f6","#374151"],   // neutral  — gray-100 / gray-700
   }
   function stateLabel(s:string){return({GATE_OUT:"Completed",SERVED:"In yard",AT_POSITION:"At position",CHECKED_IN:"Checked in",IN_QUEUE:"In queue",APPROACHING:"Approaching",EXPECTED:"Expected"})[s]??s}
   function dirFromPurpose(p:string){ return /drop|inbound/i.test(p)?"IN":/pickup|retrieval/i.test(p)?"OUT":"EMPTY" }
@@ -414,25 +414,25 @@ export default function GateConsole({ focus, onNavigate }: Props) {
             </div>
             {/* Refresh */}
             <button onClick={()=>refresh(["visits","lanes","containers"])}
-              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold transition-colors"
-              style={{ background: C.surface1, border:`1px solid ${C.border}`, borderRadius:5, color: C.textMuted }}>
+              className="ds-btn ds-btn-ghost flex items-center gap-1"
+              style={{ color: C.textMuted }}>
               ↺ Refresh
             </button>
             {/* Dark mode */}
             <button onClick={()=>setDarkMode(d=>!d)}
-              className="px-2.5 py-1 text-[11px] font-semibold transition-colors"
-              style={{ background: C.surface1, border:`1px solid ${C.border}`, borderRadius:5, color: C.textMuted }}>
+              className="ds-btn ds-btn-ghost"
+              style={{ color: C.textMuted }}>
               {darkMode ? "☀ Light" : "☾ Dark"}
             </button>
             {/* Primary CTA */}
             {tab==="gtx"&&backendConnected ? (
               <button onClick={()=>setShowGateInForm(f=>!f)}
-                style={{ background:"#111827", color:"#fff", border:"none", borderRadius:5, fontSize:12, padding:"5px 14px", fontWeight:600 }}>
+                className="ds-btn ds-btn-primary">
                 {showGateInForm?t("common.cancel"):t("gate.gateIn")}
               </button>
             ) : (
               <button onClick={handleCheckIn} disabled={checkingIn}
-                style={{ background:"#111827", color:"#fff", border:"none", borderRadius:5, fontSize:12, padding:"6px 16px", fontWeight:600, opacity:checkingIn?0.5:1 }}>
+                className="ds-btn ds-btn-primary" style={{ opacity:checkingIn?0.5:1 }}>
                 {checkInDone?"✓ Served · pass issued":checkingIn?t("gate.checkingIn"):"Check in next"}
               </button>
             )}
@@ -503,11 +503,11 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           <div className="flex-none grid grid-cols-4 gap-3 px-5 py-3"
             style={{ background: C.pageBg, borderBottom:`1px solid ${C.border}` }}>
             {cards.map(card => (
-              <div key={card.label} className="flex flex-col gap-1 px-4 py-3 rounded-lg"
-                style={{ background: cardBg(card.variant), border:`1px solid ${cardBorder(card.variant)}` }}>
-                <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color: C.textMuted }}>{card.label}</span>
-                <span style={{ fontSize:26, fontWeight:700, fontFamily:"monospace", lineHeight:1, color: valColor(card.variant) }}>{card.value}</span>
-                <span style={{ fontSize:11, color: C.textMuted }}>{card.sub}</span>
+              <div key={card.label} className="flex flex-col gap-1 rounded-[10px]"
+                style={{ padding:"14px 16px", background: cardBg(card.variant), border:`1px solid ${cardBorder(card.variant)}` }}>
+                <span style={{ fontSize:11, fontWeight:600, letterSpacing:"0.5px", textTransform:"uppercase", color: C.textMuted }}>{card.label}</span>
+                <span style={{ fontSize:26, fontWeight:600, fontFamily:"var(--font-mono)", lineHeight:1, letterSpacing:"-0.5px", color: valColor(card.variant) }}>{card.value}</span>
+                <span style={{ fontSize:12, fontWeight:400, color: C.textDim }}>{card.sub}</span>
               </div>
             ))}
           </div>
@@ -986,13 +986,11 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                       {/* Status */}
                       <td className="px-3 py-2.5">
                         <div className="flex flex-col gap-1 items-start">
-                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap"
-                            style={{ background:stBg, color:stFg }}>
+                          <span className="ds-badge" style={{ background:stBg, color:stFg }}>
                             {stateLabel(v.state)}
                           </span>
                           {isExcl && (
-                            <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded"
-                              style={{ background:"#fef9c3", color:"#713f12", maxWidth:140 }}>
+                            <span className="ds-badge ds-badge-warning" style={{ marginTop:3, maxWidth:140 }}>
                               ⚠ {v.excl}
                             </span>
                           )}
@@ -1142,20 +1140,20 @@ export default function GateConsole({ focus, onNavigate }: Props) {
         // ── Channel badge config ──────────────────────────────────────────
         const chanIcon: Record<string, string> = { road:"✓", sea:"▲", rail:"✕" }
         const chanBgFg: Record<string,[string,string]> = {
-          road:  ["#dcfce7","#15803d"],
-          sea:   ["#fef3c7","#b45309"],
-          rail:  ["#fee2e2","#dc2626"],
+          road:  ["#f0fdf4","#166534"],   // green-50  / green-800
+          sea:   ["#fffbeb","#92400e"],   // amber-50  / amber-800
+          rail:  ["#fef2f2","#991b1b"],   // red-50    / red-800
         }
 
         // ── Status chip config ────────────────────────────────────────────
         const statusChip: Record<string,[string,string,string]> = {
-          GATE_OUT:    ["#f0fdf4","#059669","Completed"],
-          SERVED:      ["#eff6ff","#2563eb","In yard"],
-          CHECKED_IN:  ["#faf5ff","#7c3aed","Checked in"],
-          AT_POSITION: ["#fffbeb","#d97706","At position"],
-          IN_QUEUE:    ["#f3f4f6","#6b7280","In queue"],
-          APPROACHING: ["#f5f3ff","#7c3aed","Approaching"],
-          EXPECTED:    ["#f9fafb","#9ca3af","Expected"],
+          GATE_OUT:    ["#f0fdf4","#166534","Completed"],   // green-50  / green-800
+          SERVED:      ["#eff6ff","#1e40af","In yard"],     // blue-50   / blue-800
+          CHECKED_IN:  ["#faf5ff","#6b21a8","Checked in"],  // purple-50 / purple-800
+          AT_POSITION: ["#fffbeb","#92400e","At position"],  // amber-50  / amber-800
+          IN_QUEUE:    ["#f3f4f6","#374151","In queue"],     // gray-100  / gray-700
+          APPROACHING: ["#faf5ff","#6b21a8","Approaching"],  // purple-50 / purple-800
+          EXPECTED:    ["#f3f4f6","#374151","Expected"],      // gray-100  / gray-700
         }
 
         // ── LFD colour helper ─────────────────────────────────────────────
@@ -1200,15 +1198,15 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                 const active = filterPill === pill.id
                 return (
                   <button key={pill.id} onClick={()=>setFilterPill(pill.id)}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors"
-                    style={{
-                      background: active ? "#111827" : C.surface2,
-                      color:      active ? "#fff"     : C.textMuted,
-                      border:`1px solid ${active ? "#111827" : C.border}`,
+                    className="ds-filter-pill"
+                    style={active ? {
+                      background:"#eef2ff", color:"#4f46e5", borderColor:"#c7d2fe"
+                    } : {
+                      color: C.textMuted, borderColor: C.border
                     }}>
-                    {pill.dot && <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: pill.dot }} />}
+                    {pill.dot && <span style={{ width:6, height:6, borderRadius:"50%", background: pill.dot, flexShrink:0, marginRight:5, display:"inline-block" }} />}
                     {pill.label}
-                    <span className="opacity-60 font-mono text-[10px]">{pill.count}</span>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:11, opacity:0.6 }}>{pill.count}</span>
                   </button>
                 )
               })}
@@ -1220,15 +1218,18 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                   placeholder="Search container, consignee, driver…"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-7 pr-3 py-1.5 text-[12px] outline-none"
+                  onFocus={e => (e.currentTarget.style.borderColor = "#4f46e5")}
+                  onBlur={e => (e.currentTarget.style.borderColor = C.border)}
                   style={{
-                    background: C.surface1, border:`1px solid ${C.border}`,
-                    borderRadius:6, color: C.text, width:260,
-                    fontFamily:"inherit",
+                    height:36, fontSize:14, minWidth:240, width:260,
+                    padding:"0 12px 0 36px",
+                    background: C.surface1, border:`0.5px solid ${C.border}`,
+                    borderRadius:5, color: C.text, fontFamily:"inherit", outline:"none",
+                    transition:"border-color 0.12s",
                   }}
                 />
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[12px]"
-                  style={{ color: C.textDim }}>⌕</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2"
+                  style={{ fontSize:16, color: C.textDim, lineHeight:1 }}>⌕</span>
               </div>
 
               {/* Live indicator */}
@@ -1296,8 +1297,8 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                       null
 
                     const tdStyle: React.CSSProperties = {
-                      padding:"10px 12px", borderBottom:`1px solid ${C.border}`,
-                      verticalAlign:"top", background: bg,
+                      padding:"12px 12px", borderBottom:`0.5px solid ${C.border}`,
+                      verticalAlign:"top", background: bg, minHeight:52,
                     }
 
                     return (
@@ -1314,12 +1315,12 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                         }}>
 
                         {/* 1. Container ID + size·weight subtitle + alert tag */}
-                        <td style={{ ...tdStyle, borderLeft: isBreach ? `3px solid ${C.dangerFg}` : r.hold||r.excl ? `3px solid ${C.warnFg}` : `3px solid transparent` }}>
-                          <div className="font-mono font-bold" style={{ fontSize:12.5, color: C.text, letterSpacing:"0.01em" }}>{r.containerId}</div>
-                          <div style={{ fontSize:11, color: C.textMuted, marginTop:1 }}>{r.size} · {grossT}t</div>
+                        <td style={{ ...tdStyle, borderLeft: isBreach ? "3px solid #ef4444" : r.hold||r.excl ? "3px solid #f59e0b" : "3px solid transparent" }}>
+                          <div className="font-mono" style={{ fontSize:14, fontWeight:500, color: C.text, letterSpacing:"0.01em" }}>{r.containerId}</div>
+                          <div style={{ fontSize:12, fontWeight:500, color: C.textMuted, marginTop:3 }}>{r.size} · {grossT}t</div>
                           {alertTag && (
                             <div className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded"
-                              style={{ fontSize:10, fontWeight:700, background: alertTag.bg, color: alertTag.fg }}>
+                              style={{ fontSize:11, fontWeight:600, background: alertTag.bg, color: alertTag.fg }}>
                               {isBreach ? "⚠" : "!"} {alertTag.text}
                             </div>
                           )}
@@ -1327,78 +1328,73 @@ export default function GateConsole({ focus, onNavigate }: Props) {
 
                         {/* 2. Consignee */}
                         <td style={tdStyle}>
-                          <div style={{ fontSize:12.5, fontWeight:600, color: C.text, whiteSpace:"nowrap" }}>{r.consignee}</div>
-                          <div className="font-mono" style={{ fontSize:10.5, color: C.textMuted, marginTop:1 }}>{r.sealNumber}</div>
+                          <div style={{ fontSize:14, fontWeight:500, color: C.text, whiteSpace:"nowrap" }}>{r.consignee}</div>
+                          <div className="font-mono" style={{ fontSize:12, fontWeight:500, color: C.textMuted, marginTop:3 }}>{r.sealNumber}</div>
                         </td>
 
                         {/* 3. Shipping line — carrier name / SCAC */}
                         <td style={tdStyle}>
-                          <div style={{ fontSize:12, color: C.text, whiteSpace:"nowrap" }}>{r.carrierName}</div>
-                          <div className="font-mono" style={{ fontSize:10.5, fontWeight:700, color: C.accentFg, marginTop:1, letterSpacing:"0.06em" }}>{r.scac}</div>
+                          <div style={{ fontSize:14, fontWeight:500, color: C.text, whiteSpace:"nowrap" }}>{r.carrierName}</div>
+                          <div className="font-mono" style={{ fontSize:12, fontWeight:500, color: C.accentFg, marginTop:3, letterSpacing:"0.06em" }}>{r.scac}</div>
                         </td>
 
                         {/* 4. Road carrier — trucker name / SCAC */}
                         <td style={tdStyle}>
-                          <div style={{ fontSize:12, color: C.text, whiteSpace:"nowrap" }}>{r.trucker}</div>
-                          <div className="font-mono" style={{ fontSize:10.5, fontWeight:700, color: C.purpleFg, marginTop:1, letterSpacing:"0.06em" }}>{r.truckerScac}</div>
+                          <div style={{ fontSize:14, fontWeight:500, color: C.text, whiteSpace:"nowrap" }}>{r.trucker}</div>
+                          <div className="font-mono" style={{ fontSize:12, fontWeight:500, color: C.purpleFg, marginTop:3, letterSpacing:"0.06em" }}>{r.truckerScac}</div>
                         </td>
 
                         {/* 5. Driver / Plate */}
                         <td style={tdStyle}>
-                          <div style={{ fontSize:12, color: C.text }}>{r.driver}</div>
-                          <div className="font-mono" style={{ fontSize:11, color: C.textMuted, marginTop:2, padding:"1px 5px", borderRadius:3, background: C.surface2, display:"inline-block" }}>{r.plate}</div>
+                          <div style={{ fontSize:14, fontWeight:500, color: C.text }}>{r.driver}</div>
+                          <div className="font-mono" style={{ fontSize:12, fontWeight:500, color: C.textMuted, marginTop:3, padding:"1px 5px", borderRadius:3, background: C.surface2, display:"inline-block" }}>{r.plate}</div>
                         </td>
 
                         {/* 6. Channel badge */}
                         <td style={tdStyle}>
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold"
-                            style={{ fontSize:11, background: chBg, color: chFg, border:`1px solid ${chFg}40` }}>
+                          <span className="ds-badge" style={{ background: chBg, color: chFg }}>
                             {chanIcon[r.channel] ?? "?"} {r.channel === "road" ? "Road" : r.channel === "sea" ? "Sea" : "Rail"}
                           </span>
                         </td>
 
                         {/* 7. Appointment */}
                         <td style={{ ...tdStyle, textAlign:"center" }}>
-                          <span className="font-mono font-semibold" style={{ fontSize:12.5, color: C.text }}>{r.appt}</span>
+                          <span className="font-mono" style={{ fontSize:14, fontWeight:500, color: C.text }}>{r.appt}</span>
                         </td>
 
                         {/* 8. LFD — right-aligned + free days subtitle */}
                         <td style={{ ...tdStyle, textAlign:"right" }}>
-                          <div className="font-mono font-bold" style={{ fontSize:13, color: lfdColor(r.hoursToLFD) }}>
+                          <div className="font-mono" style={{ fontSize:14, fontWeight:600, color: lfdColor(r.hoursToLFD) }}>
                             {lfdLabel}
                           </div>
                           {freeSub && (
-                            <div style={{ fontSize:10, color: C.textMuted, marginTop:1 }}>{freeSub}</div>
+                            <div style={{ fontSize:12, fontWeight:500, color: C.textMuted, marginTop:3 }}>{freeSub}</div>
                           )}
                         </td>
 
                         {/* 9. Hold */}
                         <td style={tdStyle}>
                           {r.hold === "customs" ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold"
-                              style={{ background:"#fee2e2", color:"#dc2626" }}>Customs</span>
+                            <span className="ds-badge ds-badge-danger">Customs</span>
                           ) : r.hold === "quality" ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold"
-                              style={{ background:"#fef3c7", color:"#b45309" }}>Quality</span>
+                            <span className="ds-badge ds-badge-warning">Quality</span>
                           ) : r.hold === "damage" ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold"
-                              style={{ background:"#ffedd5", color:"#c2410c" }}>Damage</span>
+                            <span className="ds-badge ds-badge-warning">Damage</span>
                           ) : (
-                            <span style={{ color: C.textDim, fontSize:13 }}>—</span>
+                            <span style={{ color: C.textDim, fontSize:14 }}>—</span>
                           )}
                         </td>
 
                         {/* 10. Status chip */}
                         <td style={tdStyle}>
-                          <span className="px-2 py-0.5 rounded font-semibold"
-                            style={{ fontSize:11, background: stBg, color: stFg }}>
+                          <span className="ds-badge" style={{ background: stBg, color: stFg }}>
                             {stLabel}
                           </span>
                         </td>
 
                         {/* 11. Seal (compact) */}
                         <td style={{ ...tdStyle, textAlign:"right" }}>
-                          <div className="font-mono" style={{ fontSize:10, color: C.textDim }}>{r.sealNumber}</div>
+                          <div className="font-mono" style={{ fontSize:12, fontWeight:500, color: C.textDim }}>{r.sealNumber}</div>
                         </td>
                       </tr>
                     )

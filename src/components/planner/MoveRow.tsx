@@ -1,4 +1,25 @@
 import { TYPE_LABEL } from "@/data/yard-data"
+
+// ── Route rendering helpers ────────────────────────────────────────────────────
+function LocSpan({ loc }: { loc: string }) {
+  if (loc === "GATE") {
+    return (
+      <span className="ds-gate-pill">GATE</span>
+    )
+  }
+  const parts = loc.split(" · ")
+  if (parts.length === 1) return <span>{loc}</span>
+  return (
+    <>
+      {parts.map((p, i) => (
+        <span key={i}>
+          {i > 0 && <span className="ds-route-sep">·</span>}
+          {p}
+        </span>
+      ))}
+    </>
+  )
+}
 import type { Move } from "@/data/yard-data"
 import type { PlanningStep } from "@/data/planningData"
 import { adaptMoveForDisplay } from "@/lib/backend-adapters"
@@ -97,25 +118,23 @@ export default function MoveRow({ m, isSelected, onClick, visibleCols, hotContai
         </td>
       )}
       {visibleCols.has("ROUTE") && (
-        <td className="px-3 py-2.5 font-mono text-[var(--ds-fg-secondary)] whitespace-nowrap" style={{ fontSize: 11 }}>
-          {fromStr} → {toStr}
+        <td className="px-3 py-2.5 font-mono whitespace-nowrap" style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center" }}>
+            <LocSpan loc={fromStr} />
+            <span className="ds-route-arrow">→</span>
+            <LocSpan loc={toStr} />
+          </span>
         </td>
       )}
       {visibleCols.has("ASSIGNED") && (
         <td className="px-3 py-2.5 whitespace-nowrap" style={{ fontSize: 11 }}>
           <div>{operatorName}</div>
           {equipBadge && statusStyle ? (
-            <div className="flex items-center gap-1 flex-wrap mt-0.5">
-              <span
-                className="text-[9px] font-semibold px-1.5 py-0.5 rounded-sm leading-none"
-                style={{ background: equipBadge.bg, color: equipBadge.text }}
-              >
+            <div className="flex items-center gap-1.5 flex-wrap mt-1">
+              <span className="ds-badge" style={{ background: equipBadge.bg, color: equipBadge.text }}>
                 {equipBadge.icon} {equipBadge.label}
               </span>
-              <span
-                className="text-[9px] font-semibold px-1.5 py-0.5 rounded-sm leading-none"
-                style={{ background: statusStyle.bg, color: statusStyle.text }}
-              >
+              <span className="ds-badge" style={{ background: statusStyle.bg, color: statusStyle.text }}>
                 {stateDisplay}
               </span>
             </div>

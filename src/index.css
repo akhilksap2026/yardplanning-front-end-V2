@@ -27,6 +27,25 @@
     --background:             213 27% 95%;
     --foreground:             222 47% 11%;
 
+    /* ── Font stack ───────────────────────────────────────────────── */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Consolas', 'Liberation Mono', monospace;
+
+    /* ── Type scale — 7 stops, no in-between ──────────────────────── */
+    /* Usage: page titles / section headers / body / body-bold / table cells / col headers+badges / uppercase labels */
+    --text-page-size:        20px; --text-page-weight:        600; --text-page-lh:        1.3;
+    --text-section-size:     16px; --text-section-weight:     600; --text-section-lh:     1.3;
+    --text-body-size:        14px; --text-body-weight:        400; --text-body-lh:        1.5;
+    --text-body-bold-size:   14px; --text-body-bold-weight:   500; --text-body-bold-lh:   1.5;
+    --text-data-size:        13px; --text-data-weight:        400; --text-data-lh:        1.4;
+    --text-caption-size:     12px; --text-caption-weight:     500; --text-caption-lh:     1.4;
+    --text-micro-size:       11px; --text-micro-weight:       600; --text-micro-lh:       1.3;
+
+    /* ── Text-color hierarchy (3 tiers — never use opacity for hierarchy) ─── */
+    --text-primary:   #1a1a18;   /* names, IDs, values — must read */
+    --text-secondary: #6b6b66;   /* column headers, descriptions, labels */
+    --text-muted:     #9b9b95;   /* placeholders, separators, disabled, timestamps */
+
     /* ── Design system tokens (hex, use these everywhere) ─────────── */
     --ds-background:    #f1f5f9;
     --ds-surface:       #ffffff;
@@ -59,14 +78,16 @@
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
 
-  html { font-size: 13px; }
+  html { font-size: 14px; }
 
   body {
     background-color: var(--ds-background);
-    color: var(--ds-fg);
-    font-family: "Inter", system-ui, sans-serif;
-    font-size: 13px;
-    line-height: 1.5;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-body-size);
+    font-weight: var(--text-body-weight);
+    line-height: var(--text-body-lh);
+    font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -82,8 +103,8 @@
     outline-offset: 2px;
   }
 
-  /* Row hover (apply .ds-row to <tr> or <div> row containers) */
-  .ds-row:hover { background-color: #f8fafc; }
+  /* Row hover — 3% tint, subtle enough to not flash on movement */
+  .ds-row:hover { background-color: rgba(0,0,0,0.03); }
 }
 
 /* ── Scrollbar (4px, hidden until hover) ───────────────────────────── */
@@ -96,23 +117,33 @@
 
 /* ── Design-system utility classes ─────────────────────────────────── */
 
-/* Label: 10px uppercase 0.1em tracking, subtle color */
+/* Type-scale utility classes — use instead of arbitrary sizes */
+.ds-text-page        { font-size: var(--text-page-size);        font-weight: var(--text-page-weight);        line-height: var(--text-page-lh); }
+.ds-text-section     { font-size: var(--text-section-size);     font-weight: var(--text-section-weight);     line-height: var(--text-section-lh); }
+.ds-text-body        { font-size: var(--text-body-size);        font-weight: var(--text-body-weight);        line-height: var(--text-body-lh); }
+.ds-text-body-bold   { font-size: var(--text-body-bold-size);   font-weight: var(--text-body-bold-weight);   line-height: var(--text-body-bold-lh); }
+.ds-text-data        { font-size: var(--text-data-size);        font-weight: var(--text-data-weight);        line-height: var(--text-data-lh); }
+.ds-text-caption     { font-size: var(--text-caption-size);     font-weight: var(--text-caption-weight);     line-height: var(--text-caption-lh); }
+.ds-text-micro       { font-size: var(--text-micro-size);       font-weight: var(--text-micro-weight);       line-height: var(--text-micro-lh); letter-spacing: 0.5px; text-transform: uppercase; }
+
+/* Label: --text-micro — 11px uppercase 0.5px tracking, muted color */
 .ds-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: var(--text-micro-size);
+  font-weight: var(--text-micro-weight);
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: var(--ds-subtle);
-  line-height: 1.2;
+  color: var(--text-muted);
+  line-height: var(--text-micro-lh);
 }
 
-/* KPI numeral: 26px mono 600 */
+/* KPI numeral: 26px, weight 600, -0.5px tracking (spec: 24–28px range) */
 .ds-kpi {
-  font-family: "JetBrains Mono", "Menlo", monospace;
+  font-family: var(--font-mono);
   font-size: 26px;
   font-weight: 600;
   line-height: 1.0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Callout / "why this move" boxes */
@@ -135,48 +166,212 @@
 .ds-card {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
-  border-radius: 8px;
+  border-radius: 10px;
+  padding: 14px 16px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
 }
 
-/* Table header cell */
+/* Table header cell — --text-caption: 12px/500, uppercase, 0.5px tracking */
 .ds-th {
   background: #f8fafc;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  line-height: var(--text-caption-lh);
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: var(--ds-subtle);
+  color: var(--text-secondary);
   padding: 8px 12px;
 }
 
-/* Table body row */
+/* Table body row — --text-data: 13px/400, 52px min-height, 12px cell padding */
 .ds-td {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--ds-border-lt);
-  height: 38px;
-  font-size: 12px;
-  color: var(--ds-fg);
+  padding: 12px 12px;
+  border-bottom: 0.5px solid var(--ds-border-lt);
+  min-height: 52px;
+  font-size: var(--text-data-size);
+  font-weight: var(--text-data-weight);
+  line-height: var(--text-data-lh);
+  color: var(--text-primary);
 }
 
-/* Mono for data: IDs, codes, timestamps, measurements */
+/* Mono for data: IDs, codes, timestamps, measurements — weight 500 min per spec */
 .ds-mono {
-  font-family: "JetBrains Mono", "Menlo", monospace;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Tabular nums */
 .tabular { font-variant-numeric: tabular-nums; }
 
-/* Status pill */
+/* Badge — spec: inline-flex, 4px gap, 3px 10px, 5px radius, 11px/600, nowrap
+   Never use white text on tinted badges — they must be subtle, not buttons. */
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+/* Semantic badge variants — tinted bg + darkest stop of same hue */
+.ds-badge-success { background: #f0fdf4; color: #166534; } /* green-50  / green-800  */
+.ds-badge-active  { background: #eff6ff; color: #1e40af; } /* blue-50   / blue-800   */
+.ds-badge-planned { background: #faf5ff; color: #6b21a8; } /* purple-50 / purple-800 */
+.ds-badge-warning { background: #fffbeb; color: #92400e; } /* amber-50  / amber-800  */
+.ds-badge-danger  { background: #fef2f2; color: #991b1b; } /* red-50    / red-800    */
+.ds-badge-neutral { background: #f3f4f6; color: #374151; } /* gray-100  / gray-700   */
+
+/* Status pill (rounded-full variant for filter tabs / count bubbles) */
 .ds-pill {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.04em;
   border-radius: 9999px;
 }
+
+/* Route display helpers */
+.ds-route-sep   { color: var(--text-muted); margin: 0 2px; }
+.ds-route-arrow { color: var(--text-muted); font-size: 14px; padding: 0 7px; }
+.ds-gate-pill   {
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+
+/* ── Button system ──────────────────────────────────────────────────── */
+/* Shared base — transitions, cursor, radius, icon gap */
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 5px;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, opacity 0.12s;
+  border: none;
+  font-family: var(--font-sans);
+}
+.ds-btn:disabled { opacity: 0.5; pointer-events: none; }
+.ds-btn svg, .ds-btn .ds-btn-icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* Primary — 36px, 500, dark fill — one per view */
+.ds-btn-primary {
+  height: 36px;
+  padding: 8px 16px;
+  font-weight: 500;
+  background: #111827;
+  color: #ffffff;
+}
+.ds-btn-primary:hover:not(:disabled) { background: #1f2937; }
+
+/* Secondary — 36px, 500, border no fill */
+.ds-btn-secondary {
+  height: 36px;
+  padding: 8px 16px;
+  font-weight: 500;
+  background: #ffffff;
+  color: #374151;
+  border: 0.5px solid #d1d5db;
+}
+.ds-btn-secondary:hover:not(:disabled) { background: #f9fafb; }
+
+/* Ghost — 32px, 400, no border, hover reveal */
+.ds-btn-ghost {
+  height: 32px;
+  padding: 6px 12px;
+  font-weight: 400;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+}
+.ds-btn-ghost:hover:not(:disabled) { background: rgba(0,0,0,0.04); color: var(--text-primary); }
+
+/* ── Filter pills ───────────────────────────────────────────────────── */
+/* Height 32px, 13px, 6px 14px padding, 20px radius, 0.5px border */
+.ds-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 0.5px solid var(--ds-border);
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all 0.12s;
+}
+.ds-filter-pill.active,
+.ds-filter-pill[data-active="true"] {
+  background: #eef2ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+/* Indicator dot inside pill — 6px circle, 5px right margin */
+.ds-filter-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 5px;
+}
+
+/* ── Search inputs ──────────────────────────────────────────────────── */
+/* Height 36px, 14px body, placeholder 13px/muted, 0.5px border, focus accent */
+.ds-search {
+  height: 36px;
+  min-width: 240px;
+  font-size: 14px;
+  padding: 0 12px 0 36px;
+  border: 0.5px solid var(--ds-border);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--text-primary);
+  outline: none;
+  font-family: var(--font-sans);
+  transition: border-color 0.12s;
+}
+.ds-search::placeholder { font-size: 13px; color: var(--text-muted); }
+.ds-search:focus { border-color: var(--ds-accent); }
+
+/* ── Footer / status bar ────────────────────────────────────────────── */
+/* Height 44px, surface bg, top border, label + values + muted separators */
+.ds-footer-bar {
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 16px;
+  background: var(--ds-surface);
+  border-top: 1px solid var(--ds-border);
+}
+.ds-footer-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin-right: 12px;
+}
+.ds-footer-value { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.ds-footer-sep   { color: var(--text-muted); padding: 0 8px; user-select: none; }
 
 /* Severity dot */
 .ds-dot {

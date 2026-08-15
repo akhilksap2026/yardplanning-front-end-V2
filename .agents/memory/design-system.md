@@ -5,52 +5,94 @@ description: Design token decisions, utility classes, and gotchas from the dense
 
 # YardOS Design System
 
-## Source
-`attached_assets/Pasted-Design-system-Dense-operational-dashboard-Apply-this-vi_1786559643602.txt`
+## Source specs applied (in order)
+1. Font stack, type scale, spacing density — `attached_assets/Pasted-1-Font-stack…`
+2. Badges, routes, status indicators — `attached_assets/Pasted-5-Badges-tags…`
+3. Interactive elements, alert rows, footer bars — `attached_assets/Pasted-7-Interactive-elements…`
 
-## Utility classes (defined in src/index.css)
-- `.ds-label` — 9px, 500 weight, 0.1em letter-spacing, uppercase, #9ca3af
-- `.ds-kpi` — font-mono, 26px, 600 weight, leading-none
-- `.ds-mono` — font-mono (JetBrains Mono)
-- `.ds-th` — table header: bg-[#f9fafb], sticky, 9px uppercase 0.1em #9ca3af, px-3 py-2
-- `.ds-td` — table cell: px-3 py-2, border-b #f3f4f6, min-height 38px
-- `.ds-callout` — bg #fef2f2, border 1px #fecaca, radius 6px, p-3
-- `.ds-callout-label` — 9px uppercase #dc2626
+## CSS utility classes (src/index.css)
 
-## Color tokens
-- Page bg: #f4f5f7
-- Card/panel bg: #ffffff  
-- Table header bg: #f9fafb
-- Completed row bg: #fafafa
-- Table separator: #f3f4f6
-- Border: #e5e7eb
-- Accent: #dc2626 (NOT #d9291c — that was the old value, globally replaced via sed)
-- Status (ONLY these six): blue #2563eb, purple #7c3aed, amber #d97706, green #059669, cyan #0891b2, red #dc2626
+### Typography
+- `.ds-text-page` → 20px/600, `.ds-text-section` → 16px/600
+- `.ds-text-body` → 14px/400, `.ds-text-body-bold` → 14px/500
+- `.ds-text-data` → 13px/400, `.ds-text-caption` → 12px/500
+- `.ds-text-micro` → 11px/600, uppercase, 0.5px tracking
+- `.ds-label` → same as micro (updated from old 10px/0.1em)
 
-## Layout
-- Sidebar: 220px, bg #0f1117
-- Topbar: 44px
-- Story bar: 34px
-- Detail/side panels: 240–300px wide, white bg, 1px #e5e7eb left border
+### Color tokens
+- `--text-primary` #1a1a18, `--text-secondary` #6b6b66, `--text-muted` #9b9b95
+- `--font-sans` Inter stack, `--font-mono` SF Mono → Cascadia Code → JetBrains Mono stack
 
-## Typography
-- Base: 13px Inter
-- All numbers/IDs/timestamps/routes/measurements: font-mono (JetBrains Mono)
-- KPI numerals: font-mono font-semibold text-[26px] leading-none
-- Labels: ds-label class (9px uppercase 0.1em #9ca3af)
+### Badges
+- `.ds-badge` → inline-flex, 4px gap, **3px 10px** padding, **5px** radius, 11px/600, nowrap
+- Semantic: `.ds-badge-success` green-50/#166534, `.ds-badge-active` blue-50/#1e40af,
+  `.ds-badge-planned` purple-50/#6b21a8, `.ds-badge-warning` amber-50/#92400e,
+  `.ds-badge-danger` red-50/#991b1b, `.ds-badge-neutral` gray-100/#374151
+- **NEVER** use white text on tinted badges — darkest hue stop only
 
-## Buttons
-- borderRadius: 5px on all
-- Default: white bg, 1px #e5e7eb border, #374151 text
-- Primary: #111827 bg, white text
-- Danger: #dc2626 bg, white text
-- Toggle groups (tabs, source selector, filter pills): single container with border 1px #e5e7eb + borderRadius 5 + overflow hidden; NO individual pill borders
+### Buttons
+- `.ds-btn` base (gap 6px, 5px radius, 13px, transitions)
+- `.ds-btn-primary` → 36px, 500, #111827 fill
+- `.ds-btn-secondary` → 36px, 500, white + 0.5px border
+- `.ds-btn-ghost` → 32px, 400, transparent, hover reveal
+
+### Filter pills
+- `.ds-filter-pill` → 32px height, 13px/500, 6px 14px padding, **20px** radius, 0.5px border
+- Active: `background #eef2ff, color #4f46e5, border #c7d2fe`
+- Dot indicator: 6px circle, margin-right 5px
+
+### Search inputs
+- `.ds-search` → 36px, 14px body, 13px placeholder/muted, 0.5px border, focus → accent border
+- min-width 240px, prefer 260px for container-ID readability
+
+### Routes
+- `.ds-route-sep` muted `·`, `.ds-route-arrow` muted `→` 14px 7px padding
+- `.ds-gate-pill` gray-100 surface, 4px radius, 12px/600 uppercase mono
+- `LocSpan` component in `src/components/planner/MoveRow.tsx` renders either a GATE pill or a parsed coord with muted dots
+
+### Tables
+- `.ds-th` → 12px/500, 0.5px tracking, uppercase, `--text-secondary`
+- `.ds-td` → 13px/400, **52px** min-height, **12px** cell padding, **0.5px** row border
+- Stacked cells: line-1 14px/500 primary, line-2 12px/500 muted, **3–4px** gap
+- Alert row: `3px solid #ef4444` (red-500) for LFD breach, `3px solid #f59e0b` (amber-500) for holds
+
+### Footer/status bar
+- `.ds-footer-bar` → 44px, surface bg, top border
+- `.ds-footer-label` → 11px/600, uppercase, 0.5px tracking, muted
+- `.ds-footer-value` → 13px/500, primary; `.ds-footer-sep` → muted `·`
+- Ghost button far right for any action
+
+## Status-chip semantic color mapping (spec)
+| Status      | Bg       | Text     | Class           |
+|-------------|----------|----------|-----------------|
+| Completed   | #f0fdf4  | #166534  | badge-success   |
+| In yard     | #eff6ff  | #1e40af  | badge-active    |
+| Checked in  | #faf5ff  | #6b21a8  | badge-planned   |
+| At position | #fffbeb  | #92400e  | badge-warning   |
+| In queue    | #f3f4f6  | #374151  | badge-neutral   |
+| Expected    | #f3f4f6  | #374151  | badge-neutral   |
+
+## Screens updated
+- `src/screens/GateConsole.tsx` — full DS (type, badges, pills, search, CTA buttons, alert borders, dark-mode C object)
+- `src/screens/NightPlanner.tsx` — footer bar (`ds-footer-bar` / `ds-footer-label` / `ds-footer-value`)
+- `src/components/planner/MoveRow.tsx` — `LocSpan` route renderer, `ds-badge` for equipment/status
+- `src/utils/displayLabels.ts` — STATUS_COLORS and getEquipmentType corrected to -800 text stops
+- `src/components/ui/button.tsx` — buttonVariants sizes updated (h-9=36px default, h-8=32px sm/ghost)
+
+## Screens NOT yet updated to new DS
+- `src/screens/ControlTower.tsx` — filter chips, buttons still ad-hoc
+- `src/screens/LiveOps.tsx` — filter buttons, CTA still ad-hoc
+- `src/screens/NightPlanner.tsx` — operation filter tabs still rectangle toggle group
+- `src/screens/OperatorTablet.tsx` — white text on colored badges (spec violation)
 
 ## Gotchas
-- `Number(seedTask.seq)` where seq is "07 of 24" returns NaN → use `parseInt(seedTask.seq)` instead
-- shadow-2xl is ONLY permitted on the CommandPalette modal
+- pg returns DECIMAL/NUMERIC as strings; cast ::float in SELECT
+- `Number(seedTask.seq)` where seq is "07 of 24" → NaN; use `parseInt` instead
+- `shadow-2xl` ONLY on CommandPalette modal
 - No rounded-xl, no gradient backgrounds, no shadows on table rows
-- emergald/orange status colors must be mapped to #059669/#d97706 from allowed palette
+- emergald/orange colors → map to #059669/#d97706
+- The `C` object in GateConsole (dark-mode token map) keeps separate light/dark values for each surface/text/border; do not flatten to CSS vars without also wiring dark-mode toggle to a CSS class
+- `--text-primary/secondary/muted` CSS vars are defined but most non-GateConsole components still use hardcoded hex — future: migrate to token vars for dark-mode auto-support
 
 **Why:**
-The spec explicitly bans decorative shadow and gradient patterns to keep the operational dashboard readable under stress. The 6-color status palette is strict for at-a-glance accuracy.
+The spec explicitly bans decorative shadow and gradient patterns; 6-color status palette is strict for at-a-glance accuracy; badge text must use darkest hue stop (not white) so tinted rows stay readable.

@@ -1,0 +1,133 @@
+Context: This is the Planner screen of YMSNOW, a yard management system prototype for inland container depots in Argentina. The screen shows a shift plan with all container moves (putaway, pre-marshal, retrieval/stage, extra moves) in a master-detail layout — a move list table on the left and a move detail panel on the right. The design language follows Linear/Stripe/Datadog patterns: high information density, clean hierarchy, monospace for operational data, semantic color for move types and statuses. It must match the same design system as the Gate & Appointments screen (Inter font, CSS custom properties, light/dark mode).
+
+Redesign this screen with the following specific changes:
+
+1. Header and plan metadata
+Breadcrumb: "Operations / Planner" in 13px muted text.
+Title row: "Planner" at 20px/600 weight with a prominent amber DRAFT badge beside it (warning-bg background, warning-text color, warning-border, 11px uppercase with letter-spacing). The original had a flat gray badge that was easy to miss — the plan status is critical information and must stand out.
+Plan metadata below the title: break the original dense text string (P-2026-08-11 Generated 22:14 Engine 41.8 s Snapshot #a41f9c Horizon 06:00-14:00) into discrete items separated by dot (·) separators. Wrap the plan ID, snapshot hash, and horizon window each in a <code> element with surface-1 background and 3px border-radius so they read as scannable tokens, not a sentence.
+Source row below metadata: "Source" label in 11px muted uppercase, then inline tag badges — "Seed data" (accent-bg/accent-text with ti-database icon) and "Engine offline" (surface-1 background, muted text, bordered, with ti-plug-off icon). Plus an "Assumptions and weights" small ghost button with ti-adjustments icon.
+Action buttons right-aligned in header: dark mode toggle button, "Configure" (ghost with ti-settings), "Regenerate" (ghost with ti-refresh), "Approve and publish" (green/success filled button with ti-check icon).
+2. Summary stat cards
+
+Five cards in a grid-template-columns: repeat(5, 1fr) grid with 10px gap:
+
+Inbound containers: 48 / "today"
+Outbound containers: 46 / "today"
+Operators available: 6 / "6 of 6 on shift"
+Moves created: 154 / "in shift plan"
+Detention risk: $8.4k / "next 72h" — this card gets danger treatment: danger-border, danger-text on the number and label. This is the key business metric and must visually pop.
+
+Each card: surface-2 background, 0.5px border, 10px border-radius, 12px padding. Label is 11px muted uppercase with 0.6px letter-spacing. Number is 24px/600 weight. Subtitle is 12px secondary.
+
+3. Filter toolbar
+
+Left side: search input (surface-2 bg, border, ti-search icon, 150px wide, 12px placeholder "Search moves...") followed by filter pills:
+
+All (active by default with accent-bg/accent-text/accent-border)
+Putaway with a 6px blue dot
+Pre-marshal with a 6px purple dot
+Retrieval / stage with a 6px teal dot
+Extra move with a 6px coral dot
+
+Right side: count label "130 of 154 · 2 blocked" where "2 blocked" is in danger-text. Plus a "Columns" ghost button with ti-columns icon.
+
+Pills are 12px text, 20px border-radius, 5px/11px padding, 0.5px border, transition on hover.
+
+4. Master-detail layout
+
+Use display: grid; grid-template-columns: 1fr 360px; gap: 0 so the table and detail panel share a seamless visual border. The table container has border-radius: 10px 0 0 10px (left corners only, no right border). The detail panel has border-radius: 0 10px 10px 0 (right corners only).
+
+Table (5 columns replacing the original 4)
+Column	Width	Content
+Seq	44px, centered	Monospace 12px, muted color, 500 weight
+Move	18%	Color-coded move type badge + container ID below. This is the biggest change from the original — the original used plain text for the move type which made all rows look identical. Now each type gets a tinted badge with an icon: Retrieval/Stage = teal-bg/teal-text with ti-forklift, Pre-marshal = purple-bg/purple-text with ti-crane, Putaway = accent-bg/accent-text with ti-package-import, Extra Move = coral-bg/coral-text. Container ID is 11px monospace muted below the badge.
+Route	flex	Monospace 12px. Split from/to visually: origin in text-secondary, arrow → in text-muted with 2px margin, destination in text-primary with 500 weight. The original crammed the full route chain at uniform weight — now destination pops. If the move is a reshuffle or position adjustment (same-slot move), show a small (reshuffle) or (position adjust) annotation below in 11px muted as a route-via span.
+Assigned	20%	Operator name in 12px/500 weight. Below: equipment badge — Manual = neutral surface-1 bg + ti-hand-stop icon, Crane = purple-bg + ti-crane, Yard Truck = coral-bg + ti-truck. Each badge is 10px, 2px/6px padding, 4px border-radius. Unassigned rows show an em dash in muted.
+Status	10%	7px colored dot + 12px label. Completed = green dot + green text. Planned = accent/blue dot + accent text. Blocked = danger dot + danger text.
+
+Row behavior: cursor: pointer, hover gets subtle background tint. Clicking adds .selected class (accent-bg background). Blocked rows get .blocked class (danger-bg background).
+
+Detail panel (360px right side)
+
+Tab bar at top: surface-1 background, three tabs — "Move" (active, bottom border accent), "Exceptions" (with a red count badge 3 in 10px danger-bg/danger-text pill), "Projected KPI". Tabs are 13px, 10px/16px padding.
+
+Detail body (16px padding):
+
+Header block: Container ID in 13px monospace accent-text + equipment badge inline (same badge style as the table but slightly larger, 11px with 3px/8px padding). Move type as 15px/600 weight title below.
+Route block: A structured card (surface-1 background, border-radius) instead of inline text. Layout:
+"FROM" label: 10px uppercase muted, 0.5px letter-spacing
+Route value: monospace 13px primary/500
+Down arrow icon (ti-arrow-down) in muted
+"TO" label: same as FROM
+Route value: same style
+This replaces the original's single-line route text which was hard to parse for long multi-hop routes.
+"Why this step" card: warning-bg background, 0.5px warning-border, border-radius. "WHY THIS STEP" in 10px uppercase warning-text with 0.5px letter-spacing. Explanation text in 13px primary with 1.5 line-height. Keep this card — it's one of the best UX elements in the original design.
+Metadata fields: Vertical list of label-value pairs separated by 0.5px border-bottom hairlines. Each field has 8px vertical padding, label on left in text-secondary, value on right in 500 weight. Specific fields:
+Operator: value or em dash if unassigned
+Move method: monospace value (e.g., "Inspect Container")
+Window: green status dot + "Completed" + muted "· no window recorded"
+Score: muted "N/A · inspection step"
+Step status: success-text if completed
+Activity: success-text if completed
+Collapsible sections: Two items at the bottom — "Hard constraints" (with ti-lock icon) and "Step history" (with ti-history icon). Each is a flex row with label left, ti-chevron-down right, 10px vertical padding, top border. Hover darkens text.
+5. Operator bar (bottom)
+
+A rounded card below the main layout (10px border-radius, surface-1 bg, 0.5px border, 10px/14px padding, 12px text). Contains:
+
+"4 operators on shift" with ti-users icon
+1px vertical separator
+"2 moves frozen" with ti-lock icon
+1px vertical separator
+"Next break" with ti-coffee icon + a visual progress track (60px wide, 4px tall, border background with accent fill at 65%) + time "09:30" in 11px monospace
+"Show Gantt" ghost button right-aligned with ti-chart-gantt icon
+6. Color system and theming
+
+Full CSS custom property system with light and dark mode (toggled via data-theme="dark" on <html>):
+
+Move type palette (categorical, not semantic):
+
+Teal: retrieval/stage — --teal: #0d9488, --teal-bg: #f0fdfa, --teal-text: #115e59 (dark: bg rgba 0.1, text 
+#5eead4)
+Purple: pre-marshal — --purple: #7c3aed, --purple-bg: #f5f3ff, --purple-text: #5b21b6 (dark: bg rgba 0.1, text 
+#a78bfa)
+Accent/blue: putaway — reuse --accent-* tokens
+Coral: extra move — --coral: #ea580c, --coral-bg: #fff7ed, --coral-text: #9a3412 (dark: bg rgba 0.1, text 
+#fb923c)
+
+Equipment palette:
+
+Manual: neutral gray (surface-1 bg, text-secondary text)
+Crane: purple (reuse pre-marshal tokens)
+Yard Truck: coral (reuse extra move tokens)
+
+Status palette (semantic):
+
+Completed: green (success tokens)
+Planned: blue (accent tokens)
+Blocked: red (danger tokens)
+
+Core tokens (same as Gate screen): surface-0 (page bg 
+#f5f5f0), surface-1 (cards 
+#eeeee8), surface-2 (white), text-primary (
+#1a1a18), text-secondary (
+#6b6b66), text-muted (
+#9b9b95), border (rgba 0,0,0,0.08), accent, success, danger, warning — all with dark mode overrides.
+
+7. Typography
+Font: Inter (Google Fonts), fallback -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif
+Monospace: SF Mono, Cascadia Code, Consolas — used for container IDs, sequence numbers, route coordinates (Bay·Row·Tier), plan metadata codes, snapshot hashes, time values, move method values
+Headers (th): 11px, 600 weight, uppercase, 0.4px letter-spacing, muted color
+Body (td): 13px, 400 weight
+Stat numbers: 24px, 600 weight, -0.5px letter-spacing
+Badges: 10-11px, 500-600 weight
+8. Interactivity
+Filter pills: Click toggles active state and filters table rows by data-type attribute matching the filter name
+Search: Input filters rows by text content match (case-insensitive)
+Row selection: Click removes .selected from all rows and adds to clicked row
+Detail panel tabs: Click toggles active state between Move, Exceptions, Projected KPI
+Dark mode toggle: Flips data-theme attribute, swaps moon/sun icon
+Collapsible sections: Chevron rotation on toggle (CSS transform)
+9. Icons
+
+Use Tabler Icons webfont (outline only, loaded from CDN): ti-forklift, ti-crane, ti-package-import, ti-hand-stop, ti-truck, ti-database, ti-plug-off, ti-adjustments, ti-settings, ti-refresh, ti-check, ti-search, ti-columns, ti-arrow-down, ti-lock, ti-history, ti-chevron-down, ti-users, ti-coffee, ti-chart-gantt, ti-moon, ti-sun, ti-dots.

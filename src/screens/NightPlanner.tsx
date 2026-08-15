@@ -1092,25 +1092,21 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
 
       {/* ── Step 5: Operator schedule — collapsed summary ─────────────────────── */}
       {planSource === "seed" && (
-        <div className="flex-none border-t border-[var(--ds-border)] bg-white">
-          {/* Summary bar — always visible */}
-          <div className="flex items-center gap-3 px-4 py-2">
-            <span className="ds-label font-bold">Operator schedule</span>
-            <span className="text-[11px] text-[var(--ds-fg-secondary)]">
-              <span className="font-semibold">{onShift.length}</span> operators on shift
-              <span className="text-[var(--ds-subtle)] mx-1.5">·</span>
-              <span className="font-semibold">{frozenCount}</span> moves frozen
-              <span className="text-[var(--ds-subtle)] mx-1.5">·</span>
-              next break <span className="font-mono font-semibold">09:30</span>
-            </span>
-            <button
-              onClick={() => setGanttExpanded(v => !v)}
-              className="ml-auto text-[11px] px-2.5 py-1 text-[var(--ds-fg-secondary)]"
-              style={{ border:"1px solid var(--ds-border)", borderRadius:5 }}
-            >
-              {ganttExpanded ? "Collapse ▲" : t("planner.move.showGantt") + " ▼"}
-            </button>
-          </div>
+        <div className="ds-footer-bar" style={{ paddingLeft:16, paddingRight:16 }}>
+          <span className="ds-footer-label">Operator schedule</span>
+          <span className="ds-footer-value">
+            {onShift.length} operators on shift
+            <span className="ds-footer-sep">·</span>
+            {frozenCount} moves frozen
+            <span className="ds-footer-sep">·</span>
+            next break <span className="font-mono" style={{ fontWeight:500 }}>09:30</span>
+          </span>
+          <button
+            onClick={() => setGanttExpanded(v => !v)}
+            className="ds-btn ds-btn-ghost ml-auto"
+          >
+            {ganttExpanded ? "Collapse ▲" : t("planner.move.showGantt") + " ▼"}
+          </button>
 
           {/* Full Gantt — expanded via max-height transition */}
           <div style={{ overflow:"hidden", maxHeight: ganttExpanded ? 200 : 0, transition:"max-height 220ms ease" }}>

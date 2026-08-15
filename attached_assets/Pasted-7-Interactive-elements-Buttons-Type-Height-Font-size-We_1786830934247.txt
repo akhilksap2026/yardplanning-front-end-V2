@@ -1,0 +1,47 @@
+7. Interactive elements
+Buttons
+Type	Height	Font-size	Weight	Padding	Use
+Primary	36px	13px	500	8px 16px	One per view. The main action.
+Secondary	36px	13px	500	8px 16px	Supporting actions. Border, no fill.
+Ghost	32px	13px	400	6px 12px	Inline/row actions. No border, hover only.
+Button text is always sentence case, verb-first ("Check in next", "Assign operator", "Export list")
+Icon + text buttons: icon at 16px, 6px gap to label
+Never go below 32px button height — touch targets on tablet need it
+Filter pills
+Height: 32px, font-size: 13px, padding: 6px 14px, border-radius: 20px
+Default: transparent bg, 0.5px border, secondary text color
+Active: tinted accent background, accent text, accent border
+Colored indicator dots (red, amber) are 6px circles with 5px right margin inside the pill
+Gap between pills: 5–6px
+Search inputs
+Height: 36px, font-size: 14px
+Placeholder text: 13px, muted color
+Leading search icon: 16px, muted color
+Border: 0.5px solid default border color, accent border on focus
+Minimum width: 200px, prefer 240–280px so operators can type container IDs without scrolling
+Dropdowns and selects
+Same height and font size as inputs (36px, 14px)
+Chevron icon: 14px, muted color
+Dropdown options: 14px, 400 weight, 36px option height minimum
+8. Alert and exception rows
+
+When a table row has an operational exception (LFD breach, customs hold, early/late arrival, equipment failure), the entire row gets a tinted background so it is visible without reading every cell.
+
+Severity	Row background	Left accent (optional)
+Critical	Red-50 tint at 6–8% over surface	3px left border in red-500
+Warning	Amber-50 tint at 6–8% over surface	3px left border in amber-500
+Info	Blue-50 tint at 4–5% over surface	None
+Alert rows include an alert tag below the primary cell content: a small pill in matching color (red or amber) with a concise explanation ("LFD breached — priority putaway", "Customs hold — pending ARCA release")
+Alert rows should be sorted to the top of their table whenever possible. The operator should not have to scroll past 30 normal rows to find the 3 that need action.
+Row tint must be subtle enough that all text within the row remains readable at the same contrast ratios as normal rows. Test this.
+9. Footer and status bars
+
+Persistent footer bars showing shift status, operator count, frozen moves, or break timers follow this pattern:
+
+Bar height: 44px
+Background: var(--surface-1) with top border
+Label prefix ("OPERATOR SCHEDULE"): 11px, uppercase, letter-spacing 0.5px, weight 600, muted color
+Values: 13px, weight 500, primary color
+Separators between values: · in muted color
+Time values: monospace, weight 500
+The bar is not a place for actions — only status information. If it needs an action, put a ghost button at the far right.

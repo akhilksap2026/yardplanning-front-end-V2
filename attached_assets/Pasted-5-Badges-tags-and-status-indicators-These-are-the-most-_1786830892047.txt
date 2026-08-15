@@ -1,0 +1,37 @@
+5. Badges, tags, and status indicators
+
+These are the most frequently scanned elements in the application. An operator glances at a screen of 50 rows and needs to spot the three that need attention. The badge system must make that instant.
+
+Structure
+
+Every badge is a small pill: display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; white-space: nowrap;
+
+Semantic color mappings (tinted background + dark text from same hue)
+Status/meaning	Background	Text	Example use
+Success/completed	green-50 (soft green)	green-800 (dark green)	"Completed", "Cleared", "Verde"
+Active/in-progress	blue-50 (soft blue)	blue-800 (dark blue)	"In yard", "In transit", "Active"
+Scheduled/planned	purple-50 (soft purple)	purple-800 (dark purple)	"Planned", "Checked in", "Booked"
+Warning/attention	amber-50 (soft amber)	amber-800 (dark amber)	"At position", "Naranja", "Quality hold"
+Danger/blocked	red-50 (soft red)	red-800 (dark red)	"Breached", "Rojo", "Customs hold"
+Neutral/default	gray-100 (surface tint)	gray-700 (secondary)	"In queue", "Manual", "Pending"
+Rules
+Badge text is always the same color family as the badge background, just the darkest stop in the ramp. Never use white text on these tinted badges — they are meant to be subtle, not buttons.
+Never combine two semantic colors in one badge. If a badge needs an icon, the icon inherits the text color.
+Equipment badges (Crane, Manual, Yard Truck, RTG) use a leading icon and neutral or category-appropriate tint. These are classification labels, not status indicators.
+Maximum two badges per cell, on one line. If a cell has both an equipment badge and a status badge, they sit side by side with 6px gap. Never stack badges vertically.
+6. Route and coordinate formatting
+
+Bay/row/tier coordinates and route paths are among the most complex strings in the application. They must be formatted for instant parsing, not just displayed as raw text.
+
+Coordinate format: Bay 9 · R1 · T3
+Monospace, 13px, weight 500
+Separator dots (·) in muted color — they provide rhythm, not information
+"Bay" prefix in normal weight, the number in bold weight if you want to emphasize it, but consistency matters more than emphasis
+Route arrows: Origin → Destination
+The arrow (→) gets 6–8px horizontal padding on each side
+Arrow color: --text-muted
+Arrow size: 14px (slightly larger than surrounding text so it reads as a divider)
+Origin and destination blocks should have equal visual weight unless one is a special location
+Special locations: GATE
+Render as a mini pill: background: var(--surface-1); padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; text-transform: uppercase;
+This distinguishes "GATE" from bay coordinates at a glance — the operator knows immediately this move touches the facility boundary

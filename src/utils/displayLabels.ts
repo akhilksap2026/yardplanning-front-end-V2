@@ -85,13 +85,13 @@ export type EquipmentType = { icon: string; label: string; bg: string; text: str
 export function getEquipmentType(step: PlanningStep): EquipmentType {
   switch (step.move_method) {
     case "Crane lift":
-      return { icon: "🏗️", label: "Crane",      bg: "#eff6ff", text: "#1d4ed8" }
+      return { icon: "🏗️", label: "Crane",      bg: "#eff6ff", text: "#1e40af" }  // blue-50/blue-800
     case "Yard-truck haul":
-      return { icon: "🚛", label: "Yard Truck", bg: "#fefce8", text: "#a16207" }
+      return { icon: "🚛", label: "Yard Truck", bg: "#fffbeb", text: "#92400e" }  // amber-50/amber-800
     case "Move to staging":
-      return { icon: "🚛", label: "Yard Truck", bg: "#fefce8", text: "#a16207" }
+      return { icon: "🚛", label: "Yard Truck", bg: "#fffbeb", text: "#92400e" }  // amber-50/amber-800
     case "Inspection":
-      return { icon: "👁️", label: "Manual",     bg: "#f3f4f6", text: "#374151" }
+      return { icon: "👁️", label: "Manual",     bg: "#f3f4f6", text: "#374151" }  // gray-100/gray-700
     default:
       return { icon: "⚙️", label: step.move_method ?? "—", bg: "#f3f4f6", text: "#374151" }
   }
@@ -102,9 +102,9 @@ export function getEquipmentType(step: PlanningStep): EquipmentType {
 export type StatusStyle = { bg: string; text: string; border: string }
 
 export const STATUS_COLORS: Record<string, StatusStyle> = {
-  Planned:   { bg: "#eff6ff", text: "#1d4ed8", border: "#bfdbfe" },   // blue
-  Completed: { bg: "#f0fdf4", text: "#15803d", border: "#bbf7d0" },   // green
-  Blocked:   { bg: "#fef3c7", text: "#b45309", border: "#fde68a" },   // amber
+  Planned:   { bg: "#eff6ff", text: "#1e40af", border: "#bfdbfe" },   // blue-50  / blue-800   / blue-200
+  Completed: { bg: "#f0fdf4", text: "#166534", border: "#bbf7d0" },   // green-50 / green-800  / green-200
+  Blocked:   { bg: "#fffbeb", text: "#92400e", border: "#fde68a" },   // amber-50 / amber-800  / amber-200
 }
 
 export function getStatusStyle(status: string | null | undefined): StatusStyle {

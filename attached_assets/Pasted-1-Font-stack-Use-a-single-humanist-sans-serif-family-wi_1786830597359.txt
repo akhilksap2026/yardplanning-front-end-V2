@@ -1,0 +1,83 @@
+1. Font stack
+
+Use a single humanist sans-serif family with wide character spacing and clear distinction between similar glyphs (I/l/1, O/0, rn/m). These matter in logistics where container IDs, bay coordinates, and plate numbers are scanned constantly.
+
+--font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+--font-mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Consolas', 'Liberation Mono', monospace;
+
+Inter is the primary choice because it was designed for screens, has tabular number support (important for aligned data columns), and distinguishes ambiguous glyphs well. If Inter is unavailable, fall back to the system font.
+
+Monospace is used exclusively for machine-generated identifiers: container numbers, bay/row/tier coordinates, timestamps, license plates, SCAC codes, and any alphanumeric code an operator might need to read aloud or key into another system.
+
+Never use a serif or decorative font anywhere in the application.
+
+2. Type scale
+
+Seven stops. Every piece of text in the application maps to exactly one of these. No in-between sizes, no one-off overrides.
+
+Token	Size	Weight	Line-height	Use case
+--text-page	20px	600	1.3	Page titles ("Gate and appointments", "Yard map")
+--text-section	16px	600	1.3	Section headers, card titles, modal titles
+--text-body	14px	400	1.5	Default body text, form labels, paragraph content
+--text-body-bold	14px	500	1.5	Primary cell data, operator names, consignee names, nav items
+--text-data	13px	400	1.4	Table cell content, secondary information, descriptions
+--text-caption	12px	500	1.4	Column headers, badge/tag labels, metadata, helper text
+--text-micro	11px	600	1.3	Uppercase labels, category eyebrows, stat card labels
+Rules
+Minimum readable size is 12px. Nothing in the application should ever render below 12px. If content does not fit, truncate with ellipsis or use a tooltip — do not shrink text.
+Monospace text uses the same scale but always at font-weight 500 minimum. Monospace at weight 400 is too thin on most screens.
+Tabular numbers everywhere. Any column that contains numbers must use font-variant-numeric: tabular-nums so digits align vertically across rows. Inter supports this natively.
+Uppercase is reserved for --text-micro only: column headers, stat labels, badge text, and footer labels. Apply letter-spacing: 0.5px whenever using uppercase. Never uppercase body text, names, or descriptions.
+3. Color and contrast
+
+Text color is not decoration — it encodes hierarchy. Three tiers, consistently applied:
+
+Token	Light mode	Dark mode	Purpose
+--text-primary	
+#1a1a18	
+#e8e8e3	Primary content the user must read: names, IDs, values
+--text-secondary	
+#6b6b66	
+#8a8a84	Supporting content: column headers, descriptions, labels
+--text-muted	
+#9b9b95	
+#5e5e5a	Lowest priority: placeholders, separators, disabled states, timestamps
+Rules
+Never use opacity to create text hierarchy. opacity: 0.5 on text shifts with the background and becomes unreadable on tinted rows (alert rows, selected rows). Always use the dedicated color tokens.
+Never hardcode hex values on text. Every text color must reference a CSS custom property so dark mode works automatically.
+Semantic colors for status text only. Red, amber, green, blue, and purple are reserved for status badges, alert indicators, and channel markers. Body text and labels always use the three neutral tiers above.
+Minimum contrast ratio: 4.5:1 for all text at --text-data size and below, 3:1 for --text-body and above (WCAG AA). Test this in both light and dark mode, and on tinted/alert row backgrounds.
+4. Spacing and density
+
+Operations consoles have a tension between density (showing enough data to act on) and comfort (not exhausting the user over a long shift). The system resolves this with generous vertical rhythm inside tight horizontal layouts.
+
+Table rows
+Metric	Value	Why
+Row height minimum	52px	Fits two-line stacked cells comfortably, large enough touch target on tablet
+Cell padding	12px 12px	Vertical padding gives breathing room; horizontal keeps columns tight
+Row border	0.5px	Visible divider without visual weight
+Hover background	3–4% tint	Subtle enough to not flash on mouse movement, visible enough to track the row
+Stacked cells (two-line pattern)
+
+Many cells show a primary value with a secondary value below it (e.g., container ID + move type, carrier name + SCAC code, operator + equipment). These follow a strict two-line pattern:
+
+Line 1: --text-body-bold (14px/500) in --text-primary
+Line 2: --text-caption (12px/500) in --text-muted, monospace if it's an identifier
+Gap:    3–4px between lines (use margin-top, not line-height tricks)
+
+Never stack more than two lines in a table cell. If three data points belong together, put two on line 2 as inline badges separated by a gap.
+
+Cards and stat boxes
+Metric	Value
+Card padding	14px 16px
+Card radius	10px
+Card gap (grid)	12px
+Stat number	24–28px, weight 600, letter-spacing -0.5px
+Stat label	11px, uppercase, weight 600, letter-spacing 0.6px, muted color
+Stat subtitle	12px, weight 400, secondary color
+Whitespace rhythm
+Between page header and first content block: 16px
+Between content blocks (stats → toolbar → table): 16–20px
+Between filter bar and table: 12px
+Inside toolbars between groups: 10–12px
+Between pill/badge items in a row: 5–6px
