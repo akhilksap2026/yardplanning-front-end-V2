@@ -180,6 +180,7 @@ export default function OperatorTablet() {
   const [cantFindReason, setCantFindReason] = useState<string|null>(null)
   const [equipReason,    setEquipReason]    = useState<string|null>(null)
   const [quarantine,     setQuarantine]     = useState(false)
+  const [equipReported,  setEquipReported]  = useState(false)
 
   // ── Damage state ──────────────────────────────────────────────────────────
   const [photoCaptured, setPhotoCaptured] = useState<Record<string,boolean>>({})
@@ -250,6 +251,18 @@ export default function OperatorTablet() {
     setWizardStep("job-card"); setOverlay(null)
     resetScan(); setQuarantine(false); setCantFindReason(null)
     setPhotoCaptured({}); setSelectedDmg(new Set()); setConfirmError(null)
+  }
+
+  // Skip current job and advance to next (shared by cant-find, quarantine, etc.)
+  function skipCurrentJob() {
+    if (backendConnected && selectedJockeyId != null) {
+      resetForNextJob(); fetchNextTask(selectedJockeyId)
+    } else {
+      const id = String(displayTask?.id ?? "")
+      setCompletedIds(prev => new Set([...prev, id]))
+      setQueueIdx(prev => prev + 1)
+      resetForNextJob()
+    }
   }
 
   useEffect(() => {
