@@ -71,7 +71,42 @@
     --ds-green:  #059669;
     --ds-cyan:   #0891b2;
     --ds-red:    #dc2626;
+
+    /* ── Move-type categorical palette ─────────────────────────────── */
+    --teal:        #0d9488;
+    --teal-bg:     #f0fdfa;
+    --teal-text:   #115e59;
+    --coral:       #ea580c;
+    --coral-bg:    #fff7ed;
+    --coral-text:  #9a3412;
+    --purple-bg:   #f5f3ff;
+    --purple-text: #5b21b6;
   }
+}
+
+/* ── Dark-mode overrides (data-theme="dark" on any ancestor) ──────── */
+[data-theme="dark"] {
+  --ds-background:    #0f172a;
+  --ds-surface:       #1e293b;
+  --ds-border:        rgba(255,255,255,0.09);
+  --ds-border-lt:     rgba(255,255,255,0.04);
+  --ds-fg:            #f1f5f9;
+  --ds-fg-secondary:  #94a3b8;
+  --ds-subtle:        #64748b;
+  --ds-muted:         #475569;
+  --ds-decorative:    #334155;
+  --ds-surface-hover: #1e293b;
+  --ds-accent-bg:     rgba(79,70,229,0.18);
+  --ds-accent-border: rgba(99,102,241,0.4);
+  --text-primary:     #f1f5f9;
+  --text-secondary:   #94a3b8;
+  --text-muted:       #64748b;
+  --teal-bg:          rgba(13,148,136,0.15);
+  --teal-text:        #5eead4;
+  --coral-bg:         rgba(234,88,12,0.15);
+  --coral-text:       #fb923c;
+  --purple-bg:        rgba(124,58,237,0.15);
+  --purple-text:      #a78bfa;
 }
 
 /* ── Base resets ───────────────────────────────────────────────────── */
