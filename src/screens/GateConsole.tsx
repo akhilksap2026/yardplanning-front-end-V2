@@ -47,7 +47,7 @@ const VISIT_COL_LABELS: Record<VisitCol, string> = {
 
 export default function GateConsole({ focus, onNavigate }: Props) {
   const { visits, lanes, appointments, refresh, backendConnected, backendContainers, containers, dbLoading } = useData()
-  const { t } = useLang()
+  const { t, lang, setLang } = useLang()
 
   // ── Existing state ────────────────────────────────────────────────────────
   const [tab,          setTab]         = useState("visits")
@@ -87,6 +87,12 @@ export default function GateConsole({ focus, onNavigate }: Props) {
   const colChooserRef  = useRef<HTMLDivElement>(null)
   const moreActionsRef = useRef<HTMLDivElement>(null)
 
+  // ── Inbound / Outbound filter + search + dark mode ───────────────────────
+  const [filterPill,  setFilterPill]  = useState<"all"|"alerts"|"holds"|"in_queue"|"in_yard">("all")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [darkMode,    setDarkMode]    = useState(false)
+  const [utcTime,     setUtcTime]     = useState(() => new Date().toUTCString().slice(17,25))
+
   // ── Outside-click closes ──────────────────────────────────────────────────
   useEffect(() => {
     if (!colChooserOpen) return
@@ -103,6 +109,14 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     }
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h)
   }, [moreActionsOpen])
+
+  // ── UTC clock ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const tick = () => setUtcTime(new Date().toUTCString().slice(17, 25))
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
 
   // ── Live gate container rows (fetched from backend, seed fallback) ───────────
   const [liveInbound,  setLiveInbound]  = useState<LiveGateRow[] | null>(null)
@@ -340,27 +354,89 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     )
   }
 
-  return (
-    <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
+  // ── Dark-mode colour tokens (computed inline to avoid global CSS) ─────────
+  const dk = darkMode
+  const C = {
+    pageBg:       dk ? "#0f1117" : "#f4f5f7",
+    surface0:     dk ? "#1a1d27" : "#ffffff",
+    surface1:     dk ? "#222533" : "#f9fafb",
+    surface2:     dk ? "#2a2e3f" : "#f3f4f6",
+    border:       dk ? "rgba(255,255,255,0.08)" : "#e5e7eb",
+    borderMid:    dk ? "rgba(255,255,255,0.12)" : "#d1d5db",
+    text:         dk ? "#f1f5f9" : "#111827",
+    textMuted:    dk ? "#8b95a8" : "#6b7280",
+    textDim:      dk ? "#4a5568" : "#9ca3af",
+    dangerBg:     dk ? "rgba(220,38,38,0.18)" : "#fef2f2",
+    dangerFg:              "#dc2626",
+    dangerBorder: dk ? "rgba(220,38,38,0.35)" : "#fecaca",
+    warnBg:       dk ? "rgba(217,119,6,0.18)"  : "#fffbeb",
+    warnFg:                "#d97706",
+    warnBorder:   dk ? "rgba(217,119,6,0.35)"  : "#fde68a",
+    successBg:    dk ? "rgba(5,150,105,0.18)"  : "#f0fdf4",
+    successFg:             "#059669",
+    accentBg:     dk ? "rgba(37,99,235,0.18)"  : "#eff6ff",
+    accentFg:              "#2563eb",
+    purpleBg:     dk ? "rgba(124,58,237,0.18)" : "#faf5ff",
+    purpleFg:              "#7c3aed",
+    amberBg:      dk ? "rgba(217,119,6,0.15)"  : "#fffbeb",
+    amberFg:               "#d97706",
+  }
 
-      {/* Header */}
-      <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[var(--ds-border)] flex-none bg-white">
-        <div className="flex flex-col gap-1">
-          <span className="font-semibold text-[15px] tracking-tight">{t("gate.title")}</span>
-          <span className="text-[11px] text-neutral-500">{t("gate.subtitle")}</span>
+  return (
+    <div className="flex flex-col h-full min-h-0 overflow-auto" style={{ background: C.pageBg, color: C.text }}>
+
+      {/* ── Breadcrumb + header row ─────────────────────────────────────────── */}
+      <div className="flex-none" style={{ background: C.surface0, borderBottom: `1px solid ${C.border}` }}>
+        {/* Breadcrumb */}
+        <div className="px-5 pt-3 pb-1 flex items-center gap-1.5" style={{ fontSize:11, color: C.textDim }}>
+          <span>Operations</span>
+          <span style={{ color: C.textDim }}>/</span>
+          <span style={{ color: C.textMuted, fontWeight:500 }}>Gate &amp; Appointments</span>
         </div>
-        <div className="ml-auto">
-          {tab==="gtx"&&backendConnected ? (
-            <button onClick={()=>setShowGateInForm(f=>!f)}
-              style={{ background:"#111827", color:"#fff", border:"none", borderRadius:5, fontSize:12, padding:"5px 14px", fontWeight:600 }}>
-              {showGateInForm?t("common.cancel"):t("gate.gateIn")}
+        {/* Title row */}
+        <div className="px-5 pb-3 flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse inline-block" />
+            <span style={{ fontWeight:600, fontSize:15, letterSpacing:"-0.3px", color: C.text }}>Gate &amp; Appointments</span>
+          </div>
+          <span className="font-mono text-[11px] tabular-nums" style={{ color: C.textMuted }}>{utcTime} UTC</span>
+
+          <div className="ml-auto flex items-center gap-2 flex-wrap">
+            {/* Language toggle */}
+            <div className="flex rounded overflow-hidden" style={{ border:`1px solid ${C.border}` }}>
+              {(["en","es"] as const).map(l => (
+                <button key={l} onClick={()=>setLang(l)}
+                  className="px-2.5 py-1 text-[11px] font-semibold uppercase transition-colors"
+                  style={{ background: lang===l ? "#111827" : C.surface1, color: lang===l ? "#fff" : C.textMuted }}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            {/* Refresh */}
+            <button onClick={()=>refresh(["visits","lanes","containers"])}
+              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold transition-colors"
+              style={{ background: C.surface1, border:`1px solid ${C.border}`, borderRadius:5, color: C.textMuted }}>
+              ↺ Refresh
             </button>
-          ) : (
-            <button onClick={handleCheckIn} disabled={checkingIn}
-              style={{ background:"#111827", color:"#fff", border:"none", borderRadius:5, fontSize:12, padding:"5px 14px", fontWeight:600, opacity:checkingIn?0.5:1 }}>
-              {checkInDone?"V-2043 served · gate pass issued":checkingIn?t("gate.checkingIn"):t("gate.checkIn")}
+            {/* Dark mode */}
+            <button onClick={()=>setDarkMode(d=>!d)}
+              className="px-2.5 py-1 text-[11px] font-semibold transition-colors"
+              style={{ background: C.surface1, border:`1px solid ${C.border}`, borderRadius:5, color: C.textMuted }}>
+              {darkMode ? "☀ Light" : "☾ Dark"}
             </button>
-          )}
+            {/* Primary CTA */}
+            {tab==="gtx"&&backendConnected ? (
+              <button onClick={()=>setShowGateInForm(f=>!f)}
+                style={{ background:"#111827", color:"#fff", border:"none", borderRadius:5, fontSize:12, padding:"5px 14px", fontWeight:600 }}>
+                {showGateInForm?t("common.cancel"):t("gate.gateIn")}
+              </button>
+            ) : (
+              <button onClick={handleCheckIn} disabled={checkingIn}
+                style={{ background:"#111827", color:"#fff", border:"none", borderRadius:5, fontSize:12, padding:"6px 16px", fontWeight:600, opacity:checkingIn?0.5:1 }}>
+                {checkInDone?"✓ Served · pass issued":checkingIn?t("gate.checkingIn"):"Check in next"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -375,97 +451,77 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           { id: "inspection",label: t("gate.tab.inspection")                   },
         ]}
         active={tab}
-        onChange={id => setTab(id as typeof tab)}
+        onChange={id => { setTab(id as typeof tab); setFilterPill("all"); setSearchQuery("") }}
       />
 
-      {/* ── Collapsible KPI bar — computed live from inbound/outbound rows ─── */}
-      {dbLoading && (
+      {/* ── KPI stat cards — shown for inbound / outbound tabs ──────────────── */}
+      {(tab === "inbound" || tab === "outbound") && (() => {
+        const isOut = tab === "outbound"
+
+        const ibTotal    = inboundRows.length
+        const ibCleared  = inboundRows.filter(r => r.channel === "verde" && !r.hold).length
+        const ibHolds    = inboundRows.filter(r => r.hold).length
+        const ibLfdRisk  = inboundRows.filter(r => r.hoursToLFD < 24 && r.hoursToLFD >= 0).length
+        const ibBreached = inboundRows.filter(r => r.hoursToLFD < 0).length
+        const ibHoldTypes = (() => {
+          const types: Record<string,number> = {}
+          inboundRows.forEach(r => { if (r.hold) types[r.hold] = (types[r.hold]||0)+1 })
+          return Object.entries(types).map(([k,n])=>`${n} ${k}`).join(" · ") || "none"
+        })()
+
+        const obTotal    = outboundRows.length
+        const obGateOut  = outboundRows.filter(r => r.gateStatus === "GATE_OUT").length
+        const obPending  = obTotal - obGateOut
+        const obFlagged  = outboundRows.filter(r => r.excl || r.hold).length
+        const obBreached = outboundRows.filter(r => r.hoursToLFD < 0).length
+        const obHolds    = outboundRows.filter(r => r.hold).length
+
+        type Card = { label:string; value:string; sub:string; variant:"normal"|"danger"|"warning" }
+        const cards: Card[] = isOut ? [
+          { label:"Dispatching today",   value:String(obTotal),    sub:`${obPending} still pending`,     variant:"normal"  },
+          { label:"Gate-out complete",   value:String(obGateOut),  sub:`${obPending} awaiting gate-out`, variant:"normal"  },
+          { label:"LFD at risk",         value:String(obBreached), sub:"detention accruing now",         variant: obBreached>0?"danger":"normal" },
+          { label:"Holds active",        value:String(obHolds+obFlagged), sub:"clearance flags",         variant: (obHolds+obFlagged)>0?"warning":"normal" },
+        ] : [
+          { label:"Arriving today",      value:String(ibTotal),    sub:`${ibTotal} booked`,              variant:"normal"  },
+          { label:"Cleared to receive",  value:String(ibCleared),  sub:`${ibHolds} on hold`,             variant: ibHolds>0?"warning":"normal" },
+          { label:"LFD at risk",         value:String(ibLfdRisk+ibBreached), sub:"within 24 h — act now",variant: (ibLfdRisk+ibBreached)>0?"danger":"normal" },
+          { label:"Holds active",        value:String(ibHolds),    sub:ibHoldTypes,                      variant: ibHolds>0?"warning":"normal" },
+        ]
+
+        const cardBg  = (v: Card["variant"]) =>
+          v==="danger"  ? C.dangerBg  :
+          v==="warning" ? C.warnBg    : C.surface0
+        const cardBorder = (v: Card["variant"]) =>
+          v==="danger"  ? C.dangerBorder  :
+          v==="warning" ? C.warnBorder    : C.border
+        const valColor = (v: Card["variant"]) =>
+          v==="danger"  ? C.dangerFg  :
+          v==="warning" ? C.warnFg    : C.text
+
+        return (
+          <div className="flex-none grid grid-cols-4 gap-3 px-5 py-3"
+            style={{ background: C.pageBg, borderBottom:`1px solid ${C.border}` }}>
+            {cards.map(card => (
+              <div key={card.label} className="flex flex-col gap-1 px-4 py-3 rounded-lg"
+                style={{ background: cardBg(card.variant), border:`1px solid ${cardBorder(card.variant)}` }}>
+                <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color: C.textMuted }}>{card.label}</span>
+                <span style={{ fontSize:26, fontWeight:700, fontFamily:"monospace", lineHeight:1, color: valColor(card.variant) }}>{card.value}</span>
+                <span style={{ fontSize:11, color: C.textMuted }}>{card.sub}</span>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
+      {/* ── Legacy KPI bar — only for other tabs (visits / gtx / appts) ─────── */}
+      {(tab !== "inbound" && tab !== "outbound") && dbLoading && (
         <div className="flex-none border-b border-[#e5e7eb] bg-white">
           <div className="flex items-stretch">
             {[0,1,2].map(i => <Skeleton key={i} variant="kpi" />)}
           </div>
         </div>
       )}
-      {!dbLoading && (() => {
-        const isOut = tab === "outbound"
-
-        // ── Inbound counts ────────────────────────────────────────────────
-        const ibTotal      = inboundRows.length
-        const ibCleared    = inboundRows.filter(r => r.channel === "verde" && !r.hold).length
-        const ibHolds      = inboundRows.filter(r => r.hold).length
-        const ibLfdRisk    = inboundRows.filter(r => r.hoursToLFD < 24).length
-        const ibReceived   = inboundRows.filter(r => r.gateStatus === "GATE_OUT" || r.gateStatus === "SERVED").length
-        const ibCarriers   = new Set(inboundRows.map(r => r.carrierName)).size
-        const ibHoldTypes  = (() => {
-          const types: Record<string,number> = {}
-          inboundRows.forEach(r => { if (r.hold) types[r.hold] = (types[r.hold]||0)+1 })
-          return Object.entries(types).map(([k,n])=>`${n} ${k}`).join(" · ") || "none"
-        })()
-
-        // ── Outbound counts ───────────────────────────────────────────────
-        const obTotal      = outboundRows.length
-        const obGateOut    = outboundRows.filter(r => r.gateStatus === "GATE_OUT").length
-        const obPending    = obTotal - obGateOut
-        const obFlagged    = outboundRows.filter(r => r.excl || r.hold).length
-        const obBreached   = outboundRows.filter(r => r.hoursToLFD < 0).length
-        const obCarriers   = new Set(outboundRows.map(r => r.carrierName)).size
-
-        const primaryKpis = isOut ? [
-          { k:t("gate.kpi.dispatchingToday"),  v:String(obTotal),   sub:t("gate.kpi.scheduledExport"),  red:false },
-          { k:t("gate.kpi.gateOutComplete"),   v:String(obGateOut), sub:`${obPending} ${t("gate.kpi.stillPending")}`, red:false },
-          { k:t("gate.kpi.flaggedIssues"),     v:String(obFlagged), sub:t("gate.kpi.clearanceFlags"),   red:obFlagged > 0 },
-        ] : [
-          { k:t("gate.kpi.arrivingToday"),     v:String(ibTotal),   sub:t("gate.kpi.bookedToday"),      red:false },
-          { k:t("gate.kpi.clearedToReceive"),  v:String(ibCleared), sub:`${ibHolds} ${t("gate.kpi.onHold")}`, red:ibHolds > 0 },
-          { k:t("gate.kpi.lfdAtRisk"),         v:String(ibLfdRisk), sub:t("gate.kpi.within24h"),        red:ibLfdRisk > 0 },
-        ]
-
-        const secondaryKpis = isOut ? [
-          { k:t("gate.kpi.detentionBreached"), v:String(obBreached), sub:t("gate.kpi.detentionRisk"),   red:obBreached > 0 },
-          { k:t("gate.kpi.shippingLines"),     v:String(obCarriers), sub:t("gate.kpi.carriersToday"),   red:false },
-          { k:t("gate.kpi.stillToDispatch"),   v:String(obPending),  sub:t("gate.kpi.awaitingGateOut"), red:false },
-        ] : [
-          { k:t("gate.kpi.alreadyReceived"),   v:String(ibReceived), sub:t("gate.kpi.gateOutComplete2"), red:false },
-          { k:t("gate.kpi.holdsActive"),       v:String(ibHolds),    sub:ibHoldTypes,                   red:ibHolds > 0 },
-          { k:t("gate.kpi.shippingLines"),     v:String(ibCarriers), sub:t("gate.kpi.carriersToday"),   red:false },
-        ]
-
-        return (
-          <div className="flex-none border-b border-[#e5e7eb] bg-white">
-            {/* Primary row */}
-            <div className="flex items-stretch">
-              {primaryKpis.map(m => (
-                <div key={m.k} className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-0.5">
-                  <span className="ds-label text-neutral-500">{m.k}</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-mono font-semibold leading-none" style={{ fontSize:24, color:m.red?"#dc2626":undefined }}>{m.v}</span>
-                    <span className="text-[11px] text-neutral-500">{m.sub}</span>
-                  </div>
-                </div>
-              ))}
-              <button onClick={()=>setKpiExpanded(v=>!v)}
-                className="flex items-center gap-1.5 px-4 text-[11px] text-[#6b7280] hover:text-[#374151] hover:bg-[#f9fafb] transition-colors"
-                style={{ whiteSpace:"nowrap" }}>
-                {kpiExpanded?t("gate.kpi.fewerMetrics"):t("gate.kpi.moreMetrics")}
-              </button>
-            </div>
-            {/* Secondary row */}
-            <div style={{ overflow:"hidden", maxHeight:kpiExpanded?120:0, transition:"max-height 200ms ease" }}>
-              <div className="flex border-t border-[#e5e7eb]">
-                {secondaryKpis.map(m => (
-                  <div key={m.k} className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-0.5">
-                    <span className="ds-label text-neutral-500">{m.k}</span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-mono font-semibold leading-none" style={{ fontSize:24, color:m.red?"#dc2626":undefined }}>{m.v}</span>
-                      <span className="text-[11px] text-neutral-500">{m.sub}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )
-      })()}
 
       {/* ════════════════════ VISITS TAB ════════════════════ */}
       {tab==="visits" && (
@@ -1055,177 +1111,301 @@ export default function GateConsole({ focus, onNavigate }: Props) {
       {/* ════════════════════ INBOUND / OUTBOUND SHARED RENDERER ════════════════════ */}
       {(tab === "inbound" || tab === "outbound") && (() => {
         const isInbound = tab === "inbound"
-        const rows = isInbound ? inboundRows : outboundRows
-        const title = isInbound ? "Inbound containers" : "Outbound containers"
-        const subtitle = isInbound
-          ? `${rows.length} containers scheduled for putaway today`
-          : `${rows.length} containers staged for truck loading today`
+        const allRows   = isInbound ? inboundRows : outboundRows
 
-        const CHAN_PILL: Record<string,[string,string,string]> = {
-          verde:   ["#f0fdf4","#15803d","✓ Verde"],
-          naranja: ["#fffbeb","#d97706","! Naranja"],
-          rojo:    ["#fef2f2","#dc2626","✕ Rojo"],
+        // ── Alert priority sort ───────────────────────────────────────────
+        const alertScore = (r: LiveGateRow) =>
+          r.hoursToLFD < 0 ? 3 : r.hold ? 2 : r.excl ? 1 : 0
+
+        // ── Filter + search ───────────────────────────────────────────────
+        const visibleRows = [...allRows]
+          .sort((a, b) => alertScore(b) - alertScore(a))
+          .filter(r => {
+            if (filterPill === "alerts") return r.hoursToLFD < 0 || !!r.hold || !!r.excl
+            if (filterPill === "holds")    return !!r.hold
+            if (filterPill === "in_queue") return r.gateStatus === "IN_QUEUE"
+            if (filterPill === "in_yard")  return r.gateStatus === "SERVED"
+            return true
+          })
+          .filter(r => {
+            if (!searchQuery) return true
+            const q = searchQuery.toLowerCase()
+            return [r.containerId, r.consignee, r.driver, r.plate, r.carrierName, r.trucker, r.scac]
+              .some(f => f?.toLowerCase().includes(q))
+          })
+
+        const alertCount  = allRows.filter(r => r.hoursToLFD < 0 || !!r.hold || !!r.excl).length
+        const holdsCount  = allRows.filter(r => !!r.hold).length
+        const queueCount  = allRows.filter(r => r.gateStatus === "IN_QUEUE").length
+        const yardCount   = allRows.filter(r => r.gateStatus === "SERVED").length
+
+        // ── Channel badge config ──────────────────────────────────────────
+        const chanIcon: Record<string, string> = { verde:"✓", naranja:"▲", rojo:"✕" }
+        const chanBgFg: Record<string,[string,string]> = {
+          verde:   ["#dcfce7","#15803d"],
+          naranja: ["#fef3c7","#b45309"],
+          rojo:    ["#fee2e2","#dc2626"],
         }
-        const GATE_STATE: Record<string,[string,string]> = {
-          GATE_OUT:    ["#f3f4f6","#6b7280"],
-          SERVED:      ["#f0fdf4","#059669"],
-          AT_POSITION: ["#eff6ff","#2563eb"],
-          CHECKED_IN:  ["#fffbeb","#d97706"],
-          IN_QUEUE:    ["#fff7ed","#ea580c"],
-          APPROACHING: ["#faf5ff","#7c3aed"],
-          EXPECTED:    ["#f9fafb","#6b7280"],
+
+        // ── Status chip config ────────────────────────────────────────────
+        const statusChip: Record<string,[string,string,string]> = {
+          GATE_OUT:    ["#f0fdf4","#059669","Completed"],
+          SERVED:      ["#eff6ff","#2563eb","In yard"],
+          CHECKED_IN:  ["#faf5ff","#7c3aed","Checked in"],
+          AT_POSITION: ["#fffbeb","#d97706","At position"],
+          IN_QUEUE:    ["#f3f4f6","#6b7280","In queue"],
+          APPROACHING: ["#f5f3ff","#7c3aed","Approaching"],
+          EXPECTED:    ["#f9fafb","#9ca3af","Expected"],
         }
-        const gateStateLabel: Record<string,string> = {
-          GATE_OUT:"Completed", SERVED:"In yard", AT_POSITION:"At position",
-          CHECKED_IN:"Checked in", IN_QUEUE:"In queue", APPROACHING:"Approaching", EXPECTED:"Expected",
+
+        // ── LFD colour helper ─────────────────────────────────────────────
+        const lfdColor = (h: number) =>
+          h < 0   ? C.dangerFg :
+          h < 24  ? C.warnFg   : C.text
+
+        // ── Row background ────────────────────────────────────────────────
+        const rowBg = (r: LiveGateRow) =>
+          r.hoursToLFD < 0 ? C.dangerBg :
+          r.hold            ? C.warnBg   :
+          r.excl            ? C.warnBg   : C.surface0
+
+        const hoverBg = C.surface1
+
+        const TH = "px-3 py-2 text-left whitespace-nowrap"
+        const thStyle: React.CSSProperties = {
+          fontSize:10, fontWeight:700, letterSpacing:"0.06em",
+          textTransform:"uppercase", color: C.textMuted
         }
 
         return (
-          <div className="flex-1 min-h-0 overflow-auto">
+          <div className="flex-1 min-h-0 overflow-auto flex flex-col" style={{ background: C.pageBg }}>
 
-            {/* ── Sticky header bar ── */}
-            <div className="px-5 pt-3 pb-2 flex items-center gap-3 border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
-              <span className="font-semibold text-[13px]">{title}</span>
-              <span className="text-[11px] text-[#9ca3af]">{subtitle}</span>
-              <div className="ml-auto flex items-center gap-2">
-                {liveError && (
-                  <span className="text-[10px] text-[#d97706] font-medium px-2 py-0.5 rounded"
-                    style={{ background:"#fffbeb" }}>⚠ seed fallback</span>
-                )}
-                {fetchedAt && !liveError && (
-                  <span className="flex items-center gap-1 text-[10px] text-[#059669] font-medium px-2 py-0.5 rounded"
-                    style={{ background:"#f0fdf4" }}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#059669] inline-block animate-pulse" />
-                    Live · {fmtTimestamp(fetchedAt)} UTC
-                  </span>
-                )}
+            {/* ── Filter toolbar ── */}
+            <div className="flex-none flex items-center gap-2 px-5 py-2.5 flex-wrap"
+              style={{ background: C.surface0, borderBottom:`1px solid ${C.border}` }}>
+
+              <span style={{ fontSize:12, fontWeight:600, color: C.textMuted }}>
+                <span className="font-mono">{visibleRows.length}</span>
+                <span className="ml-1">{isInbound ? "inbound" : "outbound"}</span>
+              </span>
+
+              {/* Pills */}
+              {([
+                { id:"all",       label:"All",                  dot:null,     count: allRows.length },
+                { id:"alerts",    label:"Alerts",               dot:C.dangerFg, count: alertCount },
+                { id:"holds",     label:"Holds",                dot:C.warnFg,   count: holdsCount },
+                { id:"in_queue",  label:"In queue",             dot:null,     count: queueCount },
+                { id:"in_yard",   label:"In yard",              dot:null,     count: yardCount  },
+              ] as const).map(pill => {
+                const active = filterPill === pill.id
+                return (
+                  <button key={pill.id} onClick={()=>setFilterPill(pill.id)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors"
+                    style={{
+                      background: active ? "#111827" : C.surface2,
+                      color:      active ? "#fff"     : C.textMuted,
+                      border:`1px solid ${active ? "#111827" : C.border}`,
+                    }}>
+                    {pill.dot && <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: pill.dot }} />}
+                    {pill.label}
+                    <span className="opacity-60 font-mono text-[10px]">{pill.count}</span>
+                  </button>
+                )
+              })}
+
+              {/* Search */}
+              <div className="ml-auto relative">
+                <input
+                  type="text"
+                  placeholder="Search container, consignee, driver…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="pl-7 pr-3 py-1.5 text-[12px] outline-none"
+                  style={{
+                    background: C.surface1, border:`1px solid ${C.border}`,
+                    borderRadius:6, color: C.text, width:260,
+                    fontFamily:"inherit",
+                  }}
+                />
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[12px]"
+                  style={{ color: C.textDim }}>⌕</span>
               </div>
+
+              {/* Live indicator */}
+              {liveError && (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded"
+                  style={{ background: C.warnBg, color: C.warnFg }}>⚠ seed fallback</span>
+              )}
+              {fetchedAt && !liveError && (
+                <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded"
+                  style={{ background: C.successBg, color: C.successFg }}>
+                  <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse"
+                    style={{ background: C.successFg }} />
+                  Live · {fmtTimestamp(fetchedAt)} UTC
+                </span>
+              )}
             </div>
 
-            <table className="w-full border-collapse text-[12px]">
-              <thead className="sticky top-[41px] z-10">
-                <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
-                  {[
-                    t("gate.container"),"SIZE","CONSIGNEE",
-                    "LINE SCAC",t("gate.carrier"),
-                    "TRUCK SCAC",t("gate.trucker"),
-                    t("gate.channel"),t("gate.appt"),t("gate.driver"),t("gate.plate"),"LFD",t("gate.freeDays"),t("gate.hold"),t("gate.status")
-                  ].map(h => (
-                    <th key={h} className="px-3 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, i) => {
-                  const lfdLabel   = r.hoursToLFD < 0 ? "BREACHED" : `${r.hoursToLFD}h`
-                  const lfdRed     = r.hoursToLFD < 24
-                  const freeDays   = r.freeDays
-                  const detBasis   = r.detentionBasis
-                  const [chanBg, chanFg, chanLabel] = CHAN_PILL[r.channel] ?? ["#f3f4f6","#6b7280","—"]
-                  const [gBg, gFg] = GATE_STATE[r.gateStatus] ?? ["#f3f4f6","#6b7280"]
-                  const rowBg = r.excl ? "#fffbeb" : "#fff"
+            {/* ── Table ── */}
+            <div className="flex-1 min-h-0 overflow-auto rounded-lg mx-5 my-3"
+              style={{ border:`1px solid ${C.border}` }}>
+              <table className="w-full border-collapse" style={{ fontSize:13 }}>
+                <thead style={{ position:"sticky", top:0, zIndex:10 }}>
+                  <tr style={{ background: C.surface0, borderBottom:`1.5px solid ${C.borderMid}` }}>
+                    <th className={TH} style={thStyle}>Container</th>
+                    <th className={TH} style={thStyle}>Consignee</th>
+                    <th className={TH} style={thStyle}>Shipping line</th>
+                    <th className={TH} style={thStyle}>Road carrier</th>
+                    <th className={TH} style={thStyle}>Driver / Plate</th>
+                    <th className={TH} style={thStyle}>Channel</th>
+                    <th className={TH} style={{ ...thStyle, textAlign:"center" }}>Appt</th>
+                    <th className={TH} style={{ ...thStyle, textAlign:"right" }}>LFD</th>
+                    <th className={TH} style={thStyle}>Hold</th>
+                    <th className={TH} style={thStyle}>Status</th>
+                    <th className={TH} style={{ ...thStyle, color:"transparent" }}>·</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRows.length === 0 && (
+                    <tr><td colSpan={11} className="px-5 py-8 text-center"
+                      style={{ color: C.textDim, fontSize:12 }}>
+                      No containers match the current filter.
+                    </td></tr>
+                  )}
+                  {visibleRows.map((r, i) => {
+                    const isBreach  = r.hoursToLFD < 0
+                    const isWarn    = !isBreach && r.hoursToLFD < 24
+                    const bg        = rowBg(r)
+                    const [chBg, chFg] = chanBgFg[r.channel] ?? ["#f3f4f6","#6b7280"]
+                    const [stBg, stFg, stLabel] = statusChip[r.gateStatus] ?? ["#f3f4f6","#9ca3af","—"]
+                    const lfdLabel  = isBreach ? "Breached" : `${r.hoursToLFD}h`
+                    const freeSub   = r.freeDays != null
+                      ? `${r.freeDays}d ${r.detentionBasis ?? "cal"}`
+                      : null
+                    const grossT    = (r.grossKg / 1000).toFixed(1)
 
-                  return (
-                    <tr key={i}
-                      className="border-b border-[#f3f4f6] transition-colors"
-                      style={{ background: rowBg }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "#f0f9ff")}
-                      onMouseLeave={e => (e.currentTarget.style.background = rowBg)}>
+                    // Alert tag below container ID
+                    const alertTag: { text:string; fg:string; bg:string } | null =
+                      isBreach && r.hold === "customs" ? { text:"Customs hold — pending ARCA",       fg:"#b45309", bg:"#fef3c7" } :
+                      isBreach                         ? { text:"LFD breached — priority putaway",   fg:C.dangerFg, bg:C.dangerBg } :
+                      r.hold === "customs"             ? { text:"Customs hold — pending ARCA",       fg:"#b45309", bg:"#fef3c7" } :
+                      r.hold === "quality"             ? { text:"Quality hold — surveyor required",  fg:"#b45309", bg:"#fef3c7" } :
+                      r.hold === "damage"              ? { text:"Damage hold — surveyor notified",   fg:"#b45309", bg:"#fef3c7" } :
+                      r.excl?.includes("arrival")      ? { text:`Early arrival — before window`,     fg:"#b45309", bg:"#fef3c7" } :
+                      r.excl                           ? { text: r.excl,                             fg:"#b45309", bg:"#fef3c7" } :
+                      null
 
-                      {/* Container ID */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="font-mono font-bold text-[12px] text-neutral-900">{r.containerId}</div>
-                        {r.excl && <div className="text-[9.5px] text-[#d97706] mt-0.5 leading-tight max-w-[160px]">{r.excl}</div>}
-                      </td>
+                    const tdStyle: React.CSSProperties = {
+                      padding:"10px 12px", borderBottom:`1px solid ${C.border}`,
+                      verticalAlign:"top", background: bg,
+                    }
 
-                      {/* Size + ISO type */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-[11.5px] font-semibold text-neutral-700">{r.size}</div>
-                        <div className="text-[10px] text-neutral-400 font-mono">{r.isoType}</div>
-                      </td>
+                    return (
+                      <tr key={i}
+                        onMouseEnter={e => {
+                          Array.from(e.currentTarget.cells).forEach(td => {
+                            (td as HTMLElement).style.background = hoverBg
+                          })
+                        }}
+                        onMouseLeave={e => {
+                          Array.from(e.currentTarget.cells).forEach(td => {
+                            (td as HTMLElement).style.background = bg
+                          })
+                        }}>
 
-                      {/* Consignee */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <div className="text-[11.5px] font-semibold text-neutral-900">{r.consignee}</div>
-                        <div className="text-[10px] text-neutral-400">{(r.grossKg / 1000).toFixed(1)} t gross</div>
-                      </td>
-
-                      {/* Shipping-line SCAC */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className="font-mono font-bold text-[11.5px] px-1.5 py-0.5 rounded tracking-widest"
-                          style={{ background:"#eff6ff", color:"#1d4ed8" }}>
-                          {r.scac}
-                        </span>
-                      </td>
-
-                      {/* Carrier full name */}
-                      <td className="px-3 py-3 text-[11.5px] text-neutral-700 whitespace-nowrap">{r.carrierName}</td>
-
-                      {/* Trucker SCAC */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className="font-mono font-bold text-[11.5px] px-1.5 py-0.5 rounded tracking-widest"
-                          style={{ background:"#faf5ff", color:"#7c3aed" }}>
-                          {r.truckerScac}
-                        </span>
-                      </td>
-
-                      {/* Trucker full name */}
-                      <td className="px-3 py-3 text-[11.5px] text-neutral-600 whitespace-nowrap">{r.trucker}</td>
-
-                      {/* Customs channel */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold"
-                          style={{ background: chanBg, color: chanFg, border: `1px solid ${chanFg}30` }}>
-                          {chanLabel}
-                        </span>
-                      </td>
-
-                      {/* Appointment */}
-                      <td className="px-3 py-3 font-mono text-[12px] font-semibold text-neutral-700 whitespace-nowrap">{r.appt}</td>
-
-                      {/* Driver */}
-                      <td className="px-3 py-3 text-[11.5px] text-neutral-700 whitespace-nowrap">{r.driver}</td>
-
-                      {/* Truck plate */}
-                      <td className="px-3 py-3 font-mono text-[11px] text-neutral-500 whitespace-nowrap">
-                        <span className="px-1.5 py-0.5 rounded" style={{ background:"#f3f4f6" }}>{r.plate}</span>
-                      </td>
-
-                      {/* LFD */}
-                      <td className="px-3 py-3 font-mono text-[11.5px] whitespace-nowrap font-bold"
-                        style={{ color: lfdRed ? "#dc2626" : "#374151" }}>
-                        {lfdLabel}
-                      </td>
-
-                      {/* Free days (live from carriers table) */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        {freeDays != null
-                          ? <div>
-                              <span className="font-mono text-[11.5px] text-neutral-700 font-semibold">{freeDays}d</span>
-                              {detBasis && <div className="text-[9.5px] text-neutral-400 capitalize">{detBasis}</div>}
+                        {/* 1. Container ID + size·weight subtitle + alert tag */}
+                        <td style={{ ...tdStyle, borderLeft: isBreach ? `3px solid ${C.dangerFg}` : r.hold||r.excl ? `3px solid ${C.warnFg}` : `3px solid transparent` }}>
+                          <div className="font-mono font-bold" style={{ fontSize:12.5, color: C.text, letterSpacing:"0.01em" }}>{r.containerId}</div>
+                          <div style={{ fontSize:11, color: C.textMuted, marginTop:1 }}>{r.size} · {grossT}t</div>
+                          {alertTag && (
+                            <div className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded"
+                              style={{ fontSize:10, fontWeight:700, background: alertTag.bg, color: alertTag.fg }}>
+                              {isBreach ? "⚠" : "!"} {alertTag.text}
                             </div>
-                          : <span className="text-neutral-300 text-[11px]">—</span>}
-                      </td>
+                          )}
+                        </td>
 
-                      {/* Hold */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        {r.hold
-                          ? <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#fef2f2] text-[#dc2626] capitalize">{r.hold}</span>
-                          : <span className="text-[11px] text-neutral-300">—</span>}
-                      </td>
+                        {/* 2. Consignee */}
+                        <td style={tdStyle}>
+                          <div style={{ fontSize:12.5, fontWeight:600, color: C.text, whiteSpace:"nowrap" }}>{r.consignee}</div>
+                          <div className="font-mono" style={{ fontSize:10.5, color: C.textMuted, marginTop:1 }}>{r.sealNumber}</div>
+                        </td>
 
-                      {/* Gate status */}
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded text-[10.5px] font-semibold"
-                          style={{ background: gBg, color: gFg }}>
-                          {gateStateLabel[r.gateStatus] ?? r.gateStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                        {/* 3. Shipping line — carrier name / SCAC */}
+                        <td style={tdStyle}>
+                          <div style={{ fontSize:12, color: C.text, whiteSpace:"nowrap" }}>{r.carrierName}</div>
+                          <div className="font-mono" style={{ fontSize:10.5, fontWeight:700, color: C.accentFg, marginTop:1, letterSpacing:"0.06em" }}>{r.scac}</div>
+                        </td>
+
+                        {/* 4. Road carrier — trucker name / SCAC */}
+                        <td style={tdStyle}>
+                          <div style={{ fontSize:12, color: C.text, whiteSpace:"nowrap" }}>{r.trucker}</div>
+                          <div className="font-mono" style={{ fontSize:10.5, fontWeight:700, color: C.purpleFg, marginTop:1, letterSpacing:"0.06em" }}>{r.truckerScac}</div>
+                        </td>
+
+                        {/* 5. Driver / Plate */}
+                        <td style={tdStyle}>
+                          <div style={{ fontSize:12, color: C.text }}>{r.driver}</div>
+                          <div className="font-mono" style={{ fontSize:11, color: C.textMuted, marginTop:2, padding:"1px 5px", borderRadius:3, background: C.surface2, display:"inline-block" }}>{r.plate}</div>
+                        </td>
+
+                        {/* 6. Channel badge */}
+                        <td style={tdStyle}>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-bold"
+                            style={{ fontSize:11, background: chBg, color: chFg, border:`1px solid ${chFg}40` }}>
+                            {chanIcon[r.channel] ?? "?"} {r.channel.charAt(0).toUpperCase() + r.channel.slice(1)}
+                          </span>
+                        </td>
+
+                        {/* 7. Appointment */}
+                        <td style={{ ...tdStyle, textAlign:"center" }}>
+                          <span className="font-mono font-semibold" style={{ fontSize:12.5, color: C.text }}>{r.appt}</span>
+                        </td>
+
+                        {/* 8. LFD — right-aligned + free days subtitle */}
+                        <td style={{ ...tdStyle, textAlign:"right" }}>
+                          <div className="font-mono font-bold" style={{ fontSize:13, color: lfdColor(r.hoursToLFD) }}>
+                            {lfdLabel}
+                          </div>
+                          {freeSub && (
+                            <div style={{ fontSize:10, color: C.textMuted, marginTop:1 }}>{freeSub}</div>
+                          )}
+                        </td>
+
+                        {/* 9. Hold */}
+                        <td style={tdStyle}>
+                          {r.hold === "customs" ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold"
+                              style={{ background:"#fee2e2", color:"#dc2626" }}>Customs</span>
+                          ) : r.hold === "quality" ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold"
+                              style={{ background:"#fef3c7", color:"#b45309" }}>Quality</span>
+                          ) : r.hold === "damage" ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold"
+                              style={{ background:"#ffedd5", color:"#c2410c" }}>Damage</span>
+                          ) : (
+                            <span style={{ color: C.textDim, fontSize:13 }}>—</span>
+                          )}
+                        </td>
+
+                        {/* 10. Status chip */}
+                        <td style={tdStyle}>
+                          <span className="px-2 py-0.5 rounded font-semibold"
+                            style={{ fontSize:11, background: stBg, color: stFg }}>
+                            {stLabel}
+                          </span>
+                        </td>
+
+                        {/* 11. Seal (compact) */}
+                        <td style={{ ...tdStyle, textAlign:"right" }}>
+                          <div className="font-mono" style={{ fontSize:10, color: C.textDim }}>{r.sealNumber}</div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )
       })()}

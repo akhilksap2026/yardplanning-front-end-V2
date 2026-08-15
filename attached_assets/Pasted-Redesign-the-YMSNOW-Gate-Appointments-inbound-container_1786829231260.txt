@@ -1,0 +1,50 @@
+Redesign the YMSNOW Gate & Appointments inbound container list screen with these specific changes. This is an operations console used all-shift by gate operators at an inland container yard in Argentina (Celsur). The design language should follow Linear/Stripe/Datadog patterns — high information density but clean hierarchy.
+
+Layout structure (top to bottom):
+
+Breadcrumb ("Operations / Gate and appointments") + page title row with live indicator dot, UTC timestamp, language toggle (EN/ES), refresh button, dark mode toggle, and primary CTA "Check in next"
+Tab bar: Live visits, Inbound (48), Outbound (46), Transactions, Appointments, Inspection — active tab gets a bottom border accent, counts in muted pill badges
+Four stat cards in a grid: "Arriving today" (48 booked), "Cleared to receive" (37, 5 on hold), "LFD at risk" (10, within 24h — danger color), "Holds active" (2, customs/quality — warning color). Cards use surface background with subtle border, danger/warning cards get tinted borders
+Filter toolbar: container count label + pill filters (All, Alerts with red dot, Holds with amber dot, In queue, In yard) + search input
+Data table in a bordered rounded container
+
+Table redesign — reduce from 14 columns to 11:
+
+Merge Size + Gross Weight into the Container cell as a subtitle line (e.g., "40ft HC · 29.1t")
+Merge Line SCAC + Carrier into one stacked cell (carrier name over SCAC prefix in muted mono)
+Merge Truck SCAC + Trucker the same way
+Merge Driver + Plate into one stacked cell
+Remove the separate "Free days" column — show it as a subtitle under the LFD value
+
+Alert row treatment:
+
+Sort alert/exception rows to the top of the table
+LFD breached rows: full-row red tint background, red alert tag below container ID reading "LFD breached — priority putaway"
+Customs/ARCA hold rows: full-row amber tint background, amber alert tag "Customs hold — pending ARCA"
+Early arrival rows: amber tint, amber tag "Early arrival — 22 min before window"
+Normal rows: no tint, no alert tag
+
+Channel badges: Verde = green badge with checkmark icon, Naranja = orange badge with warning triangle icon, Rojo = red badge with X icon. Badges should be pill-shaped with tinted backgrounds matching their semantic color.
+
+LFD column (right-aligned):
+
+"Breached" in danger red with bold weight
+Under 24h values (like "20h", "18h") in warning amber
+Healthy values (48h, 72h, 96h+) in default text color
+Subtitle shows free day period (e.g., "7d cal", "10d wk")
+
+Status chips with distinct colors per state:
+
+Completed = green tinted badge
+In yard = blue/accent tinted badge
+Checked in = purple tinted badge
+At position = amber tinted badge
+In queue = neutral/gray surface badge
+
+Hold column: "Customs" in red badge, "Quality" in amber badge, empty = em dash in muted color
+
+Interactivity: Filter pills toggle row visibility by data attributes. Search input filters across all visible text. Dark mode toggle switches a data-theme="dark" attribute with full dark palette. Tab switching updates active state.
+
+Typography: Inter font family. Monospace for container IDs, appointment times, license plates, LFD values. 11px uppercase letter-spaced headers. 13px body text in table cells.
+
+Color system: Use CSS custom properties with light/dark variants. Semantic colors for danger (red), warning (amber), success (green), accent (blue), purple. Surface hierarchy: surface-0 (page bg) → surface-1 (stat cards, table header) → surface-2 (table body, inputs). Borders at 0.5px with low-opacity black/white.
