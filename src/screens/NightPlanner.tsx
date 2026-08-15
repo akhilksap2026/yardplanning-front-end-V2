@@ -81,7 +81,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   const [published,    setPublished]    = useState(false)
   const [publishing,   setPublishing]   = useState(false)
   const [configOpen,   setConfigOpen]   = useState(false)
-  const [wRaw,         setWRaw]         = useState([35, 40, 25, 20, 15])
+  const [wRaw,         setWRaw]         = useState([35, 40, 25])
   const [planSource,   setPlanSource]   = useState<PlanSource>("seed")
   const [generating,   setGenerating]   = useState(false)
   const [confirming,   setConfirming]   = useState(false)
@@ -385,9 +385,17 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             </div>
             <p className="text-[11px] text-[#9ca3af] mt-2 leading-relaxed">Weight changes take effect on the next generation, never against a published plan.</p>
             <div className="mt-4 ds-label font-bold">Objective weights</div>
-            {["Machine minutes","Weighted lateness","Predicted rehandles","Detention exposure"].map((k, i) => (
-              <div key={k} className="py-2 border-b border-[#f3f4f6]">
-                <div className="flex justify-between text-[11.5px]"><span>{k}</span><span className="font-bold font-mono">{(wRaw[i]/100).toFixed(2)}</span></div>
+            {([
+              { k: "Relocation risk (α)",   desc: "How much the engine penalises unnecessary moves that put a container further from its exit." },
+              { k: "Detention urgency (β)",  desc: "How hard the engine chases containers approaching their free-day deadline to avoid demurrage." },
+              { k: "Container priority (γ)", desc: "How strongly customer or order-level priority scores push a container up the sequence." },
+            ] as const).map(({ k, desc }, i) => (
+              <div key={k} className="py-3 border-b border-[#f3f4f6]">
+                <div className="flex justify-between text-[11.5px]">
+                  <span className="font-semibold text-neutral-800">{k}</span>
+                  <span className="font-bold font-mono text-neutral-700">{(wRaw[i]/100).toFixed(2)}</span>
+                </div>
+                <p className="text-[10.5px] text-[#9ca3af] mt-0.5 leading-snug">{desc}</p>
                 <input type="range" min={0} max={50} value={wRaw[i]}
                   onChange={e => { const w=[...wRaw]; w[i]=+e.target.value; setWRaw(w) }}
                   className="w-full mt-2 accent-[#dc2626]" />
