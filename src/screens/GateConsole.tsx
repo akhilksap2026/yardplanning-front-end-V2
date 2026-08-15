@@ -962,101 +962,153 @@ export default function GateConsole({ focus, onNavigate }: Props) {
         </div>
       )}
 
-      {/* ════════════════════ INBOUND TAB ════════════════════ */}
-      {tab === "inbound" && (
-        <div className="flex-1 min-h-0 overflow-auto">
-          <div className="px-5 pt-3 pb-2 flex items-center gap-3 flex-none border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
-            <span className="font-semibold text-[13px]">Inbound containers</span>
-            <span className="text-[11px] text-[#9ca3af]">{inboundSteps.length} containers scheduled for putaway today</span>
-          </div>
-          <table className="w-full border-collapse text-[12px]">
-            <thead className="sticky top-[41px] z-10">
-              <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
-                {["SEQ","CONTAINER","OPERATION","FROM","TO","OPERATOR","STATUS"].map(h => (
-                  <th key={h} className="px-4 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {inboundSteps.map((s, i) => {
-                const fmtLoc = (loc: typeof s.origin) => {
-                  if (!loc || loc.bay == null) return "—"
-                  if (loc.bay === "GATE / OFF-YARD") return "Gate"
-                  return `Bay ${loc.bay} · R${loc.row ?? "?"} · T${loc.tier ?? "?"}`
-                }
-                const statusColor: Record<string, [string,string]> = {
-                  Planned:   ["#eff6ff","#1d4ed8"],
-                  "In Progress": ["#fef9c3","#a16207"],
-                  Completed: ["#f0fdf4","#15803d"],
-                  Blocked:   ["#fef2f2","#dc2626"],
-                }
-                const [stBg, stFg] = statusColor[s.step_status ?? "Planned"] ?? ["#f3f4f6","#6b7280"]
-                return (
-                  <tr key={i} className="border-b border-[#f3f4f6] hover:bg-[#f9fafb] transition-colors" style={{ background:"#fff" }}>
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-400">{String(i + 1).padStart(3,"0")}</td>
-                    <td className="px-4 py-2.5 font-mono font-bold text-neutral-900">{s.container_id ?? <span className="text-neutral-400 font-normal">Untracked</span>}</td>
-                    <td className="px-4 py-2.5 text-neutral-700">{getDisplayOperation(s.operation)}</td>
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-500 whitespace-nowrap">{fmtLoc(s.origin)}</td>
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-500 whitespace-nowrap">{fmtLoc(s.destination)}</td>
-                    <td className="px-4 py-2.5 text-neutral-700">{s.operator ?? "—"}</td>
-                    <td className="px-4 py-2.5">
-                      <span className="px-2 py-0.5 rounded text-[10.5px] font-semibold" style={{ background:stBg, color:stFg }}>{s.step_status ?? "Planned"}</span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* ════════════════════ INBOUND / OUTBOUND SHARED RENDERER ════════════════════ */}
+      {(tab === "inbound" || tab === "outbound") && (() => {
+        const isInbound = tab === "inbound"
+        const steps = isInbound ? inboundSteps : outboundSteps
+        const title = isInbound ? "Inbound containers" : "Outbound containers"
+        const subtitle = isInbound
+          ? `${steps.length} containers scheduled for putaway today`
+          : `${steps.length} containers staged for truck loading today`
 
-      {/* ════════════════════ OUTBOUND TAB ════════════════════ */}
-      {tab === "outbound" && (
-        <div className="flex-1 min-h-0 overflow-auto">
-          <div className="px-5 pt-3 pb-2 flex items-center gap-3 flex-none border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
-            <span className="font-semibold text-[13px]">Outbound containers</span>
-            <span className="text-[11px] text-[#9ca3af]">{outboundSteps.length} containers staged for truck loading today</span>
+        // Deduplicate by container_id, keep first occurrence
+        const seen = new Set<string>()
+        const uniqueSteps = steps.filter(s => {
+          const key = s.container_id ?? `anon-${s.step_number}`
+          if (seen.has(key)) return false
+          seen.add(key); return true
+        })
+
+        // Helpers
+        const CHAN_PILL: Record<string,[string,string,string]> = {
+          verde:   ["#f0fdf4","#15803d","✓ Verde"],
+          naranja: ["#fffbeb","#d97706","! Naranja"],
+          rojo:    ["#fef2f2","#dc2626","✕ Rojo"],
+        }
+        const GATE_STATE: Record<string,[string,string]> = {
+          GATE_OUT:    ["#f3f4f6","#6b7280"],
+          SERVED:      ["#f0fdf4","#059669"],
+          AT_POSITION: ["#eff6ff","#2563eb"],
+          CHECKED_IN:  ["#fffbeb","#d97706"],
+          IN_QUEUE:    ["#fff7ed","#ea580c"],
+          APPROACHING: ["#faf5ff","#7c3aed"],
+          EXPECTED:    ["#f9fafb","#6b7280"],
+        }
+        const gateStateLabel: Record<string,string> = {
+          GATE_OUT:"Completed", SERVED:"In yard", AT_POSITION:"At position",
+          CHECKED_IN:"Checked in", IN_QUEUE:"In queue", APPROACHING:"Approaching", EXPECTED:"Expected",
+        }
+        function fmtEta(iso: string | null | undefined): string {
+          if (!iso) return "—"
+          return iso.slice(11, 16)
+        }
+
+        return (
+          <div className="flex-1 min-h-0 overflow-auto">
+            {/* Sticky header */}
+            <div className="px-5 pt-3 pb-2 flex items-center gap-3 flex-none border-b border-[#e5e7eb] bg-white sticky top-0 z-10">
+              <span className="font-semibold text-[13px]">{title}</span>
+              <span className="text-[11px] text-[#9ca3af]">{subtitle}</span>
+            </div>
+
+            <table className="w-full border-collapse text-[12px]">
+              <thead className="sticky top-[41px] z-10">
+                <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
+                  {["CONTAINER","SIZE","CONSIGNEE","CARRIER","CHANNEL","EXPECTED","DRIVER","TRUCK","LFD","HOLD","GATE STATUS"].map(h => (
+                    <th key={h} className="px-3 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {uniqueSteps.map((s, i) => {
+                  const cid    = s.container_id ?? null
+                  const cont   = cid ? containers.find(c => c.id === cid) : null
+                  const visit  = cid ? visits.find(v => v.container === cid) : null
+
+                  const consignee   = cont?.consignee   ?? "—"
+                  const carrierName = cont?.carrierName ?? visit?.carrier ?? "—"
+                  const size        = cont?.size        ?? "—"
+                  const channel     = cont?.channel     ?? "verde"
+                  const lfd         = cont ? (cont.hoursToLFD < 0 ? "BREACHED" : `${cont.hoursToLFD}h`) : "—"
+                  const lfdRed      = cont ? cont.hoursToLFD < 24 : false
+                  const hold        = cont?.hold        ?? null
+
+                  const driver      = visit?.driver ?? "—"
+                  const plate       = visit?.plate  ?? "—"
+                  const eta         = visit?.appt ?? fmtEta(s.estimated_start)
+                  const gState      = visit?.state ?? (isInbound ? "EXPECTED" : "Planned")
+                  const excl        = visit?.excl  ?? null
+
+                  const [chanBg, chanFg, chanLabel] = CHAN_PILL[channel] ?? ["#f3f4f6","#6b7280","—"]
+                  const [gBg, gFg] = GATE_STATE[gState] ?? ["#f3f4f6","#6b7280"]
+
+                  return (
+                    <tr key={i}
+                      className="border-b border-[#f3f4f6] transition-colors"
+                      style={{ background: excl ? "#fffbeb" : "#fff" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "#f0f9ff")}
+                      onMouseLeave={e => (e.currentTarget.style.background = excl ? "#fffbeb" : "#fff")}>
+
+                      {/* Container */}
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="font-mono font-bold text-[12px] text-neutral-900">{cid ?? <span className="text-neutral-400 font-normal italic">Unassigned</span>}</div>
+                        {excl && <div className="text-[9.5px] text-[#d97706] mt-0.5 leading-tight">{excl}</div>}
+                      </td>
+
+                      {/* Size */}
+                      <td className="px-3 py-3 font-mono text-[11px] text-neutral-600 whitespace-nowrap">{size}</td>
+
+                      {/* Consignee (owner / company) */}
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="text-[11.5px] font-semibold text-neutral-800 leading-tight">{consignee}</div>
+                      </td>
+
+                      {/* Carrier */}
+                      <td className="px-3 py-3 text-[11.5px] text-neutral-600 whitespace-nowrap">{carrierName}</td>
+
+                      {/* Channel */}
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold"
+                          style={{ background: chanBg, color: chanFg }}>{chanLabel}</span>
+                      </td>
+
+                      {/* Expected time */}
+                      <td className="px-3 py-3 font-mono text-[11.5px] text-neutral-700 whitespace-nowrap">{eta}</td>
+
+                      {/* Driver */}
+                      <td className="px-3 py-3 text-[11.5px] text-neutral-700 whitespace-nowrap">{driver}</td>
+
+                      {/* Truck plate */}
+                      <td className="px-3 py-3 font-mono text-[11px] text-neutral-500 whitespace-nowrap">{plate}</td>
+
+                      {/* LFD */}
+                      <td className="px-3 py-3 font-mono text-[11.5px] whitespace-nowrap"
+                        style={{ color: lfdRed ? "#dc2626" : "#374151", fontWeight: lfdRed ? 700 : 400 }}>
+                        {lfd}
+                      </td>
+
+                      {/* Hold */}
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        {hold
+                          ? <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#fef2f2] text-[#dc2626] capitalize">{hold}</span>
+                          : <span className="text-[#9ca3af] text-[11px]">—</span>}
+                      </td>
+
+                      {/* Gate status */}
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded text-[10.5px] font-semibold"
+                          style={{ background: gBg, color: gFg }}>
+                          {gateStateLabel[gState] ?? gState}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
-          <table className="w-full border-collapse text-[12px]">
-            <thead className="sticky top-[41px] z-10">
-              <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
-                {["SEQ","CONTAINER","OPERATION","FROM","TO","OPERATOR","STATUS"].map(h => (
-                  <th key={h} className="px-4 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {outboundSteps.map((s, i) => {
-                const fmtLoc = (loc: typeof s.origin) => {
-                  if (!loc || loc.bay == null) return "—"
-                  if (loc.bay === "GATE / OFF-YARD") return "Gate"
-                  return `Bay ${loc.bay} · R${loc.row ?? "?"} · T${loc.tier ?? "?"}`
-                }
-                const statusColor: Record<string, [string,string]> = {
-                  Planned:   ["#eff6ff","#1d4ed8"],
-                  "In Progress": ["#fef9c3","#a16207"],
-                  Completed: ["#f0fdf4","#15803d"],
-                  Blocked:   ["#fef2f2","#dc2626"],
-                }
-                const [stBg, stFg] = statusColor[s.step_status ?? "Planned"] ?? ["#f3f4f6","#6b7280"]
-                return (
-                  <tr key={i} className="border-b border-[#f3f4f6] hover:bg-[#f9fafb] transition-colors" style={{ background:"#fff" }}>
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-400">{String(i + 1).padStart(3,"0")}</td>
-                    <td className="px-4 py-2.5 font-mono font-bold text-neutral-900">{s.container_id ?? <span className="text-neutral-400 font-normal">Untracked</span>}</td>
-                    <td className="px-4 py-2.5 text-neutral-700">{getDisplayOperation(s.operation)}</td>
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-500 whitespace-nowrap">{fmtLoc(s.origin)}</td>
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-neutral-500 whitespace-nowrap">{fmtLoc(s.destination)}</td>
-                    <td className="px-4 py-2.5 text-neutral-700">{s.operator ?? "—"}</td>
-                    <td className="px-4 py-2.5">
-                      <span className="px-2 py-0.5 rounded text-[10.5px] font-semibold" style={{ background:stBg, color:stFg }}>{s.step_status ?? "Planned"}</span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ════════════════════ INSPECTION TAB ════════════════════ */}
       {tab === "inspection" && (
