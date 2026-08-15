@@ -572,7 +572,7 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
       <div className="grid flex-1 min-h-0 overflow-auto" style={{ gridTemplateColumns:"minmax(360px,440px) minmax(300px,1fr)" }}>
 
         {/* ── Phone frame ─────────────────────────────────────────────────── */}
-        <div className="border-r border-[#e5e7eb] p-6 flex justify-center overflow-auto bg-[#eef0f4]">
+        <div className="border-r border-[#e5e7eb] p-6 flex justify-center items-center overflow-auto bg-[#eef0f4]">
           <div className={phoneFrame} style={phoneStyle}>
 
             {/* Notch */}

@@ -3,9 +3,7 @@ import TabBar from "@/components/ui/TabBar"
 import { useData } from "@/lib/DataContext"
 import type { Event } from "@/data/yard-ops"
 import { backendApi } from "@/lib/backend-api"
-import type { BackendDisruption, DisruptionType, BackendMove } from "@/lib/backend-api"
-import { computePlanDiff, slotAddressById, REASON_LABELS } from "@/lib/backend-adapters"
-import ContainerPicker from "@/components/ContainerPicker"
+import { REASON_LABELS } from "@/lib/backend-adapters"
 import InventoryTab from "@/components/InventoryTab"
 import { useLang } from "@/lib/i18n"
 import { fmtTime } from "@/utils/time"
@@ -26,29 +24,6 @@ const CATS: Record<string, string> = {
   AUDIT_DISCREPANCY:       "Yard audit",
 }
 
-const DISRUPTION_OPTIONS: { value: DisruptionType; label: string }[] = [
-  { value: "truck_accident",          label: "Truck accident" },
-  { value: "ship_delay",              label: "Ship delay" },
-  { value: "inspection_hold",         label: "Inspection hold" },
-  { value: "out_of_sequence_arrival", label: "Out-of-sequence arrival" },
-  { value: "jockey_unavailable",      label: "Jockey unavailable" },
-]
-
-const DISRUPTION_LABELS: Record<DisruptionType, string> = {
-  truck_accident:          "Truck accident",
-  ship_delay:              "Ship delay",
-  inspection_hold:         "Inspection hold",
-  out_of_sequence_arrival: "Out-of-sequence arrival",
-  jockey_unavailable:      "Jockey unavailable",
-}
-
-const DISRUPTION_SEVERITY: Record<DisruptionType, "high" | "medium" | "low"> = {
-  truck_accident:          "high",
-  jockey_unavailable:      "high",
-  inspection_hold:         "medium",
-  ship_delay:              "medium",
-  out_of_sequence_arrival: "low",
-}
 
 const SEV_COLOR: Record<string, string> = { high: "var(--ds-red)", medium: "var(--ds-amber)", low: "#2563eb" }
 
@@ -65,9 +40,8 @@ function statusLabel(e: Event, acked: Set<string>): { text: string; color: strin
 
 export default function ControlTower({ focus, onNavigate }: Props) {
   const {
-    events, diffRows, backendConnected, activePlan,
-    backendContainers, backendSlots, backendJockeys,
-    createDisruption, containers, zones, moves, refresh,
+    events, diffRows, backendConnected,
+    containers, zones, moves, refresh,
   } = useData()
 
   const { t } = useLang()
@@ -77,21 +51,8 @@ export default function ControlTower({ focus, onNavigate }: Props) {
   const [cat,  setCat]  = useState("ALL")
   const [acked, setAcked] = useState<Set<string>>(new Set())
 
-  // Disruption modal
-  const [modalOpen,        setModalOpen]        = useState(false)
-  const [modalType,        setModalType]        = useState<DisruptionType>("truck_accident")
-  const [modalContainer,   setModalContainer]   = useState<number | "">("")
-  const [modalJockey,      setModalJockey]      = useState<number | "">("")
-  const [modalDescription, setModalDescription] = useState("")
-  const [modalSearch,      setModalSearch]      = useState("")
-  const [injecting,        setInjecting]        = useState(false)
-
-  const [localDisruptions, setLocalDisruptions] = useState<BackendDisruption[]>([])
-  const [patchingMove,     setPatchingMove]     = useState<string | null>(null)
-  const [moveError,        setMoveError]        = useState<string | null>(null)
-  const [replanBanner,     setReplanBanner]     = useState<{ id: number; added: number; cancelled: number; reassigned: number } | null>(null)
-  const [engineDiffRows,   setEngineDiffRows]   = useState<EngineDiffRow[] | null>(null)
-  const [engineDiffStats,  setEngineDiffStats]  = useState<EngineDiffStats | null>(null)
+  const [patchingMove, setPatchingMove] = useState<string | null>(null)
+  const [moveError,    setMoveError]    = useState<string | null>(null)
 
   useEffect(() => { if (!sel && events.length > 0) setSel(events[0].id) }, [events, sel])
 
@@ -107,43 +68,6 @@ export default function ControlTower({ focus, onNavigate }: Props) {
   const ackedEvent    = selEvent ? acked.has(selEvent.id) : false
   const awaitingCount = events.filter(e => e.state === "awaiting" && !acked.has(e.id)).length
 
-  async function handleInject() {
-    if (injecting) return
-    setInjecting(true)
-    try {
-      const disruption = await createDisruption({
-        event_type:            modalType,
-        affected_container_id: modalContainer !== "" ? modalContainer : undefined,
-        affected_jockey_id:    modalType === "jockey_unavailable" && modalJockey !== "" ? modalJockey : undefined,
-        description:           modalDescription || DISRUPTION_LABELS[modalType],
-      })
-      if (!disruption) return
-      setLocalDisruptions(prev => [disruption, ...prev])
-      if (disruption.triggered_replan_id != null) {
-        try {
-          const newPlan  = await backendApi.plan(disruption.triggered_replan_id)
-          const oldMoves: BackendMove[] = activePlan?.moves ?? []
-          const newMoves: BackendMove[] = newPlan.moves
-          const diff = computePlanDiff(oldMoves, newMoves)
-          const rows: EngineDiffRow[] = [
-            ...diff.cancelled.map(m => ({ moveId: `M-${m.id}`, action: "CANCELLED", type: REASON_LABELS[m.reason] ?? m.reason, before: slotAddressById(m.to_slot_id, backendSlots), after: "—", note: "Removed in replan" })),
-            ...diff.added.map(m => ({ moveId: `M-${m.id}`, action: "ADDED", type: REASON_LABELS[m.reason] ?? m.reason, before: "—", after: slotAddressById(m.to_slot_id, backendSlots), note: "New move in replan" })),
-            ...diff.reassigned.map(m => {
-              const old = oldMoves.find(o => o.container_id === m.container_id)
-              return { moveId: `M-${m.id}`, action: "REASSIGNED", type: REASON_LABELS[m.reason] ?? m.reason, before: slotAddressById(old?.to_slot_id ?? null, backendSlots), after: slotAddressById(m.to_slot_id, backendSlots), note: old?.jockey_id !== m.jockey_id ? "Jockey reassigned" : "Route changed" }
-            }),
-          ]
-          setEngineDiffRows(rows)
-          setEngineDiffStats({ cancelled: diff.cancelled.length, added: diff.added.length, reassigned: diff.reassigned.length, frozenKept: diff.held.length, deltaMin: `+${diff.added.length * 5}`, adherence: diff.reassigned.length > 0 ? "-3" : "0" })
-          setReplanBanner({ id: disruption.triggered_replan_id, added: diff.added.length, cancelled: diff.cancelled.length, reassigned: diff.reassigned.length })
-        } catch (err) {
-          console.error("[ControlTower] failed to fetch replan detail:", err)
-          setReplanBanner({ id: disruption.triggered_replan_id, added: 0, cancelled: 0, reassigned: 0 })
-        }
-      }
-      setModalOpen(false); setModalDescription(""); setModalSearch(""); setModalContainer(""); setModalJockey(""); setModalType("truck_accident")
-    } finally { setInjecting(false) }
-  }
 
   // Persist a move state change to the DB, then re-pull moves so all screens update.
   async function handleMoveStateChange(moveId: string, state: string) {
@@ -157,8 +81,8 @@ export default function ControlTower({ focus, onNavigate }: Props) {
     } finally { setPatchingMove(null) }
   }
 
-  const activeDiffRows  = engineDiffRows ?? diffRows
-  const activeDiffStats = engineDiffStats ?? (selEvent ? selEvent.diff : null)
+  const activeDiffRows  = diffRows
+  const activeDiffStats = selEvent?.diff ?? null
 
   if (!selEvent) return (
     <div className="flex flex-col h-full min-h-0 items-center justify-center bg-[#f8f9fa]">
@@ -170,55 +94,6 @@ export default function ControlTower({ focus, onNavigate }: Props) {
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden bg-[#f4f5f7] text-neutral-900">
 
-      {/* ── Disruption modal ─────────────────────────────────────────────────── */}
-      {modalOpen && (
-        <>
-          <div className="fixed inset-0 z-20 bg-black/40" onClick={() => setModalOpen(false)} />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[420px] bg-white" style={{ border: "1px solid var(--ds-border)", borderRadius: 6 }}>
-            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[var(--ds-border)]">
-              <div className="font-semibold text-[15px]">Simulate a disruption</div>
-              <button onClick={() => setModalOpen(false)} className="text-neutral-400 hover:text-neutral-800 text-sm">✕</button>
-            </div>
-            <div className="px-5 py-4 flex flex-col gap-4">
-              <div>
-                <div className="ds-label mb-1">{t("tower.whatHappened")}</div>
-                <select value={modalType} onChange={e => { setModalType(e.target.value as DisruptionType); setModalJockey("") }}
-                  className="w-full border border-[var(--ds-border)] px-3 py-2 text-[12.5px] bg-white" style={{ borderRadius: 5 }}>
-                  {DISRUPTION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <div className="ds-label mb-1">{t("tower.affectedContainer")} <span className="normal-case text-neutral-400 tracking-normal">(optional)</span></div>
-                <ContainerPicker containers={backendContainers} value={modalContainer} onChange={(id, display) => { setModalContainer(id); setModalSearch(display) }} placeholder={t("tower.searchContainer")} />
-                {backendContainers.length === 0 && <div className="text-[11px] text-neutral-400 mt-1">{t("tower.noBackend")}</div>}
-              </div>
-              {modalType === "jockey_unavailable" && (
-                <div>
-                  <div className="ds-label mb-1">{t("tower.affectedOperator")}</div>
-                  <select value={modalJockey} onChange={e => setModalJockey(e.target.value === "" ? "" : Number(e.target.value))}
-                    className="w-full border border-[var(--ds-border)] px-3 py-2 text-[12.5px] bg-white" style={{ borderRadius: 5 }}>
-                    <option value="">{t("tower.noneOperator")}</option>
-                    {backendJockeys.map(j => <option key={j.id} value={j.id}>{j.name} · {j.status}</option>)}
-                  </select>
-                </div>
-              )}
-              <div>
-                <div className="ds-label mb-1">{t("tower.notes")} <span className="normal-case text-neutral-400 tracking-normal">(optional)</span></div>
-                <textarea rows={2} placeholder={`Describe the ${DISRUPTION_LABELS[modalType].toLowerCase()}…`}
-                  value={modalDescription} onChange={e => setModalDescription(e.target.value)}
-                  className="w-full border border-[var(--ds-border)] px-3 py-2 text-[12.5px] resize-none" style={{ borderRadius: 5 }} />
-              </div>
-            </div>
-            <div className="px-5 pb-4 flex justify-between items-center">
-              <button onClick={() => setModalOpen(false)} className="text-xs px-3 py-2 border border-[var(--ds-border)] text-[var(--ds-fg-secondary)] bg-white" style={{ borderRadius: 5 }}>{t("common.cancel")}</button>
-              <button onClick={handleInject} disabled={injecting} className="text-xs px-3 py-2 text-white" style={{ background: "var(--ds-fg)", borderRadius: 5, opacity: injecting ? 0.6 : 1 }}>
-                {injecting ? "Submitting…" : t("tower.submitDisruption")}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4 px-5 pt-3 pb-3 border-b border-[var(--ds-border)] flex-none bg-white">
         <div className="flex flex-col gap-0.5">
@@ -226,12 +101,6 @@ export default function ControlTower({ focus, onNavigate }: Props) {
           <span className="text-[11px] text-neutral-500">{t("tower.subtitle")}</span>
         </div>
         <div className="ml-auto flex gap-2">
-          <div title={!backendConnected ? "Requires backend connection" : undefined}>
-            <button disabled={!backendConnected} onClick={() => setModalOpen(true)}
-              className="text-xs px-3 py-2 border border-[var(--ds-border)] text-[var(--ds-fg-secondary)] bg-white" style={{ borderRadius: 5, opacity: !backendConnected ? 0.5 : 1 }}>
-              {t("tower.simulateDisruption")}
-            </button>
-          </div>
           <button onClick={() => selEvent && setAcked(prev => new Set(prev).add(selEvent.id))} disabled={ackedEvent}
             className="text-xs px-3 py-2 text-white" style={{ background: "var(--ds-fg)", borderRadius: 5, opacity: ackedEvent ? 0.5 : 1 }}>
             {ackedEvent ? t("tower.acknowledged") : t("tower.acknowledge")}
@@ -254,27 +123,11 @@ export default function ControlTower({ focus, onNavigate }: Props) {
       {tab === "events" && (
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
 
-          {/* ── Replan banner ──────────────────────────────────────────────── */}
-          {replanBanner && (
-            <div className="flex items-center gap-3 px-5 py-2 border-b border-[var(--ds-border)] flex-none bg-white">
-              <span className="text-[11px] font-bold tracking-wide" style={{ color: "#059669" }}>{t("tower.planUpdated")}</span>
-              <span className="text-[12px] text-neutral-700">
-                {t("tower.engineAdjusted")} <span className="font-semibold">{replanBanner.reassigned} moves</span>
-                {replanBanner.added > 0 && <>, {t("tower.movesAdded")} <span className="font-semibold">{replanBanner.added}</span></>}
-                {replanBanner.cancelled > 0 && <>, {t("tower.movesRemoved")} <span className="font-semibold">{replanBanner.cancelled}</span></>}
-              </span>
-              <button className="ml-auto text-[10.5px] font-semibold text-neutral-400 hover:text-neutral-700"
-                onClick={() => { setReplanBanner(null); setEngineDiffRows(null); setEngineDiffStats(null) }}>
-                {t("tower.dismiss")}
-              </button>
-            </div>
-          )}
-
           {/* ── KPI strip ──────────────────────────────────────────────────── */}
           <div className="flex border-b border-[var(--ds-border)] flex-none bg-white">
             {[
-              { k: t("tower.kpi.alertsToday"),   v: String(events.length + localDisruptions.length), sub: t("tower.kpi.sinceShift") },
-              { k: t("tower.kpi.replans"),        v: String(5 + (replanBanner ? 1 : 0)),              sub: "engine-generated" },
+              { k: t("tower.kpi.alertsToday"),   v: String(events.length), sub: t("tower.kpi.sinceShift") },
+              { k: t("tower.kpi.replans"),        v: "5",                                              sub: "engine-generated" },
               { k: t("tower.kpi.adherence"),      v: "89%",                                            sub: "target ≥ 85%" },
               { k: t("tower.kpi.needsAttn"),      v: String(awaitingCount),                            sub: awaitingCount > 0 ? t("tower.kpi.awaiting") : t("tower.kpi.allClear"), red: awaitingCount > 0 },
             ].map(m => (
@@ -339,37 +192,6 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                   )
                 })}
 
-                {/* Backend disruptions */}
-                {localDisruptions.length > 0 && (
-                  <>
-                    <div className="px-4 py-2 bg-[var(--ds-surface-hover)] border-b border-t border-[var(--ds-border)]">
-                      <span className="ds-label">{t("tower.simulatedCount")}</span>
-                      <span className="ml-2 text-[10px] text-neutral-400 font-mono">{localDisruptions.length} {t("tower.thisSession")}</span>
-                    </div>
-                    {localDisruptions.map(d => {
-                      const sev   = DISRUPTION_SEVERITY[d.event_type] ?? "low"
-                      const color = SEV_COLOR[sev]
-                      const time  = fmtTime(d.occurred_at)
-                      return (
-                        <div key={d.id} className="px-4 py-3 border-b border-[var(--ds-border-lt)]" style={{ borderLeft: `3px solid ${color}` }}>
-                          <div className="flex justify-between gap-2 mb-0.5">
-                            <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color }}>{DISRUPTION_LABELS[d.event_type]}</span>
-                            <span className="font-mono text-[10px] text-neutral-400">{time}</span>
-                          </div>
-                          <div className="text-[12px] font-semibold text-neutral-800 leading-snug">{d.description}</div>
-                          {d.triggered_replan_id != null ? (
-                            <button className="mt-1 text-[11px] font-semibold hover:underline" style={{ color: "#2563eb" }}
-                              onClick={() => onNavigate?.("plan", String(d.triggered_replan_id))}>
-                              {t("tower.viewPlan")}
-                            </button>
-                          ) : (
-                            <div className="mt-1 text-[10.5px] text-neutral-400">{t("tower.noReplanNeeded")}</div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </>
-                )}
               </div>
             </div>
 

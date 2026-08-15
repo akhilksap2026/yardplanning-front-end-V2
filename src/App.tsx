@@ -43,26 +43,6 @@ const NAV_GROUP_KEYS: NavGroupKey[] = [
   "nav.group.todaysOps", "nav.group.yard", "nav.group.movement", "nav.group.config",
 ]
 
-// hint drives contextual UI state in the target screen when the demo advances
-type StoryEntry = { screen: Screen; step: string; title: string; persona: string; hint: string | null }
-
-const STORY: StoryEntry[] = [
-  // ── Act 1: The engine thinks at 9 PM ─────────────────────────────────────
-  { screen: "plan",     step: "Step 1 of 10",  hint: "demo:reset",      title: "9 PM · engine reads yard state, detention deadlines and 6 available operators — builds tomorrow's plan",                                        persona: "Yard Manager · Martín R." },
-  { screen: "plan",     step: "Step 2 of 10",  hint: "demo:premarshal", title: "Engine asks 'what happens downstream?' — filter to Pre-Marshal to see 49 crane moves needed before target containers become reachable",         persona: "Yard Manager · Martín R." },
-  { screen: "plan",     step: "Step 3 of 10",  hint: "demo:select",     title: "Select any move — WHY callout explains the downstream reason; planning score shows how urgently the engine ranked this step",                   persona: "Yard Manager · Martín R." },
-  // ── Act 2: The yard manager sets the strategy ─────────────────────────────
-  { screen: "settings", step: "Step 4 of 10",  hint: "demo:weights",    title: "Priority model — raise detention weight and the engine shifts sequence; lower it and customer cutoffs take over; the strategy is yours to set", persona: "Yard Manager · Martín R." },
-  // ── Act 3: The plan is handed to the shift ────────────────────────────────
-  { screen: "plan",     step: "Step 5 of 10",  hint: "demo:gantt",      title: "Show Gantt — 6 operators, 154 steps, no overlap, no idle gaps; the engine has already done the scheduling so the shift can just execute",      persona: "Yard Manager · Martín R." },
-  { screen: "operator", step: "Step 6 of 10",  hint: "demo:job-card",   title: "Jockey's view — scan TCLU0000006, confirm identity, pick from Bay 9 · R1 · T1, move to staging; no decisions, just execution",               persona: "Operator · R. Giménez"    },
-  // ── Act 4: The yard in motion ─────────────────────────────────────────────
-  { screen: "yard",     step: "Step 7 of 10",  hint: null,              title: "Yard map at shift start — slot occupancy, stack depth and hot containers plotted by position; shows where the plan will create pressure",      persona: "Yard Manager · Martín R." },
-  { screen: "gate",     step: "Step 8 of 10",  hint: null,              title: "Morning arrivals — each inbound container matched to the plan on entry; mismatches and inspection holds surfaced before they reach the yard",   persona: "Gate Ops · Diego V."      },
-  // ── Act 5: Reality changes — engine adapts ────────────────────────────────
-  { screen: "tower",    step: "Step 9 of 10",  hint: null,              title: "10:30 AM · disruption detected — 2 steps blocked, cascade risk across 3 operators identified in seconds; engine flags before the yard feels it", persona: "Yard Manager · Martín R." },
-  { screen: "liveops",  step: "Step 10 of 10", hint: null,              title: "Continuous cycle: Predict → Plan → Execute → Monitor → Replan — affected moves redistributed, operators see updated queues, yard keeps moving", persona: "Yard Manager · Martín R." },
-]
 
 const ALL_SLICES: RefreshSlice[] = [
   "moves", "containers", "events", "visits", "lanes", "appointments", "diffRows", "operatorTasks",
@@ -93,9 +73,7 @@ function AppShell() {
   const [persona,      setPersona]      = useState<Persona>("manager")
   const [screen,       setScreen]       = useState<Screen>("plan")
   const [focus,        setFocus]        = useState<string | null>(null)
-  const [storyIdx,     setStoryIdx]     = useState(0)
   const [paletteOpen,  setPaletteOpen]  = useState(false)
-  const [showDemo,     setShowDemo]     = useState(() => localStorage.getItem("yardos:showDemo") !== "false")
   const [refreshing,   setRefreshing]   = useState(false)
   const [reconnecting, setReconnecting] = useState(false)
   const [syncLabel,    setSyncLabel]    = useState("just now")
@@ -106,9 +84,6 @@ function AppShell() {
 
   const activeGroup = NAV_ITEMS.find(i => i.id === screen)?.groupKey ?? ""
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(NAV_GROUP_KEYS))
-  const [storyExpanded, setStoryExpanded] = useState(false)
-
-  useEffect(() => { localStorage.setItem("yardos:showDemo", String(showDemo)) }, [showDemo])
 
   useEffect(() => {
     const group = NAV_ITEMS.find(i => i.id === screen)?.groupKey
@@ -168,14 +143,6 @@ function AppShell() {
     try { await reconnectBackend() } finally { setReconnecting(false) }
   }
 
-  function goStory(delta: number) {
-    const next = Math.max(0, Math.min(STORY.length - 1, storyIdx + delta))
-    setStoryIdx(next)
-    setScreen(STORY[next].screen)
-    // Pass hint as focus so each screen can set the right internal state.
-    // null hint clears any stale focus from a previous step.
-    setFocus(STORY[next].hint)
-  }
 
   function navigate(target: string, f?: string) {
     const map: Record<string, Screen> = {
@@ -203,7 +170,6 @@ function AppShell() {
     })
   }
 
-  const story  = STORY[storyIdx]
   const pDef   = PERSONA_DEFS.find(x => x.id === persona)!
   const ok     = allowed(persona, screen)
   const navItem = NAV_ITEMS.find(i => i.id === screen)
@@ -224,7 +190,7 @@ function AppShell() {
         className="grid h-screen overflow-hidden"
         style={{
           gridTemplateColumns: "220px minmax(0,1fr)",
-          gridTemplateRows: showDemo ? "52px 34px minmax(0,1fr)" : "52px 0px minmax(0,1fr)",
+          gridTemplateRows: "52px minmax(0,1fr)",
         }}
       >
         {/* ── Sidebar ──────────────────────────────────────────────────────── */}
@@ -496,22 +462,6 @@ function AppShell() {
               {refreshing ? t("app.syncing_btn") : t("app.refresh")}
             </button>
 
-            {/* Demo toggle */}
-            <button
-              onClick={() => setShowDemo(v => !v)}
-              title={t("app.toggleDemo")}
-              className="px-3 py-1.5 font-semibold"
-              style={{
-                fontSize: 11,
-                background: showDemo ? "var(--ds-accent)" : "var(--ds-surface-hover)",
-                border: `1px solid ${showDemo ? "var(--ds-accent)" : "var(--ds-border)"}`,
-                color: showDemo ? "#fff" : "var(--ds-muted)",
-                borderRadius: 6,
-              }}
-            >
-              🎬 {t("app.demo")}
-            </button>
-
             {/* Bell — navigates to Control Tower event list */}
             <button
               aria-label={t("app.notifications")}
@@ -530,65 +480,9 @@ function AppShell() {
           </div>
         </div>
 
-        {/* ── Story bar ────────────────────────────────────────────────────── */}
-        {showDemo && (
-          <div
-            className="col-start-2 flex items-center gap-2.5 px-4"
-            style={{ background: "#fffbeb", borderBottom: "1px solid #fde68a", height: 34, overflow: "hidden" }}
-          >
-            <button
-              onClick={() => setStoryExpanded(v => !v)}
-              className="flex items-center gap-1.5 flex-none"
-              title={storyExpanded ? "Collapse story bar" : "Expand story bar"}
-            >
-              <span
-                className="font-semibold px-1.5 py-0.5 ds-label"
-                style={{ background: "#fde68a", color: "#78350f", letterSpacing: "0.06em", borderRadius: 4 }}
-              >DEMO</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#92400e" }}>{story.step}</span>
-              <span style={{ fontSize: 8, color: "#a16207" }}>{storyExpanded ? "▲" : "▼"}</span>
-            </button>
-
-            {storyExpanded && (
-              <>
-                <span style={{ fontSize: 12, color: "#92400e" }}>
-                  — <strong>{story.title}</strong>
-                </span>
-                <span style={{ fontSize: 11, color: "#a16207" }}>· {story.persona}</span>
-                {focus && (
-                  <button
-                    onClick={() => setFocus(null)}
-                    className="font-semibold"
-                    style={{ fontSize: 10.5, padding: "1px 8px", border: "1px solid var(--ds-amber)", background: "#fffbeb", color: "#b45309", borderRadius: 5 }}
-                  >
-                    {t("app.tracking", focus)} ✕
-                  </button>
-                )}
-              </>
-            )}
-
-            <div className="ml-auto flex gap-1.5 flex-none">
-              <button
-                onClick={() => goStory(-1)}
-                className="flex items-center gap-1 px-2.5 py-1 font-medium"
-                style={{ fontSize: 11, border: "1px solid #fde68a", background: "white", color: "#92400e", borderRadius: 5 }}
-              >
-                {storyExpanded ? t("app.back") : "←"}
-              </button>
-              <button
-                onClick={() => goStory(1)}
-                className="flex items-center gap-1 px-2.5 py-1 font-semibold"
-                style={{ fontSize: 11, background: "var(--ds-accent)", color: "#fff", border: "1px solid var(--ds-accent)", borderRadius: 5 }}
-              >
-                {storyExpanded ? t("app.next") : "→"}
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* ── Main content ──────────────────────────────────────────────────── */}
         <div
-          className="col-start-2 row-start-3 min-w-0 min-h-0 overflow-hidden relative"
+          className="col-start-2 row-start-2 min-w-0 min-h-0 overflow-hidden relative"
           style={{ background: "var(--ds-background)" }}
         >
           {!ok ? (
