@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import Skeleton from "@/components/ui/Skeleton"
 import { useData }         from "@/lib/DataContext"
 import { backendApi }      from "@/lib/backend-api"
 import type { BackendMoveDetail } from "@/lib/backend-api"
@@ -435,10 +436,11 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
             <PhoneAmberHeader initials={initials} name={jockeyName} badge={equipBadge} pending={pendingCount} done={doneCount} />
             <div className="flex-1 flex items-center justify-center px-6 py-8 bg-white">
               {fetchingTask ? (
-                <div className="text-center">
-                  <div className="text-[32px] mb-3 animate-spin" style={{ color:AMBER }}>⟳</div>
-                  <div className="font-semibold text-[15px]">Loading queue…</div>
-                  <div className="text-[12px] text-neutral-500 mt-1">Fetching your next move</div>
+                <div className="flex flex-col gap-3 w-full">
+                  <Skeleton variant="kpi" className="w-full" />
+                  <Skeleton variant="row" />
+                  <Skeleton variant="row" />
+                  <Skeleton variant="card" />
                 </div>
               ) : (
                 <div className="text-center">

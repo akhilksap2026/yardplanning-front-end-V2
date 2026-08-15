@@ -3,6 +3,7 @@ import { useData } from "@/lib/DataContext"
 import type { Visit } from "@/data/yard-ops"
 import { CONTAINERS } from "@/data/yard-data"
 import { fmtTime } from "@/utils/time"
+import Skeleton from "@/components/ui/Skeleton"
 
 interface Props {
   onNavigate?: (target: string, focus?: string) => void
@@ -84,7 +85,7 @@ const MARK_COLOR: Record<string, string> = {
 
 // ── Component ──────────────────────────────────────────────────────────────
 export default function LiveOps({ onNavigate }: Props) {
-  const { visits, moves, events } = useData()
+  const { visits, moves, events, dbLoading } = useData()
   const [now,   setNow]   = useState(360)   // default 06:00
   const [focus,     setFocus]     = useState<string | null>(null)
   const [showMore,  setShowMore]  = useState(false)
@@ -287,7 +288,9 @@ export default function LiveOps({ onNavigate }: Props) {
       <div className="flex flex-col border-b-2 border-[#e5e7eb] flex-none bg-white">
         {/* Primary row — always visible */}
         <div className="flex items-stretch">
-          {([
+          {dbLoading ? (
+            [0,1,2,3,4].map(i => <Skeleton key={i} variant="kpi" />)
+          ) : ([
             { k: "Inbound containers",  v: String(inboundCnt),            sub: "containers today",  color: "#111827" },
             { k: "Outbound containers", v: String(outboundCnt),           sub: "containers today",  color: "#111827" },
             { k: "Operators available", v: String(opsAvail),              sub: `${opsAvail} of ${equipTotal} on shift`, color: opsAvail < equipTotal ? "#d97706" : "#111827" },

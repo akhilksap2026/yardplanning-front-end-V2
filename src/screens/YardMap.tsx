@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react"
+import Skeleton from "@/components/ui/Skeleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useData } from "@/lib/DataContext"
@@ -742,7 +743,12 @@ export default function YardMap({ focus, onNavigate }: Props) {
 
           {/* ── CENTRE — map always at yard level ──────────────────────────────── */}
           <div className="flex-1 relative min-w-0 flex flex-col">
-            {!isLive && (
+            {!isLive && blockLayouts.length === 0 && (
+              <div className="flex-1 p-4">
+                <Skeleton variant="card" className="h-full min-h-[200px]" />
+              </div>
+            )}
+            {!isLive && blockLayouts.length > 0 && (
               <>
                 {backendSlots.length === 0 ? null : null /* seed always shows */}
                 <PhysicalYardMap

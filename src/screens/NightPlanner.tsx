@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import Skeleton from "@/components/ui/Skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,8 +14,6 @@ import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type Planni
 import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
 import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, isExtraMovement, getStatusStyle, getDisplayContainerId, isAnonymousContainer, generateWhyText } from "@/utils/displayLabels"
 import { useLang } from "@/lib/i18n"
-import { fmtTime } from "@/utils/time"
-import { isoToMin } from "@/utils/plannerHelpers"
 
 interface Props {
   focus: string | null
@@ -55,7 +54,10 @@ function stepDur(s: PlanningStep): number {
   return Math.round((new Date(s.estimated_end).getTime() - new Date(s.estimated_start).getTime()) / 60000 * 10) / 10
 }
 
-// Step 3: column definitions
+function fmtIso(iso: string | null | undefined): string {
+  if (!iso) return "—"
+  return iso.slice(11, 16)
+}
 const ALL_COLS = ["SEQ","WINDOW","MOVE","ROUTE","ASSIGNED","EST"] as const
 type Col = typeof ALL_COLS[number]
 const DEFAULT_COLS = new Set<Col>(["SEQ","MOVE","ROUTE","ASSIGNED"])
@@ -65,7 +67,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     moves, operators, assumptions, exceptions, refresh,
     backendConnected, activePlan, plans,
     backendContainers, backendSlots, backendJockeys,
-    generatePlan, confirmPlan,
+    generatePlan, confirmPlan, dbLoading,
   } = useData()
   const { t } = useLang()
 
@@ -308,7 +310,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     const frozen       = m.source === "planning" ? m.move.step_status === "Blocked" : m.move.frozen
     const windowStr    = m.source === "planning"
       ? (m.move.estimated_start
-          ? fmtTime(m.move.estimated_start) + "–" + fmtTime(m.move.estimated_end)
+          ? fmtIso(m.move.estimated_start) + "–" + fmtIso(m.move.estimated_end)
           : m.move.step_status === "Completed" ? "✓ done" : "not scheduled")
       : m.source === "seed" ? `${m.move.start}–${m.move.end}` : `seq ${m.move.sequence_number}`
     const containerId  = m.source === "planning" ? m.move.container_id : m.move.containerId
@@ -688,7 +690,6 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       </div>
 
 
-
       {/* ── Engine: no plan / spinner ─────────────────────────────────────────── */}
       {planSource === "engine" && !viewedPlan && !generating && (
         <div className="flex-1 flex items-center justify-center bg-[#f4f5f7]">
@@ -710,7 +711,14 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       )}
 
       {/* ── Step 1: Collapsible KPI bar ──────────────────────────────────────── */}
-      {(planSource === "seed" || (planSource === "engine" && viewedPlan && !generating)) && (
+      {dbLoading && (
+        <div className="flex-none border-b border-[var(--ds-border)] bg-white">
+          <div className="flex items-stretch">
+            {[0,1,2,3,4].map(i => <Skeleton key={i} variant="kpi" />)}
+          </div>
+        </div>
+      )}
+      {!dbLoading && (planSource === "seed" || (planSource === "engine" && viewedPlan && !generating)) && (
         <div className="flex-none border-b border-[var(--ds-border)] bg-white">
           {/* Primary row: always visible */}
           <div className="flex items-stretch">
@@ -808,7 +816,11 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {planningRows.length === 0 ? (
+                  {dbLoading && planningRows.length === 0 ? (
+                    Array.from({length:5},(_,i) => (
+                      <tr key={`sk-${i}`}><td colSpan={visibleCols.size} className="px-4 py-1"><Skeleton variant="row" /></td></tr>
+                    ))
+                  ) : planningRows.length === 0 ? (
                     <tr><td colSpan={visibleCols.size} className="px-4 py-4 text-[11px] text-[var(--ds-subtle)]">No steps match {q ? `"${q}"` : "this filter"}.</td></tr>
                   ) : planningRows.map((s, i) => (
                     <MoveRow key={`pr-${i}`} m={{ source:"planning", move:s }} isSelected={stepId(s)===sel} onClick={() => { setSel(stepId(s)); setTab("detail") }} />
@@ -892,7 +904,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                       [t("planner.move.operator"),    selStep.operator ?? "—"],
                       [t("planner.move.moveMethod"), getDisplayMoveMethod(selStep)],
                       [t("planner.move.window"),      selStep.estimated_start
-                        ? fmtTime(selStep.estimated_start) + "–" + fmtTime(selStep.estimated_end) + " (" + stepDur(selStep).toFixed(1) + "′)"
+                        ? fmtIso(selStep.estimated_start) + "–" + fmtIso(selStep.estimated_end) + " (" + stepDur(selStep).toFixed(1) + "′)"
                         : selStep.step_status === "Completed" ? "Completed · no window recorded"
                         : selStep.step_status === "Blocked"   ? "Blocked · not scheduled"
                         : "Not yet scheduled"],
@@ -946,9 +958,9 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     <AccordionHeader label={t("planner.move.stepHistory")} open={moveHistoryOpen} onToggle={() => setMoveHistoryOpen(v => !v)} />
                     <div style={{ overflow:"hidden", maxHeight: moveHistoryOpen ? 200 : 0, transition:"max-height 200ms ease" }}>
                       {[
-                        ...(selStep.estimated_start ? [[fmtTime(selStep.estimated_start), "Planned by engine", "auto"]] : []),
-                        ...(selStep.actual_start ? [[fmtTime(selStep.actual_start), "Actual start recorded", "system"]] : []),
-                        ...(selStep.actual_end   ? [[fmtTime(selStep.actual_end),   "Actual end recorded",   "system"]] : []),
+                        ...(selStep.estimated_start ? [[fmtIso(selStep.estimated_start), "Planned by engine", "auto"]] : []),
+                        ...(selStep.actual_start ? [[fmtIso(selStep.actual_start), "Actual start recorded", "system"]] : []),
+                        ...(selStep.actual_end   ? [[fmtIso(selStep.actual_end),   "Actual end recorded",   "system"]] : []),
                         ...(selStep.estimated_start == null ? [["—", "No window recorded for this step", "engine"]] : []),
                       ].map(([time,event,src]) => (
                         <div key={time+event} className="flex items-baseline gap-3 px-4 py-1.5 text-[11.5px] border-b border-[var(--ds-surface-hover)]">
@@ -1130,7 +1142,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                           return (
                             <div key={`g-${gi}`}
                               onClick={() => { setSel(sid); setTab("detail") }}
-                              title={`${getDisplayContainerId(s)} · ${getDisplayOperation(s.operation)} · ${fmtTime(s.estimated_start)}–${fmtTime(s.estimated_end)}`}
+                              title={`${getDisplayContainerId(s)} · ${getDisplayOperation(s.operation)} · ${fmtIso(s.estimated_start)}–${fmtIso(s.estimated_end)}`}
                               className="absolute top-2 h-3 cursor-pointer hover:opacity-80"
                               style={{
                                 left: (Math.max(0, startMin - 360) / 480 * 100).toFixed(2) + "%",
@@ -1151,4 +1163,10 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       )}
     </div>
   )
+}
+
+function isoToMin(iso: string | null | undefined): number | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  return d.getUTCHours() * 60 + d.getUTCMinutes()
 }

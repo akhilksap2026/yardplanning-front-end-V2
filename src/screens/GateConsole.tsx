@@ -11,6 +11,7 @@ import GateInspection from "@/components/gate/GateInspection"
 import { allSteps } from "@/data/planningData"
 import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
 import { useLang } from "@/lib/i18n"
+import Skeleton from "@/components/ui/Skeleton"
 
 interface Props {
   focus: string | null
@@ -45,7 +46,7 @@ const VISIT_COL_LABELS: Record<VisitCol, string> = {
 }
 
 export default function GateConsole({ focus, onNavigate }: Props) {
-  const { visits, lanes, appointments, refresh, backendConnected, backendContainers, containers } = useData()
+  const { visits, lanes, appointments, refresh, backendConnected, backendContainers, containers, dbLoading } = useData()
   const { t } = useLang()
 
   // ── Existing state ────────────────────────────────────────────────────────
@@ -378,7 +379,14 @@ export default function GateConsole({ focus, onNavigate }: Props) {
       />
 
       {/* ── Collapsible KPI bar — computed live from inbound/outbound rows ─── */}
-      {(() => {
+      {dbLoading && (
+        <div className="flex-none border-b border-[#e5e7eb] bg-white">
+          <div className="flex items-stretch">
+            {[0,1,2].map(i => <Skeleton key={i} variant="kpi" />)}
+          </div>
+        </div>
+      )}
+      {!dbLoading && (() => {
         const isOut = tab === "outbound"
 
         // ── Inbound counts ────────────────────────────────────────────────
@@ -528,7 +536,13 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {visits.map(v=>(
+                  {dbLoading && visits.length === 0 ? (
+                    Array.from({length:5},(_,i) => (
+                      <tr key={`sk-${i}`}><td colSpan={visibleCols.size} className="px-4 py-1"><Skeleton variant="row" /></td></tr>
+                    ))
+                  ) : !dbLoading && visits.length === 0 ? (
+                    <tr><td colSpan={visibleCols.size} className="px-4 py-4 text-[11px] text-neutral-400">No visits found.</td></tr>
+                  ) : visits.map(v=>(
                     <tr key={v.id} onClick={()=>setSel(v.id)}
                       className="cursor-pointer hover:bg-[#f9fafb] border-b border-[#f3f4f6] transition-colors"
                       style={{ background:v.id===sel?"#fef2f2":undefined, minHeight:44 }}>
@@ -946,7 +960,9 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                   </thead>
                   <tbody>
                     {txLoading
-                      ? <tr><td colSpan={8} className="px-3 py-4 text-neutral-400 text-[11px]">{t("common.loading")}</td></tr>
+                      ? Array.from({length:5},(_,i) => (
+                          <tr key={`sk-${i}`}><td colSpan={8} className="px-2 py-1"><Skeleton variant="row" /></td></tr>
+                        ))
                       : txGroups.map(g=>{
                           const inTime=g.inTx?.actual_arrival??g.inTx?.created_at??null
                           const outTime=g.outTx?.actual_departure??g.outTx?.created_at??null
