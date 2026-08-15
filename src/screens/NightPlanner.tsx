@@ -457,17 +457,27 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                 ],
               },
             ]).map(group => (
-              <div key={group.label} className="px-4 pb-4">
-                <div className="text-[9.5px] font-bold tracking-widest text-[#9ca3af] uppercase mb-1"
+              <div key={group.label} className="px-4 pb-3">
+                {/* Section header with hovering description tooltip */}
+                <div className="relative group/sec flex items-center gap-1 cursor-default mb-2"
                   style={{ borderBottom:"1px solid #f3f4f6", paddingBottom:4 }}>
-                  {group.label}
+                  <span className="text-[9.5px] font-bold tracking-widest text-[#9ca3af] uppercase">{group.label}</span>
+                  <span className="text-[9px] text-[#c4c9d4] select-none">ⓘ</span>
+                  <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover/sec:block w-60
+                    bg-[#111827] text-white text-[10px] leading-snug rounded px-3 py-2 shadow-lg pointer-events-none">
+                    {group.desc}
+                  </div>
                 </div>
-                <p className="text-[10.5px] text-[#9ca3af] leading-snug mb-2">{group.desc}</p>
-                <div className="flex flex-col gap-2">
+                {/* Items — detail shown in tooltip on hover */}
+                <div className="flex flex-col gap-1.5">
                   {group.items.map(item => (
-                    <div key={item.name}>
-                      <div className="text-[11.5px] font-semibold text-neutral-800 leading-tight">{item.name}</div>
-                      <div className="text-[10.5px] text-[#9ca3af] leading-snug mt-0.5">{item.detail}</div>
+                    <div key={item.name} className="relative group/rule flex items-center gap-1 cursor-default">
+                      <span className="text-[11.5px] font-semibold text-neutral-800 leading-tight">{item.name}</span>
+                      <span className="text-[9px] text-[#c4c9d4] select-none">ⓘ</span>
+                      <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover/rule:block w-64
+                        bg-[#111827] text-white text-[10px] leading-snug rounded px-3 py-2 shadow-lg pointer-events-none">
+                        {item.detail}
+                      </div>
                     </div>
                   ))}
                 </div>
