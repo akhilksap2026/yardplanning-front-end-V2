@@ -52,6 +52,104 @@ function IcoCheck() { return <svg width="32" height="32" viewBox="0 0 24 24" fil
 function IcoCamera(){ return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> }
 function IcoWrench() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> }
 
+// ── buildNavTurns — plausible yard turn list from FROM/TO addresses ────────────
+function buildNavTurns(from: string, to: string): { icon: string; text: string; sub: string }[] {
+  const parts = (addr: string) => addr.split(/[-·\s]+/).map(s => s.trim()).filter(Boolean)
+  const fP = parts(from), tP = parts(to)
+  const fZ = (fP[0] ?? "A").toUpperCase()
+  const tZ = (tP[0] ?? "B").toUpperCase()
+  const tRow = tP[1] ?? "01"
+  const tBay = tP[2] ?? "01"
+
+  if (/gate|staging/i.test(to)) return [
+    { icon: "↑", text: `Exit Zone ${fZ} via exit aisle`,  sub: "in 30 m"     },
+    { icon: "↱", text: "Turn right onto Gate Road",        sub: "in 90 m"     },
+    { icon: "⊙", text: "Arrive at Gate — check in",        sub: "destination"  },
+  ]
+
+  if (fZ === tZ) return [
+    { icon: "↑", text: `Head to Row ${tRow} aisle`,     sub: "in 15 m"     },
+    { icon: "⊙", text: `Arrive at Bay ${tBay} — ${to}`, sub: "destination"  },
+  ]
+
+  const right = tZ > fZ
+  return [
+    { icon: "↑",             text: `Exit Zone ${fZ} via main aisle`,                      sub: "in 25 m"    },
+    { icon: right?"↱":"↰",  text: `Turn ${right?"right":"left"} — Cross Aisle ${tZ}`,    sub: "in 70 m"    },
+    { icon: "↑",             text: `Enter Zone ${tZ}, Row ${tRow}`,                       sub: "in 40 m"    },
+    { icon: "⊙",             text: `Arrive at Bay ${tBay} — ${to}`,                       sub: "destination" },
+  ]
+}
+
+// ── NavMap — navigation-style SVG map ─────────────────────────────────────────
+function NavMap({ from, to }: { from: string; to: string }) {
+  const W = 296, H = 178
+
+  // Cubic bezier route: top-left origin → bottom-right destination
+  const x0=50, y0=32, cx1=50, cy1=108, cx2=192, cy2=82, x3=240, y3=152
+
+  // "You" at t≈0.52 on the bezier
+  const t = 0.52, it = 1 - t
+  const youX = Math.round(it*it*it*x0 + 3*it*it*t*cx1 + 3*it*t*t*cx2 + t*t*t*x3)
+  const youY = Math.round(it*it*it*y0 + 3*it*it*t*cy1 + 3*it*t*t*cy2 + t*t*t*y3)
+
+  const fLabel = from.length > 12 ? from.slice(0,12)+"…" : from
+  const tLabel = to.length   > 12 ? to.slice(0,12)+"…"   : to
+  const fW = Math.min(fLabel.length * 6 + 14, 96)
+  const tW = Math.min(tLabel.length * 6 + 14, 96)
+
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display:"block", width:"100%" }}>
+      {/* Map background */}
+      <rect width={W} height={H} fill="#d9e8d9" />
+
+      {/* Road grid — horizontal */}
+      {[38, 80, 120, 158].map(y => (
+        <g key={y}>
+          <line x1={0} y1={y} x2={W} y2={y} stroke="#c0d4c0" strokeWidth={7} />
+          <line x1={0} y1={y} x2={W} y2={y} stroke="white" strokeWidth={1.2} strokeDasharray="9,7" opacity={0.55} />
+        </g>
+      ))}
+      {/* Road grid — vertical */}
+      {[65, 145, 220].map(x => (
+        <g key={x}>
+          <line x1={x} y1={0} x2={x} y2={H} stroke="#c0d4c0" strokeWidth={7} />
+          <line x1={x} y1={0} x2={x} y2={H} stroke="white" strokeWidth={1.2} strokeDasharray="9,7" opacity={0.55} />
+        </g>
+      ))}
+
+      {/* Route glow */}
+      <path d={`M${x0},${y0} C${cx1},${cy1} ${cx2},${cy2} ${x3},${y3}`}
+        stroke={GREEN} strokeWidth={12} fill="none" strokeLinecap="round" opacity={0.2} />
+      {/* Route line */}
+      <path d={`M${x0},${y0} C${cx1},${cy1} ${cx2},${cy2} ${x3},${y3}`}
+        stroke={GREEN} strokeWidth={5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+
+      {/* FROM marker — blue */}
+      <circle cx={x0} cy={y0} r={8} fill="#3b82f6" stroke="white" strokeWidth={2.5} />
+      {/* FROM label */}
+      <rect x={x0+13} y={y0-13} width={fW} height={20} rx={4} fill="white" opacity={0.92} />
+      <text x={x0+18} y={y0-1}   fontSize={9}   fontWeight="700" fill="#1e40af">{fLabel}</text>
+      <text x={x0+18} y={y0+8.5} fontSize={7.5} fill="#6b7280">origin</text>
+
+      {/* "You" marker — orange truck */}
+      <circle cx={youX} cy={youY} r={12} fill="#ea580c" stroke="white" strokeWidth={2.5} />
+      <text x={youX} y={youY+5} textAnchor="middle" fontSize={12}>🚚</text>
+      {/* You label */}
+      <rect x={youX+16} y={youY-11} width={30} height={15} rx={3} fill="white" opacity={0.92} />
+      <text x={youX+21} y={youY+0.5} fontSize={9} fontWeight="700" fill="#c2410c">You</text>
+
+      {/* TO marker — green with pulse ring */}
+      <circle cx={x3} cy={y3} r={13} fill={GREEN} opacity={0.2} />
+      <circle cx={x3} cy={y3} r={8}  fill={GREEN} stroke="white" strokeWidth={2.5} />
+      {/* TO label — anchored left so it stays in bounds */}
+      <rect x={x3 - tW - 2} y={y3+12} width={tW} height={20} rx={4} fill="white" opacity={0.92} />
+      <text x={x3 - tW + 3} y={y3+24} fontSize={9}   fontWeight="700" fill="#065f46">{tLabel}</text>
+      <text x={x3 - tW + 3} y={y3+33} fontSize={7.5} fill="#6b7280">destination</text>
+    </svg>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 export default function OperatorTablet() {
   const { operatorTasks, refresh, backendConnected, backendJockeys } = useData()
@@ -626,56 +724,78 @@ export default function OperatorTablet() {
                 </div>
               )}
 
-              {/* ── SCREEN 4: Map — navigate to drop ─────────────────── */}
-              {wizardStep === "map" && overlay === null && (
-                <div className="flex flex-col">
-                  {/* Destination header */}
-                  <div className="px-4 pt-4 pb-3 border-b border-[#f3f4f6]">
-                    <div className="text-[10px] font-bold tracking-widest text-neutral-400 mb-1">DROP DESTINATION</div>
-                    <div className="font-mono font-black text-[26px] text-neutral-900 tracking-tight leading-none">{displayTask.to}</div>
-                    <div className="text-[11px] text-neutral-500 mt-1 font-mono">{displayTask.container} · {badge.label}</div>
-                  </div>
-
-                  {/* Yard map */}
-                  <div className="px-3 pt-3 pb-2">
-                    <YardMap from={displayTask.from} to={displayTask.to} />
-                  </div>
-
-                  {/* Route summary */}
-                  <div className="flex items-center gap-2 px-4 py-2.5 mx-3 mb-3 rounded-xl"
-                    style={{ background:"#f9fafb", border:"1px solid #e5e7eb" }}>
-                    <span className="text-[11px] font-mono text-neutral-500 flex-none">FROM</span>
-                    <span className="font-mono font-bold text-[12px] text-neutral-700">{displayTask.from}</span>
-                    <span className="text-neutral-300 mx-1">→</span>
-                    <span className="text-[11px] font-mono text-neutral-500 flex-none">TO</span>
-                    <span className="font-mono font-bold text-[12px]" style={{ color: AMBER }}>{displayTask.to}</span>
-                  </div>
-
-                  {/* Error */}
-                  {confirmError && (
-                    <div className="mx-3 mb-3 px-3 py-2.5 rounded-xl text-[12px]"
-                      style={{ background:"#fef2f2", border:`1px solid ${RED}`, color:"#7f1d1d" }}>
-                      <span className="font-bold">Save failed:</span> {confirmError}
+              {/* ── SCREEN 4: Navigate to drop — nav style ────────────── */}
+              {wizardStep === "map" && overlay === null && (() => {
+                const estMin  = Math.max(1, Number(displayTask.est) || 5)
+                const distM   = Math.round(estMin * 28)
+                const turns   = buildNavTurns(displayTask.from, displayTask.to)
+                return (
+                  <div className="flex flex-col">
+                    {/* Current job header — dark */}
+                    <div className="px-4 pt-3 pb-3" style={{ background: NAVY }}>
+                      <div className="text-[10px] font-bold tracking-widest mb-0.5" style={{ color:"rgba(255,255,255,0.45)" }}>CURRENT JOB</div>
+                      <div className="font-mono font-black text-white text-[15px] leading-tight tracking-tight">{displayTask.container}</div>
+                      <div className="text-[11px] font-mono mt-0.5" style={{ color:"rgba(255,255,255,0.55)" }}>
+                        {displayTask.from} <span style={{ color:"rgba(255,255,255,0.3)" }}>→</span> {displayTask.to}
+                      </div>
                     </div>
-                  )}
 
-                  {/* CTA */}
-                  <div className="px-4 pb-5">
-                    <button onClick={confirmDelivery} disabled={confirming}
-                      className="w-full py-4 font-black text-[17px] text-white disabled:opacity-50 active:scale-[0.98] transition-transform"
-                      style={{ background: GREEN, borderRadius:14 }}>
-                      {confirming ? "Saving…" : "✓  Complete delivery"}
-                    </button>
+                    {/* Map */}
+                    <NavMap from={displayTask.from} to={displayTask.to} />
+
+                    {/* Stats bar */}
+                    <div className="flex border-b border-[#f3f4f6]" style={{ background:"white" }}>
+                      {[
+                        { val:`${distM} m`,    label:"TOTAL" },
+                        { val:`${estMin} min`, label:"ETA"   },
+                        { val:"10 km/h",       label:"SPEED" },
+                      ].map((s,i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center py-3"
+                          style={{ borderRight: i < 2 ? "1px solid #f3f4f6" : undefined }}>
+                          <div className="font-black text-[16px] text-neutral-900 leading-tight">{s.val}</div>
+                          <div className="text-[9px] font-bold tracking-widest text-neutral-400 mt-0.5">{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* NEXT TURNS */}
+                    <div className="px-4 pt-3 pb-1">
+                      <div className="text-[10px] font-black tracking-widest text-neutral-400">NEXT TURNS</div>
+                    </div>
+                    <div className="flex flex-col divide-y divide-[#f3f4f6]">
+                      {turns.map((turn, i) => (
+                        <div key={i} className="flex items-start gap-3 px-4 py-3">
+                          <div className="flex-none w-8 h-8 rounded-lg flex items-center justify-center text-[15px] font-bold"
+                            style={{ background: i === 0 ? AMBER_L : "#f8fafc", border:`1.5px solid ${i === 0 ? AMBER : "#e5e7eb"}`, color: i === 0 ? AMBER : "#9ca3af" }}>
+                            {turn.icon}
+                          </div>
+                          <div className="flex flex-col pt-0.5">
+                            <span className="text-[13px] font-bold leading-snug" style={{ color: i < turns.length - 1 ? "#111827" : "#6b7280" }}>{turn.text}</span>
+                            <span className="text-[11px] text-neutral-400 mt-0.5">{turn.sub}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Error */}
                     {confirmError && (
-                      <button onClick={confirmDelivery}
-                        className="w-full py-3 mt-2 font-semibold text-[13px]"
-                        style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:14 }}>
-                        Retry →
-                      </button>
+                      <div className="mx-4 mt-1 mb-0 px-3 py-2.5 rounded-xl text-[12px]"
+                        style={{ background:"#fef2f2", border:`1px solid ${RED}`, color:"#7f1d1d" }}>
+                        <span className="font-bold">Save failed:</span> {confirmError}
+                      </div>
                     )}
+
+                    {/* CTA */}
+                    <div className="px-4 pt-3 pb-5">
+                      <button onClick={confirmDelivery} disabled={confirming}
+                        className="w-full py-4 font-black text-[17px] text-white disabled:opacity-50 active:scale-[0.98] transition-transform"
+                        style={{ background: GREEN, borderRadius:14 }}>
+                        {confirming ? "Saving…" : "✓  Arrived — Complete delivery"}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               {/* ──────────────────────────────────────────────────────── */}
               {/* OVERLAYS (rendered inside the scrollable content area)  */}
@@ -1037,133 +1157,4 @@ function PhoneAmberHeader({ initials, name, badge, pending, done, onEquipment }:
   )
 }
 
-// ── YardMap — schematic SVG yard grid ─────────────────────────────────────────
-// Parses addresses like "A-01-03", "B-12-02", "GATE" and shows a simple yard
-// block grid with the pickup zone (faded ✓) and destination zone (amber pulse).
-function YardMap({ from, to }: { from: string; to: string }) {
-  // Yard zones laid out in a 5×3 grid (A-O)
-  const ZONES = [
-    ["A","B","C","D","E"],
-    ["F","G","H","I","J"],
-    ["K","L","M","N","O"],
-  ]
-  const GATE_ZONES = ["GATE","GATEIN","GATEOUT","STAGING"]
-
-  function zoneOf(addr: string) {
-    if (!addr) return null
-    const upper = addr.toUpperCase()
-    if (GATE_ZONES.some(g => upper.includes(g))) return "GATE"
-    // "A-01-03" → "A"
-    const first = upper.split(/[-·\s]/)[0]
-    return first.length <= 2 ? first : null
-  }
-
-  const fromZone = zoneOf(from)
-  const toZone   = zoneOf(to)
-
-  const W = 296, H = 164  // SVG viewport
-
-  // Cell dimensions
-  const cols = 5, rows = 3
-  const pad = 10
-  const cellW = (W - pad * 2) / cols
-  const cellH = (H - pad * 2 - 28) / rows  // 28px reserved for GATE strip at bottom
-
-  function cellFor(zone: string | null): { x: number; y: number } | null {
-    if (!zone) return null
-    if (zone === "GATE") return null  // handled separately
-    for (let r = 0; r < ZONES.length; r++) {
-      const c = ZONES[r].indexOf(zone)
-      if (c >= 0) return { x: pad + c * cellW, y: pad + r * cellH }
-    }
-    return null
-  }
-
-  const fromCell = cellFor(fromZone)
-  const toCell   = cellFor(toZone)
-
-  // Centre of a cell
-  function cx(cell: { x: number; y: number }) { return cell.x + cellW / 2 }
-  function cy(cell: { x: number; y: number }) { return cell.y + cellH / 2 }
-
-  // Route line points: from → to (straight line for simplicity)
-  const gateY = pad + rows * cellH + 6
-
-  function pinX(zone: string | null, cell: { x: number; y: number } | null) {
-    if (zone === "GATE") return W / 2
-    return cell ? cx(cell) : W / 2
-  }
-  function pinY(zone: string | null, cell: { x: number; y: number } | null) {
-    if (zone === "GATE") return gateY + 11
-    return cell ? cy(cell) : H / 2
-  }
-
-  const fx = pinX(fromZone, fromCell), fy = pinY(fromZone, fromCell)
-  const tx = pinX(toZone, toCell),     ty = pinY(toZone, toCell)
-
-  return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ borderRadius:10, background:"#f1f5f9", display:"block", width:"100%" }}>
-      {/* Zone cells */}
-      {ZONES.map((row, ri) => row.map((zone, ci) => {
-        const x = pad + ci * cellW, y = pad + ri * cellH
-        const isFrom = zone === fromZone
-        const isTo   = zone === toZone
-        return (
-          <g key={zone}>
-            <rect x={x+2} y={y+2} width={cellW-4} height={cellH-4} rx={5}
-              fill={isTo ? "#fef3c7" : isFrom ? "#f0fdf4" : "#e2e8f0"}
-              stroke={isTo ? AMBER : isFrom ? GREEN : "#cbd5e1"}
-              strokeWidth={isTo || isFrom ? 2 : 1} />
-            <text x={x + cellW/2} y={y + cellH/2 + 5} textAnchor="middle"
-              fontSize={isTo || isFrom ? 13 : 11}
-              fontWeight={isTo || isFrom ? "900" : "600"}
-              fill={isTo ? AMBER : isFrom ? GREEN : "#94a3b8"}>
-              {zone}
-            </text>
-            {isFrom && (
-              <text x={x + cellW/2} y={y + cellH/2 - 8} textAnchor="middle" fontSize={9} fill={GREEN} fontWeight="700">✓</text>
-            )}
-          </g>
-        )
-      }))}
-
-      {/* GATE strip */}
-      <rect x={pad+2} y={gateY} width={W - pad*2 - 4} height={22} rx={5}
-        fill={toZone === "GATE" ? "#fef3c7" : fromZone === "GATE" ? "#f0fdf4" : "#e2e8f0"}
-        stroke={toZone === "GATE" ? AMBER : fromZone === "GATE" ? GREEN : "#cbd5e1"}
-        strokeWidth={toZone === "GATE" || fromZone === "GATE" ? 2 : 1} />
-      <text x={W/2} y={gateY + 14} textAnchor="middle" fontSize={10} fontWeight="700"
-        fill={toZone === "GATE" ? AMBER : fromZone === "GATE" ? GREEN : "#94a3b8"}>
-        GATE {fromZone === "GATE" ? "✓" : ""}
-      </text>
-
-      {/* Route line */}
-      {(fromCell || fromZone === "GATE") && (toCell || toZone === "GATE") && (
-        <line x1={fx} y1={fy} x2={tx} y2={ty}
-          stroke={AMBER} strokeWidth={2.5} strokeDasharray="5,4"
-          strokeLinecap="round" opacity={0.7} />
-      )}
-
-      {/* FROM pin (green, done) */}
-      {(fromCell || fromZone === "GATE") && (
-        <circle cx={fx} cy={fy} r={6} fill={GREEN} stroke="white" strokeWidth={2} />
-      )}
-
-      {/* TO pin (amber, pulsing via double ring) */}
-      {(toCell || toZone === "GATE") && (
-        <g>
-          <circle cx={tx} cy={ty} r={10} fill={AMBER} opacity={0.2} />
-          <circle cx={tx} cy={ty} r={6}  fill={AMBER} stroke="white" strokeWidth={2} />
-        </g>
-      )}
-
-      {/* Legend */}
-      <g>
-        <circle cx={pad+6} cy={H-6} r={4} fill={GREEN} />
-        <text x={pad+14} y={H-2} fontSize={8} fill="#64748b">Pickup done</text>
-        <circle cx={pad+76} cy={H-6} r={4} fill={AMBER} />
-        <text x={pad+84} y={H-2} fontSize={8} fill="#64748b">Destination</text>
-      </g>
-    </svg>
-  )
-}
+// ── buildNavTurns — plausible yard turn list from FROM/TO addresses ────────────
