@@ -197,10 +197,30 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   // ── Focus handling ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!focus) return
+
+    // Numeric focus = plan ID from ControlTower "View plan" → switch to engine
+    // mode and load the specific replan so the user sees what changed
+    if (/^\d+$/.test(focus)) {
+      setPlanSource("engine")
+      setEngineSel(null)
+      if (backendConnected) {
+        setHistoryLoading(true)
+        backendApi.plan(Number(focus))
+          .then(detail => {
+            setViewedPlan(detail)
+            if (detail.moves.length > 0) setEngineSel(detail.moves[0].id)
+          })
+          .catch(err => console.error("[NightPlanner] focus-plan fetch failed:", err))
+          .finally(() => setHistoryLoading(false))
+      }
+      return
+    }
+
+    // String focus = container / step search (existing behaviour)
     const s = allSteps.find(x => x.container_id === focus || stepId(x) === focus)
     if (s) { setSel(stepId(s)); setTab("detail"); setFilter("ALL"); setQ("") }
     else { setQ(focus); setFilter("ALL"); setSel(""); setTab("detail") }
-  }, [focus])
+  }, [focus, backendConnected])
 
   // ── Seed derived values (planningData) ────────────────────────────────────
   const OP_FILTER_TYPES = ["ALL","Putaway","Premarshal ahead of retrieval","Outbound staging and truck loading","Digout to clear an overstow"]

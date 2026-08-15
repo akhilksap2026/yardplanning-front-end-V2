@@ -506,9 +506,10 @@ function AppShell() {
               🎬 {t("app.demo")}
             </button>
 
-            {/* Bell */}
+            {/* Bell — navigates to Control Tower event list */}
             <button
               aria-label={t("app.notifications")}
+              onClick={() => navigate("tower")}
               className="flex items-center justify-center"
               style={{
                 width: 32, height: 32,
@@ -600,7 +601,7 @@ function AppShell() {
             : screen === "plan"     ? <NightPlanner  focus={focus} onNavigate={navigate} />
             : screen === "yard"     ? <YardMap        focus={focus} onNavigate={navigate} />
             : screen === "gate"     ? <GateConsole    focus={focus} onNavigate={navigate} />
-            : screen === "tower"    ? <ControlTower   focus={focus} />
+            : screen === "tower"    ? <ControlTower   focus={focus} onNavigate={navigate} />
             : screen === "operator" ? <OperatorTablet />
             : screen === "settings" ? <SettingsScreen />
             : null}
