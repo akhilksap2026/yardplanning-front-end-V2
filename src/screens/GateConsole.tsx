@@ -381,47 +381,87 @@ export default function GateConsole({ focus, onNavigate }: Props) {
         </div>
       </div>
 
-      {/* ── Step 1: Collapsible KPI bar ──────────────────────────────────────── */}
-      <div className="flex-none border-b border-[#e5e7eb] bg-white">
-        {/* Primary row */}
-        <div className="flex items-stretch">
-          {[
-            { k:t("gate.kpi.inQueue"),   v:"2",     sub:"depth at 06:12", red:false },
-            { k:t("gate.kpi.turnP50"),   v:"13.8′", sub:"target 15′",     red:false },
-          ].map(m => (
-            <div key={m.k} className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-0.5">
-              <span className="ds-label text-neutral-500">{m.k}</span>
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono font-semibold leading-none" style={{ fontSize:24, color:m.red?"#dc2626":undefined }}>{m.v}</span>
-                <span className="text-[11px] text-neutral-500">{m.sub}</span>
+      {/* ── Collapsible KPI bar — computed live from inbound/outbound rows ─── */}
+      {(() => {
+        const isOut = tab === "outbound"
+
+        // ── Inbound counts ────────────────────────────────────────────────
+        const ibTotal      = inboundRows.length
+        const ibCleared    = inboundRows.filter(r => r.channel === "verde" && !r.hold).length
+        const ibHolds      = inboundRows.filter(r => r.hold).length
+        const ibLfdRisk    = inboundRows.filter(r => r.hoursToLFD < 24).length
+        const ibReceived   = inboundRows.filter(r => r.gateStatus === "GATE_OUT" || r.gateStatus === "SERVED").length
+        const ibCarriers   = new Set(inboundRows.map(r => r.carrierName)).size
+        const ibHoldTypes  = (() => {
+          const types: Record<string,number> = {}
+          inboundRows.forEach(r => { if (r.hold) types[r.hold] = (types[r.hold]||0)+1 })
+          return Object.entries(types).map(([k,n])=>`${n} ${k}`).join(" · ") || "none"
+        })()
+
+        // ── Outbound counts ───────────────────────────────────────────────
+        const obTotal      = outboundRows.length
+        const obGateOut    = outboundRows.filter(r => r.gateStatus === "GATE_OUT").length
+        const obPending    = obTotal - obGateOut
+        const obFlagged    = outboundRows.filter(r => r.excl || r.hold).length
+        const obBreached   = outboundRows.filter(r => r.hoursToLFD < 0).length
+        const obCarriers   = new Set(outboundRows.map(r => r.carrierName)).size
+
+        const primaryKpis = isOut ? [
+          { k:t("gate.kpi.dispatchingToday"),  v:String(obTotal),   sub:t("gate.kpi.scheduledExport"),  red:false },
+          { k:t("gate.kpi.gateOutComplete"),   v:String(obGateOut), sub:`${obPending} ${t("gate.kpi.stillPending")}`, red:false },
+          { k:t("gate.kpi.flaggedIssues"),     v:String(obFlagged), sub:t("gate.kpi.clearanceFlags"),   red:obFlagged > 0 },
+        ] : [
+          { k:t("gate.kpi.arrivingToday"),     v:String(ibTotal),   sub:t("gate.kpi.bookedToday"),      red:false },
+          { k:t("gate.kpi.clearedToReceive"),  v:String(ibCleared), sub:`${ibHolds} ${t("gate.kpi.onHold")}`, red:ibHolds > 0 },
+          { k:t("gate.kpi.lfdAtRisk"),         v:String(ibLfdRisk), sub:t("gate.kpi.within24h"),        red:ibLfdRisk > 0 },
+        ]
+
+        const secondaryKpis = isOut ? [
+          { k:t("gate.kpi.detentionBreached"), v:String(obBreached), sub:t("gate.kpi.detentionRisk"),   red:obBreached > 0 },
+          { k:t("gate.kpi.shippingLines"),     v:String(obCarriers), sub:t("gate.kpi.carriersToday"),   red:false },
+          { k:t("gate.kpi.stillToDispatch"),   v:String(obPending),  sub:t("gate.kpi.awaitingGateOut"), red:false },
+        ] : [
+          { k:t("gate.kpi.alreadyReceived"),   v:String(ibReceived), sub:t("gate.kpi.gateOutComplete2"), red:false },
+          { k:t("gate.kpi.holdsActive"),       v:String(ibHolds),    sub:ibHoldTypes,                   red:ibHolds > 0 },
+          { k:t("gate.kpi.shippingLines"),     v:String(ibCarriers), sub:t("gate.kpi.carriersToday"),   red:false },
+        ]
+
+        return (
+          <div className="flex-none border-b border-[#e5e7eb] bg-white">
+            {/* Primary row */}
+            <div className="flex items-stretch">
+              {primaryKpis.map(m => (
+                <div key={m.k} className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-0.5">
+                  <span className="ds-label text-neutral-500">{m.k}</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono font-semibold leading-none" style={{ fontSize:24, color:m.red?"#dc2626":undefined }}>{m.v}</span>
+                    <span className="text-[11px] text-neutral-500">{m.sub}</span>
+                  </div>
+                </div>
+              ))}
+              <button onClick={()=>setKpiExpanded(v=>!v)}
+                className="flex items-center gap-1.5 px-4 text-[11px] text-[#6b7280] hover:text-[#374151] hover:bg-[#f9fafb] transition-colors"
+                style={{ whiteSpace:"nowrap" }}>
+                {kpiExpanded?t("gate.kpi.fewerMetrics"):t("gate.kpi.moreMetrics")}
+              </button>
+            </div>
+            {/* Secondary row */}
+            <div style={{ overflow:"hidden", maxHeight:kpiExpanded?120:0, transition:"max-height 200ms ease" }}>
+              <div className="flex border-t border-[#e5e7eb]">
+                {secondaryKpis.map(m => (
+                  <div key={m.k} className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-0.5">
+                    <span className="ds-label text-neutral-500">{m.k}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono font-semibold leading-none" style={{ fontSize:24, color:m.red?"#dc2626":undefined }}>{m.v}</span>
+                      <span className="text-[11px] text-neutral-500">{m.sub}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-          <button onClick={()=>setKpiExpanded(v=>!v)}
-            className="flex items-center gap-1.5 px-4 text-[11px] text-[#6b7280] hover:text-[#374151] hover:bg-[#f9fafb] transition-colors"
-            style={{ whiteSpace:"nowrap" }}>
-            {kpiExpanded?t("gate.kpi.fewerMetrics"):t("gate.kpi.moreMetrics")}
-          </button>
-        </div>
-        {/* Secondary row */}
-        <div style={{ overflow:"hidden", maxHeight:kpiExpanded?120:0, transition:"max-height 200ms ease" }}>
-          <div className="flex border-t border-[#e5e7eb]">
-            {[
-              { k:t("gate.kpi.turnP90"),      v:"21.4′", sub:"target 22′",      red:false },
-              { k:t("gate.kpi.longestTurn"),  v:"18′",   sub:"V-2042",          red:true  },
-              { k:t("gate.kpi.exclusions"),   v:"2",     sub:"driver-caused",   red:false },
-            ].map(m => (
-              <div key={m.k} className="flex-1 basis-36 px-5 py-2.5 border-r border-[#e5e7eb] flex flex-col gap-0.5">
-                <span className="ds-label text-neutral-500">{m.k}</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-mono font-semibold leading-none" style={{ fontSize:24, color:m.red?"#dc2626":undefined }}>{m.v}</span>
-                  <span className="text-[11px] text-neutral-500">{m.sub}</span>
-                </div>
-              </div>
-            ))}
           </div>
-        </div>
-      </div>
+        )
+      })()}
 
       {/* ════════════════════ VISITS TAB ════════════════════ */}
       {tab==="visits" && (

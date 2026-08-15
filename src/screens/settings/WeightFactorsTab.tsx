@@ -15,11 +15,9 @@ const FACTORS = [
 ]
 
 const GUARDRAILS = [
-  { k: "Freeze window",        v: "20 min",           hint: "Operators aren't reassigned within 20 min of starting a move" },
-  { k: "Minimum improvement",  v: "8 min saved",      hint: "Engine won't replan unless it saves at least 8 minutes" },
-  { k: "Reassign cap",         v: "2 per hour",       hint: "Each operator can be reassigned at most twice per hour" },
-  { k: "Replan cooldown",      v: "10 min",           hint: "At least 10 minutes between replans to keep things stable" },
-  { k: "Zone ceiling",         v: "85% capacity",     hint: "No zone is planned above 85% full" },
+  { k: "Per job target turn around time",    v: "5 min",  hint: "Each individual job should complete within 5 minutes" },
+  { k: "Per trailer target turn around time",v: "15 min", hint: "Each trailer visit should be fully served within 15 minutes" },
+  { k: "Reassignment cap",                   v: "1 min",  hint: "Operators can only be reassigned within a 1-minute window" },
 ]
 
 export default function WeightFactorsTab() {

@@ -430,8 +430,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                   className="w-full mt-2 accent-[#dc2626]" />
               </div>
             ))}
-            <div className="mt-4 ds-label font-bold">Stability</div>
-            {[["Freeze window","20 min"],["In-progress immutable","true"],["Minimum improvement","8 machine-min"],["Reassign cap","2 / operator / hour"]].map(([k,v]) => (
+            <div className="mt-4 ds-label font-bold">Targets</div>
+            {[["Per job target turn around time","5 min"],["Per trailer target turn around time","15 min"],["Reassignment cap","1 min"]].map(([k,v]) => (
               <div key={k} className="flex justify-between py-2 border-b border-[#f3f4f6] text-[11.5px]">
                 <span className="text-[#374151]">{k}</span><span className="font-semibold font-mono">{v}</span>
               </div>
@@ -552,8 +552,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
               </div>
             ))}
             <div className="h-px bg-[#e5e7eb] my-1 mx-4" />
-            <div className="px-4 pt-3 pb-2 ds-label font-bold">Stability</div>
-            {[["Freeze window","20 min"],["In-progress immutable","true"],["Min improvement","8 machine-min"],["Reassign cap","2 / op / h"]].map(([k,v]) => (
+            <div className="px-4 pt-3 pb-2 ds-label font-bold">Targets</div>
+            {[["Per job target TAT","5 min"],["Per trailer target TAT","15 min"],["Reassignment cap","1 min"]].map(([k,v]) => (
               <div key={k} className="flex justify-between px-4 pb-2 text-[11.5px]">
                 <span className="text-[#374151]">{k}</span><span className="font-semibold font-mono">{v}</span>
               </div>
