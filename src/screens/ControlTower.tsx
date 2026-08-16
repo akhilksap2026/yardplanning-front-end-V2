@@ -39,7 +39,7 @@ const DISRUPTION_OPTIONS: { value: DisruptionType; label: string }[] = [
   { value: "ship_delay",              label: "Ship delay" },
   { value: "inspection_hold",         label: "Inspection hold" },
   { value: "out_of_sequence_arrival", label: "Out-of-sequence arrival" },
-  { value: "jockey_unavailable",      label: "Jockey unavailable" },
+  { value: "jockey_unavailable",      label: "Yard tractor unavailable" },
 ]
 
 const DISRUPTION_LABELS: Record<DisruptionType, string> = {
@@ -47,7 +47,7 @@ const DISRUPTION_LABELS: Record<DisruptionType, string> = {
   ship_delay:              "Ship delay",
   inspection_hold:         "Inspection hold",
   out_of_sequence_arrival: "Out-of-sequence arrival",
-  jockey_unavailable:      "Jockey unavailable",
+  jockey_unavailable:      "Yard tractor unavailable",
 }
 
 const DISRUPTION_SEVERITY: Record<DisruptionType, "high" | "medium" | "low"> = {
@@ -138,7 +138,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
             ...diff.added.map(m => ({ moveId: `M-${m.id}`, action: "ADDED", type: REASON_LABELS[m.reason] ?? m.reason, before: "—", after: slotAddressById(m.to_slot_id, backendSlots), note: "New move in replan" })),
             ...diff.reassigned.map(m => {
               const old = oldMoves.find(o => o.container_id === m.container_id)
-              return { moveId: `M-${m.id}`, action: "REASSIGNED", type: REASON_LABELS[m.reason] ?? m.reason, before: slotAddressById(old?.to_slot_id ?? null, backendSlots), after: slotAddressById(m.to_slot_id, backendSlots), note: old?.jockey_id !== m.jockey_id ? "Jockey reassigned" : "Route changed" }
+              return { moveId: `M-${m.id}`, action: "REASSIGNED", type: REASON_LABELS[m.reason] ?? m.reason, before: slotAddressById(old?.to_slot_id ?? null, backendSlots), after: slotAddressById(m.to_slot_id, backendSlots), note: old?.jockey_id !== m.jockey_id ? "Operator reassigned" : "Route changed" }
             }),
           ]
           setEngineDiffRows(rows)
@@ -448,7 +448,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                       <table className="w-full border-collapse text-[12px]">
                         <thead>
                           <tr>
-                            {["Move", "Before", "After", "Reason", "Live state"].map((h, i) => (
+                            {["Move", "Before", "After", "Reason", "Status"].map((h, i) => (
                               <th key={h} className="ds-th text-left" style={{ paddingLeft: i === 0 ? 20 : 12, paddingRight: i === 4 ? 20 : 12 }}>{h}</th>
                             ))}
                           </tr>

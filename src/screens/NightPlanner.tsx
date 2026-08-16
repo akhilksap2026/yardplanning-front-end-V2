@@ -23,7 +23,7 @@ interface Props {
 const WEIGHTS = [
   { k: "Machine minutes",       v: "0.40", pct: 40 },
   { k: "Weighted lateness",     v: "0.25", pct: 25 },
-  { k: "Predicted rehandles",   v: "0.20", pct: 20 },
+  { k: "Extra moves (predicted)", v: "0.20", pct: 20 },
   { k: "Detention exposure",    v: "0.15", pct: 15 },
 ]
 
@@ -1058,9 +1058,9 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                   {([
                     ["Operator",    selStep.operator ?? "—",        false] as const,
                     ["Move method", getDisplayMoveMethod(selStep),  true]  as const,
-                    ["Window",      selStep.estimated_start
+                    ["Time slot",   selStep.estimated_start
                       ? fmtIso(selStep.estimated_start)+"–"+fmtIso(selStep.estimated_end)+" ("+stepDur(selStep).toFixed(1)+"′)"
-                      : selStep.step_status==="Completed" ? "Completed · no window recorded"
+                      : selStep.step_status==="Completed" ? "Completed · no time slot recorded"
                       : selStep.step_status==="Blocked"   ? "Blocked · not scheduled"
                       : "Not yet scheduled", true] as const,
                     ["Score",       selStep.planning_score != null

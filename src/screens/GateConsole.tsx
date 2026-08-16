@@ -41,8 +41,8 @@ const VISIT_COLS = ["TRUCK","LIFECYCLE","TURN","PURPOSE","CONTAINER","APPT","EXC
 type VisitCol = typeof VISIT_COLS[number]
 const DEFAULT_VISIT_COLS = new Set<VisitCol>(["TRUCK","LIFECYCLE","TURN"])
 const VISIT_COL_LABELS: Record<VisitCol, string> = {
-  TRUCK: "TRUCK", LIFECYCLE: "STATE", TURN: "TURN",
-  PURPOSE: "PURPOSE", CONTAINER: "CONTAINER", APPT: "APPT", EXCLUSION: "EXCLUSION",
+  TRUCK: "TRUCK", LIFECYCLE: "STATUS", TURN: "QUEUE #",
+  PURPOSE: "PURPOSE", CONTAINER: "CONTAINER", APPT: "TIME SLOT", EXCLUSION: "EXCEPTION",
 }
 
 export default function GateConsole({ focus, onNavigate }: Props) {
@@ -1053,7 +1053,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
       {tab==="appts" && (
         <div className="grid flex-1 min-h-0 overflow-auto" style={{ gridTemplateColumns:"minmax(360px,1fr) clamp(260px,26vw,360px)" }}>
           <div className="overflow-auto bg-white" style={{ borderRight:"1px solid #e5e7eb" }}>
-            <div className="px-4 pt-3 pb-1.5 ds-label text-neutral-500 font-bold">Bookable windows · Tue 12 Aug · capacity from machine-hours, not lanes</div>
+            <div className="px-4 pt-3 pb-1.5 ds-label text-neutral-500 font-bold">Bookable time slots · Tue 12 Aug · capacity from machine-hours, not lanes</div>
             {appointments.map(a=>(
               <button key={a.window} onClick={()=>setApptSel(a.window)}
                 className="block w-full text-left px-4 py-2 border-b border-[#f3f4f6] hover:bg-[#f9fafb] transition-colors"
@@ -1099,7 +1099,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
               <button className="mx-4 mb-4 text-[11.5px] text-left px-3 py-2 font-semibold"
                 style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:5 }}
                 onClick={()=>setSmoothed(true)}>
-                {smoothed?"Smoothing applied · 3 windows retimed":"Apply smoothing"}
+                {smoothed?"Smoothing applied · 3 time slots retimed":"Apply smoothing"}
               </button>
             </div>
           )}
@@ -1298,7 +1298,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                       r.hold === "customs"             ? { text:"Customs hold — pending ARCA",       fg:"#b45309", bg:"#fef3c7" } :
                       r.hold === "quality"             ? { text:"Quality hold — surveyor required",  fg:"#b45309", bg:"#fef3c7" } :
                       r.hold === "damage"              ? { text:"Damage hold — surveyor notified",   fg:"#b45309", bg:"#fef3c7" } :
-                      r.excl?.includes("arrival")      ? { text:`Early arrival — before window`,     fg:"#b45309", bg:"#fef3c7" } :
+                      r.excl?.includes("arrival")      ? { text:`Early arrival — before appointment`, fg:"#b45309", bg:"#fef3c7" } :
                       r.excl                           ? { text: r.excl,                             fg:"#b45309", bg:"#fef3c7" } :
                       null
 
