@@ -258,7 +258,16 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     APPROACHING: ["#faf5ff","#6b21a8"],   // planned  — purple-50 / purple-800
     EXPECTED:    ["#f3f4f6","#374151"],   // neutral  — gray-100 / gray-700
   }
-  function stateLabel(s:string){return({GATE_OUT:"Completed",SERVED:"In yard",AT_POSITION:"At position",CHECKED_IN:"Checked in",IN_QUEUE:"In queue",APPROACHING:"Approaching",EXPECTED:"Expected"})[s]??s}
+  const GATE_STATE_I18N: Record<string,string> = {
+    GATE_OUT:    "gateStatus.gateOut",
+    SERVED:      "gateStatus.served",
+    AT_POSITION: "gateStatus.atPosition",
+    CHECKED_IN:  "gateStatus.checkedIn",
+    IN_QUEUE:    "gateStatus.inQueue",
+    APPROACHING: "gateStatus.approaching",
+    EXPECTED:    "gateStatus.expected",
+  }
+  function stateLabel(s: string) { return GATE_STATE_I18N[s] ? t(GATE_STATE_I18N[s]) : s }
   function dirFromPurpose(p:string){ return /drop|inbound/i.test(p)?"IN":/pickup|retrieval/i.test(p)?"OUT":"EMPTY" }
 
   const seedGtxRows = visits.map(v => {
@@ -618,7 +627,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                                 style={{ background:i<idx(v)-1?"#111827":i===idx(v)-1?"#dc2626":"#e5e7eb" }} />
                             ))}
                           </div>
-                          <div className="text-[10px] text-neutral-500 mt-0.5">{v.state.replace(/_/g," ").toLowerCase()}</div>
+                          <div className="text-[10px] text-neutral-500 mt-0.5">{stateLabel(v.state)}</div>
                         </td>
                       )}
                       {/* TURN */}
@@ -1151,13 +1160,13 @@ export default function GateConsole({ focus, onNavigate }: Props) {
 
         // ── Status chip config ────────────────────────────────────────────
         const statusChip: Record<string,[string,string,string]> = {
-          GATE_OUT:    ["#f0fdf4","#166534","Completed"],   // green-50  / green-800
-          SERVED:      ["#eff6ff","#1e40af","In yard"],     // blue-50   / blue-800
-          CHECKED_IN:  ["#faf5ff","#6b21a8","Checked in"],  // purple-50 / purple-800
-          AT_POSITION: ["#fffbeb","#92400e","At position"],  // amber-50  / amber-800
-          IN_QUEUE:    ["#f3f4f6","#374151","In queue"],     // gray-100  / gray-700
-          APPROACHING: ["#faf5ff","#6b21a8","Approaching"],  // purple-50 / purple-800
-          EXPECTED:    ["#f3f4f6","#374151","Expected"],      // gray-100  / gray-700
+          GATE_OUT:    ["#f0fdf4","#166534", t("gateStatus.gateOut")],    // green-50  / green-800
+          SERVED:      ["#eff6ff","#1e40af", t("gateStatus.served")],     // blue-50   / blue-800
+          CHECKED_IN:  ["#faf5ff","#6b21a8", t("gateStatus.checkedIn")],  // purple-50 / purple-800
+          AT_POSITION: ["#fffbeb","#92400e", t("gateStatus.atPosition")], // amber-50  / amber-800
+          IN_QUEUE:    ["#f3f4f6","#374151", t("gateStatus.inQueue")],    // gray-100  / gray-700
+          APPROACHING: ["#faf5ff","#6b21a8", t("gateStatus.approaching")],// purple-50 / purple-800
+          EXPECTED:    ["#f3f4f6","#374151", t("gateStatus.expected")],   // gray-100  / gray-700
         }
 
         // ── LFD colour helper ─────────────────────────────────────────────
