@@ -10,7 +10,7 @@ import { adaptMoveForDisplay, REASON_LABELS } from "@/lib/backend-adapters"
 import { checkPlacementRules } from "@/lib/placement-rules"
 import { backendApi } from "@/lib/backend-api"
 import type { BackendPlanDetail } from "@/lib/backend-api"
-import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type PlanningStep, STORY_PLANS, CONTEXT_PLANS, stepsForPlan } from "@/data/planningData"
+import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type PlanningStep } from "@/data/planningData"
 import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
 import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, isExtraMovement, getStatusStyle, getDisplayContainerId, isAnonymousContainer, generateWhyText } from "@/utils/displayLabels"
 import { useLang } from "@/lib/i18n"
@@ -99,8 +99,6 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   const [wRaw,         setWRaw]         = useState([35, 40, 25])
 
   // ── Story plan expand state ──────────────────────────────────────────────────
-  const [expandedPlan,  setExpandedPlan]  = useState<string | null>(null)
-  const [plansOpen,     setPlansOpen]     = useState(true)
 
   // ── Constraint toggles + weights ────────────────────────────────────────────
   type ConstraintState = { enabled: boolean; weight: number }
@@ -904,94 +902,6 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             </div>
           </div>
         </div>
-
-        {/* ── Plans overview (Step 5) ──────────────────────────────────── */}
-        {(() => {
-          type AnyPlan = { code: string; status: string; window: string; moves: number; story: boolean }
-          const allPlans: AnyPlan[] = [
-            ...STORY_PLANS.map(p => ({ code: p.code, label: p.title, status: p.status as string, window: `${p.startTime}–${p.endTime}`, moves: stepsForPlan(p.code).length, story: true  })),
-            ...CONTEXT_PLANS.map(p => ({ code: p.code, label: p.title, status: p.status as string, window: `${p.startTime}–${p.endTime}`, moves: 0, story: false })),
-          ]
-          const planStyle: Record<string, { bg: string; fg: string; label: string }> = {
-            confirmed:   { bg:"#dcfce7", fg:"#166534", label:"Confirmed"    },
-            in_progress: { bg:"#dbeafe", fg:"#1d4ed8", label:"In progress"  },
-            completed:   { bg:"#f3f4f6", fg:"#4b5563", label:"Completed"    },
-            superseded:  { bg:"#fef3c7", fg:"#b45309", label:"Superseded"   },
-            draft:       { bg:"#f1f5f9", fg:"#94a3b8", label:"Draft"        },
-          }
-          return (
-            <div style={{ margin:"0 20px 10px", border:"0.5px solid var(--ds-border)", borderRadius:10, background:"white", overflow:"hidden" }}>
-              <button
-                onClick={() => setPlansOpen(v => !v)}
-                style={{ width:"100%", padding:"7px 14px", display:"flex", alignItems:"center", gap:8,
-                  borderBottom: plansOpen ? "0.5px solid var(--ds-border)" : "none",
-                  background:"var(--ds-border-lt)", cursor:"pointer", textAlign:"left" as const,
-                  border:"none", outline:"none" }}>
-                <span style={{ fontSize:11, fontWeight:600, letterSpacing:"0.05em", textTransform:"uppercase" as const, color:"var(--ds-subtle)" }}>Plans overview</span>
-                <span style={{ fontSize:11, color:"var(--ds-subtle)" }}>{allPlans.length} plans</span>
-                {allPlans.some(p => p.status === "superseded") && (
-                  <span style={{ fontSize:11, color:"#b45309" }}>· {allPlans.filter(p=>p.status==="superseded").length} superseded</span>
-                )}
-                <span style={{ marginLeft:"auto", fontSize:10, color:"var(--ds-subtle)", transition:"transform 200ms", display:"inline-block",
-                  transform: plansOpen ? "rotate(0deg)" : "rotate(-90deg)" }}>▾</span>
-              </button>
-              <div style={{ display:"flex", flexWrap:"wrap" as const, gap:6, padding: plansOpen ? "8px 14px" : "0 14px",
-                maxHeight: plansOpen ? 1000 : 0, overflow:"hidden", transition:"max-height 220ms ease, padding 220ms ease" }}>
-                {allPlans.map(p => {
-                  const st   = planStyle[p.status] ?? { bg:"#f3f4f6", fg:"#6b7280", label: p.status }
-                  const isExp = expandedPlan === p.code
-                  const steps = p.story ? stepsForPlan(p.code) : []
-                  return (
-                    <div key={p.code}
-                      onClick={() => { if (p.story) setExpandedPlan(isExp ? null : p.code) }}
-                      style={{
-                        border:`0.5px solid ${isExp ? "var(--ds-accent-border)" : "var(--ds-border)"}`,
-                        borderRadius:6, padding:"6px 10px",
-                        minWidth:110, cursor: p.story ? "pointer" : "default",
-                        background: isExp ? "var(--ds-accent-bg)" : "white",
-                        flex: isExp ? "1 0 100%" : "0 0 auto",
-                      }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                        <span className="font-mono" style={{ fontSize:12, fontWeight:700 }}>{p.code}</span>
-                        <span style={{ fontSize:10, fontWeight:600, padding:"1px 6px", borderRadius:10, background:st.bg, color:st.fg }}>{st.label}</span>
-                        {p.story && <span style={{ fontSize:10, color:"var(--ds-subtle)" }}>{isExp ? "▲" : "▾"}</span>}
-                      </div>
-                      <div style={{ fontSize:10, color:"var(--ds-subtle)", marginTop:2 }}>{p.window} · {p.moves} moves</div>
-                      {isExp && steps.length > 0 && (
-                        <div style={{ marginTop:6, borderTop:"0.5px solid var(--ds-border)", paddingTop:6, overflowX:"auto" as const }}>
-                          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
-                            <thead>
-                              <tr style={{ color:"var(--ds-subtle)", fontWeight:600 }}>
-                                <th style={{ padding:"2px 6px 4px", textAlign:"left" as const, width:28 }}>#</th>
-                                <th style={{ padding:"2px 6px 4px", textAlign:"left" as const }}>Operation</th>
-                                <th style={{ padding:"2px 6px 4px", textAlign:"left" as const }}>Operator · Equipment</th>
-                                <th style={{ padding:"2px 6px 4px", textAlign:"left" as const }}>From → To</th>
-                                <th style={{ padding:"2px 6px 4px", textAlign:"right" as const }}>Window</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {steps.map(s => (
-                                <tr key={s.seq} style={{ borderTop:"0.5px solid var(--ds-border)" }}>
-                                  <td className="font-mono" style={{ padding:"3px 6px", color:"var(--ds-accent)", fontWeight:700 }}>{s.seq}</td>
-                                  <td style={{ padding:"3px 6px", color:"var(--text-primary)" }}>{s.operation}</td>
-                                  <td style={{ padding:"3px 6px", color:"var(--ds-subtle)", whiteSpace:"nowrap" as const }}>
-                                    {s.operator}{s.equipment && <span className="font-mono" style={{ marginLeft:4, fontSize:10 }}>· {s.equipment}</span>}
-                                  </td>
-                                  <td className="font-mono" style={{ padding:"3px 6px", whiteSpace:"nowrap" as const }}>{s.from} → {s.to}</td>
-                                  <td className="font-mono" style={{ padding:"3px 6px", textAlign:"right" as const, whiteSpace:"nowrap" as const }}>{s.startTime}–{s.endTime}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })()}
 
         {/* ── Master-detail grid (1fr 360px, no gap, rounded 10px card) ── */}
         <div className="flex-1 min-h-0" style={{ margin:"0 20px 12px", display:"grid",

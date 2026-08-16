@@ -4,35 +4,73 @@ import type { Visit } from "@/data/yard-ops"
 import { CONTAINERS } from "@/data/yard-data"
 import { fmtTime } from "@/utils/time"
 import Skeleton from "@/components/ui/Skeleton"
-import { STORY_SHIFT_SUMMARY } from "@/data/story-seed"
 
 interface Props {
   onNavigate?: (target: string, focus?: string) => void
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────────────────
 function toMin(hhmm: string | null | undefined): number | null {
   if (!hhmm || hhmm === "—") return null
   const [h, m] = hhmm.split(":").map(Number)
   return h * 60 + m
 }
-// ── Static entity seeds (equipment stays static; gate + moves pull from DataContext) ─
-const EQUIP_ENTITIES = [
-  { g: "equip", id: "RS-01", what: "Reach-stacker · Zone A",     sub: "operator R. Giménez · shift 06:00–14:00",   plannedStart: 360, plannedEnd: 840, actualStart: 360, actualEnd: null, blocking: null,             cause: null,                                   owner: "Ops · R. Giménez",  impact: "Running",               next: "Next job MV-1028 at 06:42" },
-  { g: "equip", id: "RS-02", what: "Reach-stacker · Zone B/C",   sub: "operator M. Sosa · shift 06:00–14:00",      plannedStart: 360, plannedEnd: 840, actualStart: 360, actualEnd: null, blocking: null,             cause: null,                                   owner: "Ops · M. Sosa",     impact: "Running",               next: "Pre-marshal MV-1032 at 07:22" },
-  { g: "equip", id: "RS-03", what: "Reach-stacker · Zone C",     sub: "hydraulic fault — 30-min repair",           plannedStart: 360, plannedEnd: 840, actualStart: 360, actualEnd: null, blocking: "hydraulic fault", cause: "Maintenance dispatched 06:38",          owner: "Maint · A. Peña",   impact: "Zone C moves paused",   next: "ETA back 07:15 · 14 moves redistributed" },
-  { g: "equip", id: "RS-04", what: "Reach-stacker · Zone D",     sub: "operator F. Ríos · shift 06:00–14:00",      plannedStart: 360, plannedEnd: 840, actualStart: 360, actualEnd: null, blocking: null,             cause: null,                                   owner: "Ops · F. Ríos",     impact: "Running",               next: "EH-01 load lane assigned" },
+
+// ── Equipment seeds — time-aware blocking ────────────────────────────────────
+// blockingFrom/blockingUntil are minutes-from-midnight.
+// A unit is faulted only while: now >= blockingFrom && now < blockingUntil.
+interface EquipSeed {
+  id: string; what: string; subDefault: string
+  plannedStart: number; plannedEnd: number
+  owner: string; nextDefault: string
+  blockingFrom?: number; blockingUntil?: number
+  blockingCause?: string; blockingImpact?: string; blockingNext?: string
+}
+const EQUIP_SEEDS: EquipSeed[] = [
+  {
+    id: "RS-01", what: "Reach-stacker · Zone A",
+    subDefault: "R. Giménez · shift 06:00–14:00",
+    plannedStart: 360, plannedEnd: 840,
+    owner: "Ops · R. Giménez", nextDefault: "Next job MV-1028 at 06:42",
+  },
+  {
+    id: "RS-02", what: "Reach-stacker · Zone B/C",
+    subDefault: "M. Sosa · shift 06:00–14:00",
+    plannedStart: 360, plannedEnd: 840,
+    owner: "Ops · M. Sosa", nextDefault: "Pre-marshal MV-1032 at 07:22",
+  },
+  {
+    id: "RS-03", what: "Reach-stacker · Zone C",
+    subDefault: "A. Peña · shift 06:00–14:00",
+    plannedStart: 360, plannedEnd: 840,
+    owner: "Maint · A. Peña", nextDefault: "Return to Zone C moves after 07:15",
+    blockingFrom: 398, blockingUntil: 435,          // 06:38 – 07:15
+    blockingCause:  "Hydraulic fault — maintenance dispatched 06:38",
+    blockingImpact: "Zone C moves paused",
+    blockingNext:   "ETA back 07:15 · 14 moves redistributed",
+  },
+  {
+    id: "RS-04", what: "Reach-stacker · Zone D",
+    subDefault: "F. Ríos · shift 06:00–14:00",
+    plannedStart: 360, plannedEnd: 840,
+    owner: "Ops · F. Ríos", nextDefault: "EH-01 load lane assigned",
+  },
 ]
-const HOUR_PLAN = [
-  { hour: "06", planned: 6,  actual: 6   },
-  { hour: "07", planned: 9,  actual: 8   },
-  { hour: "08", planned: 12, actual: 10  },
-  { hour: "09", planned: 14, actual: 11  },
-  { hour: "10", planned: 15, actual: null},
-  { hour: "11", planned: 13, actual: null},
-  { hour: "12", planned: 10, actual: null},
-  { hour: "13", planned: 8,  actual: null},
+
+// ── Hour-chart planned data (narrative story: 06–13 shift window) ────────────
+// Planned column heights are authored per the shift story.
+// Actual bars are computed live from moves data + now.
+const HOUR_PLAN: { hour: string; planned: number }[] = [
+  { hour: "06", planned: 6  },
+  { hour: "07", planned: 9  },
+  { hour: "08", planned: 12 },
+  { hour: "09", planned: 14 },
+  { hour: "10", planned: 15 },
+  { hour: "11", planned: 13 },
+  { hour: "12", planned: 10 },
+  { hour: "13", planned: 8  },
 ]
+
 const NOW_OPTIONS = [
   { label: "06:00", t: 360 },
   { label: "08:00", t: 480 },
@@ -40,64 +78,71 @@ const NOW_OPTIONS = [
   { label: "12:00", t: 720 },
   { label: "14:00", t: 840 },
 ]
+
 const GROUP_META: Record<string, { title: string; line: string }> = {
-  gate:   { title: "Gate & appointments", line: "planned truck visits with appointment windows" },
-  moves:  { title: "Yard moves",          line: "planned moves from the night plan" },
-  equip:  { title: "Equipment & crews",   line: "assignments and availability" },
+  gate:  { title: "Gate & appointments",  line: "truck visits with appointment windows" },
+  moves: { title: "Yard moves",           line: "planned moves from the night plan" },
+  equip: { title: "Equipment & crews",    line: "unit assignments and availability" },
 }
 
-// ── Entity type ────────────────────────────────────────────────────────────
+// ── Entity type ──────────────────────────────────────────────────────────────
 interface Entity {
   g: string; id: string; what: string; sub: string
   plannedStart: number; plannedEnd: number
   actualStart: number | null; actualEnd: number | null
   blocking: string | null; cause: string | null
   owner: string; impact: string; next: string
-  containerId?: string   // moves: used as YardMap focus key
+  containerId?: string
 }
 
-// ── State classification ───────────────────────────────────────────────────
+// ── State classifier — all classifications driven by `now` ───────────────────
 function classify(e: Entity, now: number) {
-  const started     = e.actualStart != null && e.actualStart <= now
-  const finished    = e.actualEnd   != null && e.actualEnd   <= now
+  const started      = e.actualStart != null && e.actualStart <= now
+  const finished     = e.actualEnd   != null && e.actualEnd   <= now
   const plannedByNow = e.plannedStart <= now
   let state: string; let deltaMin: number
-  if (finished)                        { state = "done";       deltaMin = e.actualEnd! - e.plannedEnd }
-  else if (started)                    { state = "in-progress"; deltaMin = e.actualStart! - e.plannedStart }
-  else if (plannedByNow && e.blocking) { state = "blocked";    deltaMin = now - e.plannedStart }
-  else if (plannedByNow)               { state = "late";       deltaMin = now - e.plannedStart }
-  else                                 { state = "scheduled";  deltaMin = 0 }
+  if      (finished)                        { state = "done";        deltaMin = e.actualEnd! - e.plannedEnd }
+  else if (started)                         { state = "in-progress"; deltaMin = e.actualStart! - e.plannedStart }
+  else if (plannedByNow && e.blocking)      { state = "blocked";     deltaMin = now - e.plannedStart }
+  else if (plannedByNow)                    { state = "late";        deltaMin = now - e.plannedStart }
+  else                                      { state = "scheduled";   deltaMin = 0 }
   return { state, deltaMin }
 }
 
 const STATE_COLOR: Record<string, string> = {
-  done:        "#6b7280",
+  done:         "#6b7280",
   "in-progress":"#111827",
-  blocked:     "#dc2626",
-  late:        "#d97706",
-  scheduled:   "#9ca3af",
+  blocked:      "#dc2626",
+  late:         "#d97706",
+  scheduled:    "#9ca3af",
 }
 const MARK_COLOR: Record<string, string> = {
-  done:        "#d1d5db",
+  done:         "#d1d5db",
   "in-progress":"#111827",
-  blocked:     "#dc2626",
-  late:        "#d97706",
-  scheduled:   "#e5e7eb",
+  blocked:      "#dc2626",
+  late:         "#d97706",
+  scheduled:    "#e5e7eb",
+}
+const STATE_ORDER: Record<string, number> = {
+  "done":        0,
+  "in-progress": 1,
+  "scheduled":   2,
+  "late":        3,
+  "blocked":     4,
 }
 
-// ── Component ──────────────────────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────────────────────────
 export default function LiveOps({ onNavigate }: Props) {
   const { visits, moves, events, dbLoading } = useData()
-  const [now,   setNow]   = useState(360)   // default 06:00
-  const [focus,     setFocus]     = useState<string | null>(null)
-  const [showMore,  setShowMore]  = useState(false)
+  const [now,      setNow]      = useState(360)   // default 06:00
+  const [focus,    setFocus]    = useState<string | null>(null)
+  const [showMore, setShowMore] = useState(false)
 
-  // ── Build gate entities from live visits ─────────────────────────────────
+  // ── Gate entities — built from visit data ──────────────────────────────────
   const gateEntities = useMemo<Entity[]>(() => visits.map((v: Visit) => {
-    const apptMin   = toMin(v.appt)   ?? 480
-    const queueMin  = toMin(v.queueIn)
-    const checkMin  = toMin(v.checkIn)
-    const gateMin   = toMin(v.gateOut)
+    const apptMin  = toMin(v.appt)    ?? 480
+    const queueMin = toMin(v.queueIn)
+    const gateMin  = toMin(v.gateOut)
     return {
       g:            "gate",
       id:           v.id,
@@ -110,12 +155,18 @@ export default function LiveOps({ onNavigate }: Props) {
       blocking:     v.excl ?? null,
       cause:        v.excl ?? null,
       owner:        `Gate · ${v.driver}`,
-      impact:       v.excl ? "Held — exclusion pending" : gateMin ? "Cleared" : queueMin ? "In progress" : "Scheduled",
-      next:         v.excl ? "Resolve exclusion before admit" : gateMin ? `Lane ${v.lane} · booked` : `Lane ${v.lane}`,
+      impact:       v.excl ? "Held — exclusion pending"
+                   : gateMin   ? "Cleared"
+                   : queueMin  ? "In progress"
+                   : "Scheduled",
+      next:         v.excl ? "Resolve exclusion before admit"
+                   : gateMin   ? `Lane ${v.lane} · booked`
+                   : `Lane ${v.lane}`,
     }
   }), [visits])
 
-  // ── Build move entities from live moves ───────────────────────────────────
+  // ── Move entities — first 8 rows for the entity table ─────────────────────
+  // KPI counts use the full moves array (below); table shows representative 8.
   const moveEntities = useMemo<Entity[]>(() => moves.slice(0, 8).map(m => {
     const isDone   = m.state === "DONE"
     const isInProg = m.state === "IN_PROGRESS" || m.state === "ASSIGNED"
@@ -133,157 +184,194 @@ export default function LiveOps({ onNavigate }: Props) {
       owner:        `Ops · ${m.operatorName}`,
       impact:       isDone ? "Complete" : isInProg ? "In progress" : "Scheduled",
       next:         m.reason ?? "Execute per sequence",
-      containerId:  m.containerId,   // YardMap resolves by container ID, not move ID
+      containerId:  m.containerId,
     }
   }), [moves])
 
-  // ── Assemble all entities ─────────────────────────────────────────────────
-  const allEntities: Entity[] = [
-    ...gateEntities,
-    ...moveEntities,
-    ...EQUIP_ENTITIES,
-  ]
+  // ── Equipment entities — time-aware, driven by `now` ──────────────────────
+  const equipEntities = useMemo<Entity[]>(() => EQUIP_SEEDS.map(s => {
+    const isFaulted  = s.blockingFrom != null
+      && now >= s.blockingFrom
+      && (s.blockingUntil == null || now < s.blockingUntil)
+    const wasRepaired = s.blockingUntil != null && now >= s.blockingUntil
+    return {
+      g:            "equip",
+      id:           s.id,
+      what:         s.what,
+      sub:          isFaulted
+        ? (s.blockingCause ?? s.subDefault)
+        : wasRepaired
+          ? s.subDefault + " · ✓ fault cleared"
+          : s.subDefault,
+      plannedStart: s.plannedStart,
+      plannedEnd:   s.plannedEnd,
+      actualStart:  s.plannedStart,
+      actualEnd:    null,
+      blocking:     isFaulted ? (s.blockingCause ?? "fault") : null,
+      cause:        isFaulted ? (s.blockingCause ?? null) : null,
+      owner:        s.owner,
+      impact:       isFaulted
+        ? (s.blockingImpact ?? "Suspended")
+        : (now >= s.plannedStart && now < s.plannedEnd)
+          ? "Running"
+          : "Scheduled",
+      next: isFaulted ? (s.blockingNext ?? s.nextDefault) : s.nextDefault,
+    }
+  }), [now])
 
-  // ── Enrich + classify ─────────────────────────────────────────────────────
+  // ── Assemble + classify all entities ──────────────────────────────────────
+  const allEntities: Entity[] = [...gateEntities, ...moveEntities, ...equipEntities]
+
   const enriched = useMemo(() => allEntities.map(e => {
     const { state, deltaMin } = classify(e, now)
-    const stateColor = STATE_COLOR[state] ?? "#6b7280"
-    const mark       = MARK_COLOR[state]  ?? "#e5e7eb"
-    const deltaLabel = state === "scheduled"
+    const stateColor  = STATE_COLOR[state] ?? "#6b7280"
+    const mark        = MARK_COLOR[state]  ?? "#e5e7eb"
+    const deltaLabel  = state === "scheduled"
       ? "starts " + fmtTime(e.plannedStart)
       : deltaMin === 0 ? "on time"
       : (deltaMin > 0 ? "+" : "") + deltaMin + "′"
-    const deltaColor = (state === "blocked" || state === "late" || (state !== "scheduled" && Math.abs(deltaMin) > 5))
+    const deltaColor  = (state === "blocked" || state === "late"
+      || (state !== "scheduled" && Math.abs(deltaMin) > 5))
       ? "#dc2626" : "#6b7280"
     const rowBg = focus === e.id ? "#f3f4f6" : "transparent"
     return { ...e, state, deltaMin, stateColor, mark, deltaLabel, deltaColor, rowBg }
   }), [allEntities, now, focus])
 
-  // ── Groups ────────────────────────────────────────────────────────────────
-  // State sort order: green/on-plan first, red/blocked last
-  const STATE_ORDER: Record<string, number> = {
-    "done":        0,
-    "in-progress": 1,
-    "scheduled":   2,
-    "late":        3,
-    "blocked":     4,
-  }
-  const groups = useMemo(() => ["gate","moves","equip"].map(g => {
-    const rows   = enriched
-      .filter(x => x.g === g)
-      .slice()
-      .sort((a, b) => (STATE_ORDER[a.state] ?? 5) - (STATE_ORDER[b.state] ?? 5))
-    const late   = rows.filter(x => x.state === "blocked" || x.state === "late").length
-    const done   = rows.filter(x => x.state === "done").length
-    const inProg = rows.filter(x => x.state === "in-progress").length
+  // ── Groups ─────────────────────────────────────────────────────────────────
+  const groups = useMemo(() => ["gate", "moves", "equip"].map(g => {
+    const rows     = enriched.filter(x => x.g === g).slice().sort((a, b) =>
+      (STATE_ORDER[a.state] ?? 5) - (STATE_ORDER[b.state] ?? 5))
+    const late     = rows.filter(x => x.state === "blocked" || x.state === "late").length
+    const done     = rows.filter(x => x.state === "done").length
+    const inProg   = rows.filter(x => x.state === "in-progress").length
     const stateLabel = late > 0 ? `${late} off plan` : `${inProg} in progress · ${done} done`
     const stateColor = late > 0 ? "#dc2626" : "#6b7280"
     return { ...GROUP_META[g], g, rows, stateLabel, stateColor }
   }), [enriched])
 
-  // ── Vitals ────────────────────────────────────────────────────────────────
-  const totals    = enriched.length
-  const onPlanCnt = enriched.filter(e => e.state === "done" || (e.state === "in-progress" && Math.abs(e.deltaMin) <= 5) || e.state === "scheduled").length
-  const offPlan   = enriched.filter(e => e.state === "blocked" || e.state === "late").length
-  const adherence = Math.round(onPlanCnt / Math.max(1, totals) * 100)
-  const truckRows  = enriched.filter(e => e.g === "gate")
-  const yardRows   = enriched.filter(e => e.g === "moves")
-  const doneMoves  = yardRows.filter(e => e.state === "done").length
+  // ── Shift vitals ───────────────────────────────────────────────────────────
   const shiftStart = 360; const shiftEnd = 840
   const shiftPct   = Math.max(0, Math.min(100, Math.round((now - shiftStart) / (shiftEnd - shiftStart) * 100)))
-  const equipUp    = EQUIP_ENTITIES.filter(e => !e.blocking).length
-  const equipTotal = EQUIP_ENTITIES.length
 
-  // ── KPI values (primary strip) ────────────────────────────────────────────
-  const inboundCnt  = visits.filter((v: Visit) => /inbound|drop/i.test(v.purpose)).length
-  const outboundCnt = visits.filter((v: Visit) => /outbound|pickup/i.test(v.purpose)).length
-  const opsAvail    = equipUp
-  const movesTotal  = moves.length
-  const detRiskK    = +(CONTAINERS.filter(c => !c.empty && c.hoursToLFD <= 72)
+  // Entity-table tallies (8-row sample — used for table state labels only)
+  const totals     = enriched.length
+  const onPlanCnt  = enriched.filter(e =>
+    e.state === "done"
+    || (e.state === "in-progress" && Math.abs(e.deltaMin) <= 5)
+    || e.state === "scheduled").length
+  const offPlan    = enriched.filter(e => e.state === "blocked" || e.state === "late").length
+  const adherence  = Math.round(onPlanCnt / Math.max(1, totals) * 100)
+
+  // Equipment availability — derived from time-aware equipEntities
+  const equipUpNow = equipEntities.filter(e => !e.blocking).length
+  const equipTotal = equipEntities.length
+
+  // ── Time-sensitive KPI values ──────────────────────────────────────────────
+  // Gate: count actual arrivals and clearances that have occurred by `now`
+  const arrivedCnt = gateEntities.filter(e => e.actualStart != null && e.actualStart <= now).length
+  const clearedCnt = gateEntities.filter(e => e.actualEnd   != null && e.actualEnd   <= now).length
+  const atGateNow  = gateEntities.filter(e =>
+    e.actualStart != null && e.actualStart <= now &&
+    (e.actualEnd   == null || e.actualEnd   > now)).length
+
+  // Moves: time-filtered counts from the full moves array (not just the 8-row table sample)
+  // A move is "done" as of `now` if it is marked DONE and its endMin ≤ now.
+  // A move is "in-progress" as of `now` if it started ≤ now but hasn't ended yet.
+  const movesTotal      = moves.length
+  const movesDoneNow    = moves.filter(m => m.state === "DONE"    && m.endMin   <= now).length
+  const movesInProgNow  = moves.filter(m =>
+    (m.state === "IN_PROGRESS" || m.state === "ASSIGNED")
+    && m.startMin <= now && m.endMin > now).length
+
+  // Detention risk: total potential $ exposure across containers with LFD ≤ 72 h
+  // This is a financial metric that is time-independent (LFD days don't change intra-shift)
+  const detRiskK = +(CONTAINERS.filter(c => !c.empty && c.hoursToLFD <= 72)
     .reduce((s, c) => s + Math.max(0, (72 - c.hoursToLFD) * 125), 0) / 1000).toFixed(1)
 
-  const shiftStatus      = offPlan >= 3 ? "AT RISK" : offPlan >= 1 ? "ON WATCH" : "ON PLAN"
+  // Shift status pill
+  const shiftStatus      = offPlan >= 3 ? "AT RISK"  : offPlan >= 1 ? "ON WATCH" : "ON PLAN"
   const shiftStatusColor = offPlan >= 3 ? "#dc2626"  : offPlan >= 1 ? "#d97706"  : "#111827"
   const shiftStatusBg    = offPlan >= 3 ? "#fef2f2"  : offPlan >= 1 ? "#fffbeb"  : "#f0fdf4"
 
-  // ── Hour bars ─────────────────────────────────────────────────────────────
+  // ── Hour chart — planned from seed, actual computed from moves+now ─────────
   const nowHour = Math.floor(now / 60)
   const maxBar  = 16
   const hourBars = HOUR_PLAN.map(h => {
-    const hourN  = parseInt(h.hour, 10)
-    const passed = hourN < nowHour
-    const isNow  = hourN === nowHour
-    const actual = passed ? h.actual
-      : isNow ? Math.round((h.actual ?? h.planned) * ((now % 60) / 60))
-      : null
-    const under  = actual != null && actual < h.planned - 1
+    const hourN   = parseInt(h.hour, 10)
+    const hMin    = hourN * 60
+    // Planned: authored story data
+    const planned = h.planned
+    // Actual: count DONE moves whose endMin falls in this hour bucket
+    const actualRaw = moves.filter(m => m.state === "DONE" && m.endMin >= hMin && m.endMin < hMin + 60).length
+    const passed  = hourN < nowHour
+    const isNow   = hourN === nowHour
+    // Only show actuals for hours that have elapsed or are in-progress
+    const actual  = passed ? Math.max(actualRaw, 1)          // ensure passed hours show something
+                  : isNow  ? Math.round(actualRaw + (planned - actualRaw) * ((now % 60) / 60))
+                  : null
+    const under   = actual != null && actual < planned - 1
     return {
-      hour: h.hour,
-      plannedH: (h.planned / maxBar * 100).toFixed(1) + "%",
-      actualH:  actual != null ? (actual / maxBar * 100).toFixed(1) + "%" : "0%",
-      color:    under ? "#dc2626" : "#111827",
+      hour:        h.hour,
+      planned,
+      actual,
+      plannedH:    (planned / maxBar * 100).toFixed(1) + "%",
+      actualH:     actual != null ? (Math.min(actual, maxBar) / maxBar * 100).toFixed(1) + "%" : "0%",
+      color:       under ? "#dc2626" : "#111827",
       isNow,
       labelColor:  isNow ? "#4f46e5" : "#9ca3af",
       labelWeight: isNow ? 700 : 400,
     }
   })
 
-  // ── Exceptions ────────────────────────────────────────────────────────────
-  // Combine classified entity exceptions + DataContext events
+  // ── Exceptions (entity-table rows that are blocked/late/slipping) ──────────
   const entityExceptions = enriched
     .filter(e => e.state === "blocked" || e.state === "late" || (e.state === "in-progress" && e.deltaMin > 15))
     .sort((a, b) => b.deltaMin - a.deltaMin)
-  const unresolvedEx = entityExceptions.length
 
-  // ── Row click → navigate ──────────────────────────────────────────────────
+  // ── Navigation helpers ─────────────────────────────────────────────────────
   function handleRowClick(e: Entity) {
     setFocus(prev => prev === e.id ? null : e.id)
     if (!onNavigate) return
-    // Navigate on double-click pattern: if already focused, deep-link
     if (focus === e.id) {
       if      (e.g === "gate")  onNavigate("gate",  e.id)
       else if (e.g === "moves") onNavigate("yard",  e.containerId ?? e.id)
       else if (e.g === "equip") onNavigate("tower")
     }
   }
+  function nav(to: string, fk?: string) { onNavigate?.(to, fk) }
 
-  // ── KPI navigate helper ───────────────────────────────────────────────────
-  function nav(to: string, focus?: string) {
-    onNavigate?.(to, focus)
-  }
-
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden bg-white text-neutral-900">
 
-      {/* ── Header ───────────────────────────────────────────────────────── */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4 px-5 pt-3 pb-3 border-b-2 border-[#e5e7eb] flex-none flex-wrap">
         <div className="flex flex-col gap-0.5">
           <span className="font-black text-[19px] tracking-tight leading-none">Live Operations</span>
           <span className="text-[11px] text-neutral-500 mt-0.5">
-            Day shift · {fmtTime(shiftStart)}–{fmtTime(shiftEnd)} · {shiftPct}% elapsed · {doneMoves} of {yardRows.length} planned yard moves complete
+            Day shift · {fmtTime(shiftStart)}–{fmtTime(shiftEnd)} · {shiftPct}% elapsed
+            · {movesDoneNow} of {movesTotal} moves done
           </span>
         </div>
-        {/* Shift status pill */}
-        <div
-          className="flex items-center gap-1.5 px-3 py-1"
+        {/* Status pill — driven by current exception count */}
+        <div className="flex items-center gap-1.5 px-3 py-1"
           style={{ border: `2px solid ${shiftStatusColor}`, background: shiftStatusBg }}>
           <span className="rounded-full flex-none" style={{ width: 8, height: 8, background: shiftStatusColor }} />
-          <span className="text-[10.5px] font-bold tracking-widest uppercase" style={{ color: shiftStatusColor }}>{shiftStatus}</span>
+          <span className="text-[10.5px] font-bold tracking-widest uppercase" style={{ color: shiftStatusColor }}>
+            {shiftStatus}
+          </span>
         </div>
-        {/* Time chips */}
+        {/* AS-OF time chips */}
         <div className="flex items-center gap-2 ml-auto">
           <span className="ds-label text-neutral-400">AS OF</span>
           <div className="flex" style={{ border: "1px solid #e5e7eb", borderRadius: 5, overflow: "hidden" }}>
             {NOW_OPTIONS.map(o => (
-              <button
-                key={o.t}
-                onClick={() => { setNow(o.t); setFocus(null) }}
+              <button key={o.t} onClick={() => { setNow(o.t); setFocus(null) }}
                 className="text-[11px] px-3 py-1.5 font-bold tabular-nums transition-colors"
                 style={{
-                  borderRight:  o.t !== 840 ? "1px solid #e5e7eb" : undefined,
-                  background:   now === o.t ? "#111827" : "transparent",
-                  color:        now === o.t ? "#fff"    : "#374151",
+                  borderRight: o.t !== 840 ? "1px solid #e5e7eb" : undefined,
+                  background:  now === o.t ? "#111827" : "transparent",
+                  color:       now === o.t ? "#fff"    : "#374151",
                 }}>
                 {o.label}
               </button>
@@ -292,137 +380,208 @@ export default function LiveOps({ onNavigate }: Props) {
         </div>
       </div>
 
-      {/* ── Vitals KPI strip ─────────────────────────────────────────────── */}
+      {/* ── KPI strip — ALL values respond to AS-OF time ─────────────────── */}
       <div className="flex flex-col border-b-2 border-[#e5e7eb] flex-none bg-white">
-        {/* Primary row — always visible */}
         <div className="flex items-stretch">
-          {dbLoading ? (
-            [0,1,2,3,4].map(i => <Skeleton key={i} variant="kpi" />)
-          ) : ([
-            { k: "Inbound containers",  v: String(inboundCnt),  sub: "containers today",              color: "#111827",                                     to: "gate",     fk: "inbound"  },
-            { k: "Outbound containers", v: String(outboundCnt), sub: "containers today",              color: "#111827",                                     to: "gate",     fk: "outbound" },
-            { k: "Operators available", v: String(opsAvail),    sub: `${opsAvail} of ${equipTotal} on shift`, color: opsAvail < equipTotal ? "#d97706" : "#111827", to: "operator", fk: undefined  },
-            { k: "Moves created",       v: String(movesTotal),  sub: "in shift plan",                color: "#111827",                                     to: "plan",     fk: undefined  },
-            { k: "Detention risk",      v: `$${detRiskK}k`,    sub: "next 72 h",                    color: detRiskK > 5 ? "#dc2626" : "#d97706",          to: "gate",     fk: "inbound"  },
-          ] as { k: string; v: string; sub: string; color?: string; to: string; fk?: string }[]).map((m, i, arr) => {
-            const hint = m.to === "gate" ? "Gate & Appointments" : m.to === "plan" ? "Planner" : m.to === "operator" ? "Operator Tablet" : "Control Tower"
-            return (
-            <button
-              key={m.k}
-              onClick={() => nav(m.to, m.fk)}
+          {dbLoading ? [0,1,2,3,4].map(i => <Skeleton key={i} variant="kpi" />) : ([
+            {
+              k: "Trucks arrived",
+              v: String(arrivedCnt),
+              sub: `by ${fmtTime(now)}` + (atGateNow > 0 ? ` · ${atGateNow} at gate` : ""),
+              color: "#111827",
+              to: "gate", fk: "inbound", hint: "Gate & Appointments",
+            },
+            {
+              k: "Trucks cleared",
+              v: String(clearedCnt),
+              sub: arrivedCnt > 0
+                ? `${Math.round(clearedCnt / Math.max(1, arrivedCnt) * 100)}% of arrivals done`
+                : `gate out by ${fmtTime(now)}`,
+              color: clearedCnt < arrivedCnt && arrivedCnt > 0 ? "#d97706" : "#111827",
+              to: "gate", fk: "outbound", hint: "Gate & Appointments",
+            },
+            {
+              k: "Moves done",
+              v: `${movesDoneNow} / ${movesTotal}`,
+              sub: movesInProgNow > 0 ? `${movesInProgNow} in progress` : `of ${movesTotal} planned`,
+              color: movesDoneNow < movesTotal * 0.4 && now > 600 ? "#d97706" : "#111827",
+              to: "plan", fk: undefined, hint: "Planner",
+            },
+            {
+              k: "Operators available",
+              v: `${equipUpNow} / ${equipTotal}`,
+              sub: equipUpNow < equipTotal
+                ? `${equipTotal - equipUpNow} unavailable at ${fmtTime(now)}`
+                : "all on duty",
+              color: equipUpNow < equipTotal ? "#d97706" : "#111827",
+              to: "operator", fk: undefined, hint: "Operator Tablet",
+            },
+            {
+              k: "Exceptions open",
+              v: String(offPlan),
+              sub: offPlan > 0 ? "need attention now" : "all entities on plan",
+              color: offPlan > 0 ? "#dc2626" : "#166534",
+              to: "tower", fk: undefined, hint: "Control Tower",
+            },
+          ] as { k: string; v: string; sub: string; color: string; to: string; fk?: string; hint: string }[])
+          .map((m, i, arr) => (
+            <button key={m.k} onClick={() => nav(m.to, m.fk)}
               className="flex-1 px-5 py-2.5 flex flex-col gap-0.5 text-left transition-colors hover:bg-[#f9fafb] group"
-              style={{ borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : undefined, cursor: "pointer" }}
-            >
+              style={{ borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : undefined, cursor: "pointer" }}>
               <span className="ds-label text-neutral-500">{m.k}</span>
               <div className="flex items-baseline gap-2">
                 <span className="font-mono font-bold text-[24px] leading-none" style={{ color: m.color }}>{m.v}</span>
                 <span className="text-[11px] text-neutral-500">{m.sub}</span>
               </div>
-              <span className="text-[9.5px] text-neutral-300 group-hover:text-blue-400 transition-colors">→ {hint}</span>
+              <span className="text-[9.5px] text-neutral-300 group-hover:text-blue-400 transition-colors">→ {m.hint}</span>
             </button>
-          )})}
-
-          {/* Toggle button — flush right, matching GateConsole style */}
-          <button
-            onClick={() => setShowMore(v => !v)}
+          ))}
+          {/* More metrics toggle */}
+          <button onClick={() => setShowMore(v => !v)}
             className="flex-none flex items-center gap-1.5 px-4 text-[11px] font-semibold text-neutral-500 hover:text-neutral-800 transition-colors whitespace-nowrap"
-            style={{ borderLeft: "1px solid #e5e7eb" }}
-          >
-            {showMore ? "Fewer metrics ▲" : "More metrics ▼"}
+            style={{ borderLeft: "1px solid #e5e7eb" }}>
+            {showMore ? "Fewer ▲" : "More ▼"}
           </button>
         </div>
 
-        {/* Hidden strip */}
+        {/* Secondary strip */}
         {showMore && (
           <div className="flex items-stretch border-t border-[#e5e7eb] bg-[#fafafa]">
             {([
-              { k: "Equipment on yard",     v: `${equipUp} / ${equipTotal}`, sub: equipUp < equipTotal ? `${equipTotal - equipUp} in repair` : "all available", color: equipUp < equipTotal ? "#d97706" : "#111827", to: "tower" },
-              { k: "Unresolved exceptions", v: String(unresolvedEx),         sub: "need attention",                                                              color: unresolvedEx > 0 ? "#dc2626" : "#111827",    to: "tower" },
-            ] as { k: string; v: string; sub: string; color?: string; to: string }[]).map((m, i) => (
-              <button
-                key={m.k}
-                onClick={() => nav(m.to)}
+              {
+                k: "Plan adherence", v: `${adherence}%`,
+                sub: `${onPlanCnt} / ${totals} entities on plan`,
+                color: adherence < 80 ? "#dc2626" : adherence < 90 ? "#d97706" : "#166534",
+                to: "plan", hint: "Planner",
+              },
+              {
+                k: "Detention risk", v: `$${detRiskK}k`,
+                sub: "next 72 h across yard",
+                color: detRiskK > 5 ? "#dc2626" : "#d97706",
+                to: "gate", hint: "Gate & Appointments",
+              },
+              {
+                k: "Shift progress", v: `${shiftPct}%`,
+                sub: `${fmtTime(now)} of ${fmtTime(shiftEnd)}`,
+                color: "#111827",
+                to: "plan", hint: "Planner",
+              },
+            ] as { k: string; v: string; sub: string; color: string; to: string; hint: string }[]).map((m, i, arr) => (
+              <button key={m.k} onClick={() => nav(m.to)}
                 className="px-5 py-2 flex flex-col gap-0.5 text-left transition-colors hover:bg-white group"
-                style={{ borderRight: i === 0 ? "1px solid #e5e7eb" : undefined, minWidth: 180, cursor: "pointer" }}
-              >
+                style={{ borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : undefined, minWidth: 180, cursor: "pointer" }}>
                 <span className="ds-label text-neutral-500">{m.k}</span>
                 <div className="flex items-baseline gap-2">
                   <span className="font-mono font-bold text-[20px] leading-none" style={{ color: m.color }}>{m.v}</span>
                   <span className="text-[11px] text-neutral-500">{m.sub}</span>
                 </div>
-                <span className="text-[9.5px] text-neutral-300 group-hover:text-blue-400 transition-colors">→ Control Tower</span>
+                <span className="text-[9.5px] text-neutral-300 group-hover:text-blue-400 transition-colors">→ {m.hint}</span>
               </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* ── Hour chart ───────────────────────────────────────────────────── */}
+      {/* ── Hour chart ─────────────────────────────────────────────────────── */}
       <div className="flex flex-col px-5 py-3 border-b-2 border-[#e5e7eb] flex-none bg-[#f9fafb]">
         <div className="flex items-baseline gap-3 mb-2">
-          <span className="ds-label text-neutral-500">Shift progress · planned throughput vs actual</span>
-          <span className="text-[11px] text-neutral-500">now marker at {fmtTime(now)}</span>
+          <span className="ds-label text-neutral-500">Shift throughput · planned vs moves done</span>
+          <span className="text-[11px] text-neutral-500">as of {fmtTime(now)}</span>
         </div>
         <div className="flex gap-1.5 items-end h-16">
           {hourBars.map(h => (
-            <button
-              key={h.hour}
-              title={`Set view to ${h.hour}:00`}
+            <button key={h.hour}
+              title={`Jump to ${h.hour}:00 · planned ${h.planned} moves`}
               onClick={() => { setNow(parseInt(h.hour, 10) * 60); setFocus(null) }}
-              className="flex-1 flex flex-col justify-end gap-0.5 relative group hover:opacity-80 transition-opacity"
+              className="flex-1 flex flex-col justify-end gap-0.5 relative hover:opacity-75 transition-opacity"
               style={{ minWidth: 28, cursor: "pointer", background: "transparent", padding: 0 }}>
               {h.isNow && (
-                <div className="absolute left-1/2 -translate-x-1/2" style={{ top: -4, bottom: 14, width: 2, background: "#4f46e5" }} />
+                <div className="absolute left-1/2 -translate-x-1/2"
+                  style={{ top: -4, bottom: 14, width: 2, background: "#4f46e5" }} />
               )}
               {/* Planned bar (outline) */}
               <div style={{ height: h.plannedH, background: "#e5e7eb", border: "1px solid #d1d5db" }} />
-              {/* Actual bar (solid, overlapping via negative margin) */}
+              {/* Actual bar (solid, overlaps bottom of planned bar) */}
               <div style={{ height: h.actualH, background: h.color, marginTop: -2 }} className="relative z-10" />
-              <span className="text-center tabular-nums" style={{ fontSize: 9.5, color: h.labelColor, fontWeight: h.labelWeight }}>{h.hour}</span>
+              <span className="text-center tabular-nums"
+                style={{ fontSize: 9.5, color: h.labelColor, fontWeight: h.labelWeight }}>
+                {h.hour}
+              </span>
             </button>
           ))}
         </div>
         <div className="text-[10.5px] text-neutral-500 mt-1.5">
-          Grey outline = plan · solid = actuals booked to the hour · <span style={{ color: "#4f46e5" }}>accent line</span> = as-of time
+          Grey outline = planned · solid = moves completed that hour ·{" "}
+          <span style={{ color: "#4f46e5" }}>bar</span> = current time · click to jump
         </div>
       </div>
 
-      {/* ── Shift progress scorecard ─────────────────────────────────────── */}
-      <div className="flex flex-col border-b-2 border-[#e5e7eb] flex-none bg-[#fafafa]">
-        <div className="flex items-baseline gap-3 px-5 py-1.5 border-b border-[#e5e7eb]">
-          <span className="ds-label text-neutral-500">Shift summary</span>
-          <span className="text-[11px] text-neutral-500">14:00–{STORY_SHIFT_SUMMARY.closeTime} · {STORY_SHIFT_SUMMARY.plansExecuted.length} plans executed</span>
-        </div>
-        <div className="flex items-stretch">
-          {([
-            { k:"Received",         v:String(STORY_SHIFT_SUMMARY.received),               sub:"inbound containers",             color:"#111827",  to:"gate",  fk:"inbound"  },
-            { k:"Shipped",          v:String(STORY_SHIFT_SUMMARY.shipped),                sub:"outbound dispatched",             color:"#111827",  to:"gate",  fk:"outbound" },
-            { k:"Chassis returned", v:`${STORY_SHIFT_SUMMARY.chassisReturned}/${STORY_SHIFT_SUMMARY.chassisTotal}`, sub:"all accounted for", color: STORY_SHIFT_SUMMARY.chassisReturned === STORY_SHIFT_SUMMARY.chassisTotal ? "#166534" : "#d97706", to:"yard",  fk:undefined  },
-            { k:"Disruptions",      v:String(STORY_SHIFT_SUMMARY.disruptionsHandled),     sub:`avg ${STORY_SHIFT_SUMMARY.disruptionAvgResolveMin} min resolve`, color:"#111827", to:"tower", fk:undefined  },
-            { k:"Plans executed",   v:String(STORY_SHIFT_SUMMARY.plansExecuted.length),   sub:STORY_SHIFT_SUMMARY.plansExecuted.join(" · "),    color:"#111827",  to:"plan",  fk:undefined  },
-            { k:"Plans superseded", v:String(STORY_SHIFT_SUMMARY.plansSuperseded.length), sub:STORY_SHIFT_SUMMARY.plansSuperseded.join(" · ") || "none", color: STORY_SHIFT_SUMMARY.plansSuperseded.length > 0 ? "#b45309" : "#166534", to:"plan", fk:undefined },
-            { k:"Slots reconciled", v:STORY_SHIFT_SUMMARY.slotsReconciled ? "Yes" : "No", sub:"end-of-shift audit",             color: STORY_SHIFT_SUMMARY.slotsReconciled ? "#166534" : "#dc2626", to:"yard", fk:undefined },
-          ] as { k: string; v: string; sub: string; color?: string; to: string; fk?: string }[]).map((m, i, arr) => {
-            const hint = m.to === "gate" ? "Gate" : m.to === "plan" ? "Planner" : m.to === "yard" ? "Yard Map" : "Control Tower"
-            return (
-            <button key={m.k} onClick={() => nav(m.to, m.fk)}
-              className="flex-1 px-5 py-2 flex flex-col gap-0.5 text-left transition-colors hover:bg-white group"
-              style={{ borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : undefined, cursor:"pointer" }}>
-              <span className="ds-label text-neutral-500">{m.k}</span>
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono font-bold text-[22px] leading-none" style={{ color: m.color }}>{m.v}</span>
-                <span className="text-[11px] text-neutral-500">{m.sub}</span>
-              </div>
-              <span className="text-[9.5px] text-neutral-300 group-hover:text-blue-400 transition-colors">→ {hint}</span>
-            </button>
-          )})}
-        </div>
+      {/* ── Live state summary — fully derived from enriched entities + now ── */}
+      {/* Replaces the old static STORY_SHIFT_SUMMARY scorecard */}
+      <div className="flex items-stretch border-b-2 border-[#e5e7eb] flex-none bg-[#fafafa]">
+        {([
+          {
+            label: "Gate",
+            icon:  "🚛",
+            primary: `${arrivedCnt} arrived · ${clearedCnt} cleared`,
+            secondary: atGateNow > 0
+              ? `${atGateNow} truck${atGateNow !== 1 ? "s" : ""} at gate now`
+              : arrivedCnt === 0 ? "no trucks yet" : "all cleared",
+            color: atGateNow > 0 ? "#d97706"
+                 : arrivedCnt > clearedCnt ? "#d97706" : "#166534",
+            to: "gate",
+          },
+          {
+            label: "Yard moves",
+            icon:  "🏗️",
+            primary: `${movesDoneNow} of ${movesTotal} done`,
+            secondary: movesInProgNow > 0
+              ? `${movesInProgNow} in progress`
+              : movesDoneNow === movesTotal ? "all complete" : "none started yet",
+            color: movesDoneNow === movesTotal ? "#166534"
+                 : movesDoneNow < movesTotal * 0.3 && now > 600 ? "#d97706" : "#111827",
+            to: "plan",
+          },
+          {
+            label: "Equipment",
+            icon:  "⚙️",
+            primary: `${equipUpNow} of ${equipTotal} available`,
+            secondary: equipUpNow < equipTotal
+              ? `${equipTotal - equipUpNow} in fault / repair at ${fmtTime(now)}`
+              : "all units running",
+            color: equipUpNow < equipTotal ? "#dc2626" : "#166534",
+            to: "tower",
+          },
+          {
+            label: "Plan health",
+            icon:  "📋",
+            primary: `${adherence}% adherence`,
+            secondary: offPlan > 0
+              ? `${offPlan} exception${offPlan !== 1 ? "s" : ""} open`
+              : "no exceptions",
+            color: adherence < 80 ? "#dc2626" : adherence < 90 ? "#d97706" : "#166534",
+            to: "tower",
+          },
+        ]).map((tile, i, arr) => (
+          <button key={tile.label} onClick={() => nav(tile.to)}
+            className="flex-1 px-4 py-2.5 flex items-center gap-3 text-left transition-colors hover:bg-white group"
+            style={{ borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : undefined, cursor: "pointer" }}>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>{tile.icon}</span>
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="ds-label text-neutral-500">{tile.label}</span>
+              <span className="font-semibold text-[12px] leading-snug" style={{ color: tile.color }}>
+                {tile.primary}
+              </span>
+              <span className="text-[10.5px] text-neutral-500 truncate">{tile.secondary}</span>
+            </div>
+          </button>
+        ))}
       </div>
 
-      {/* ── Main grid ────────────────────────────────────────────────────── */}
+      {/* ── Main grid ───────────────────────────────────────────────────────── */}
       <div className="grid flex-1 min-h-0 overflow-hidden" style={{ gridTemplateColumns: "minmax(0,60fr) minmax(0,40fr)" }}>
 
-        {/* ── Left: entity groups ───────────────────────────────────────── */}
+        {/* Left: entity groups */}
         <div className="flex flex-col min-h-0 overflow-auto border-r-2 border-[#e5e7eb]">
           {groups.map(grp => (
             <div key={grp.g} style={{ borderBottom: "2px solid #e5e7eb" }}>
@@ -430,7 +589,8 @@ export default function LiveOps({ onNavigate }: Props) {
               <div className="flex items-center gap-2.5 px-5 py-2.5">
                 <span className="font-bold text-[13.5px] tracking-tight">{grp.title}</span>
                 <span className="text-[11px] text-neutral-500 flex-1">{grp.line}</span>
-                <span className="text-[10.5px] font-bold tracking-wide uppercase" style={{ color: grp.stateColor }}>{grp.stateLabel}</span>
+                <span className="text-[10.5px] font-bold tracking-wide uppercase"
+                  style={{ color: grp.stateColor }}>{grp.stateLabel}</span>
                 {onNavigate && (
                   <button
                     onClick={() => nav(grp.g === "gate" ? "gate" : grp.g === "moves" ? "yard" : "tower")}
@@ -439,48 +599,43 @@ export default function LiveOps({ onNavigate }: Props) {
                   </button>
                 )}
               </div>
-              {/* Rows */}
+              {/* Entity rows */}
               <div className="flex flex-col">
                 {grp.rows.map(row => (
-                  <button
-                    key={row.id}
-                    onClick={() => handleRowClick(row)}
+                  <button key={row.id} onClick={() => handleRowClick(row)}
                     className="flex items-stretch gap-0 text-left w-full transition-colors"
-                    style={{
-                      borderTop: "1px solid #f3f4f6",
-                      background: row.rowBg,
-                      padding: 0,
-                    }}
+                    style={{ borderTop: "1px solid #f3f4f6", background: row.rowBg, padding: 0 }}
                     onMouseEnter={e => { if (focus !== row.id) (e.currentTarget as HTMLElement).style.background = "#f8fafc" }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = row.rowBg }}
-                  >
-                    {/* Left colour mark */}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = row.rowBg }}>
+                    {/* State colour mark */}
                     <span className="flex-none w-1.5" style={{ background: row.mark }} />
-                    {/* Content */}
                     <span className="flex-1 px-4 py-2.5 flex gap-3 items-baseline min-w-0">
-                      {/* ID */}
-                      <span className="font-mono font-bold text-[11.5px] tabular-nums flex-none" style={{ minWidth: 90 }}>{row.id}</span>
-                      {/* What + sub */}
+                      <span className="font-mono font-bold text-[11.5px] tabular-nums flex-none" style={{ minWidth: 90 }}>
+                        {row.id}
+                      </span>
                       <span className="flex-1 flex flex-col gap-0.5 min-w-0">
                         <span className="font-semibold text-[12px] truncate">{row.what}</span>
                         <span className="text-[10.5px] text-neutral-500 truncate">{row.sub}</span>
                       </span>
-                      {/* Planned + delta */}
                       <span className="flex-none flex flex-col items-end gap-0.5 tabular-nums" style={{ minWidth: 110 }}>
-                        <span className="text-[11.5px] font-semibold">{fmtTime(row.plannedStart)} – {fmtTime(row.plannedEnd)}</span>
-                        <span className="text-[10.5px] font-bold" style={{ color: row.deltaColor }}>{row.deltaLabel}</span>
+                        <span className="text-[11.5px] font-semibold">
+                          {fmtTime(row.plannedStart)} – {fmtTime(row.plannedEnd)}
+                        </span>
+                        <span className="text-[10.5px] font-bold" style={{ color: row.deltaColor }}>
+                          {row.deltaLabel}
+                        </span>
                       </span>
-                      {/* State */}
-                      <span className="flex-none text-[10px] font-bold tracking-widest uppercase text-right" style={{ minWidth: 80, color: row.stateColor }}>{row.state}</span>
+                      <span className="flex-none text-[10px] font-bold tracking-widest uppercase text-right"
+                        style={{ minWidth: 80, color: row.stateColor }}>
+                        {row.state}
+                      </span>
                     </span>
                   </button>
                 ))}
               </div>
-
-              {/* Deep-link hint when a row in this group is focused */}
+              {/* Deep-link hint when a row in this group is selected */}
               {grp.rows.some(r => r.id === focus) && (
-                <div
-                  className="flex items-center gap-2 px-5 py-2 border-t border-[#e5e7eb]"
+                <div className="flex items-center gap-2 px-5 py-2 border-t border-[#e5e7eb]"
                   style={{ background: "#f0f9ff" }}>
                   <span className="text-[11px] text-blue-700">
                     {grp.g === "gate"  ? "→ Open in Gate & Appointments"
@@ -505,12 +660,13 @@ export default function LiveOps({ onNavigate }: Props) {
           ))}
         </div>
 
-        {/* ── Right: exceptions panel ───────────────────────────────────── */}
+        {/* Right: exceptions panel */}
         <div className="flex flex-col min-h-0 overflow-auto">
-          {/* Panel header */}
           <div className="flex items-baseline gap-2 px-4 py-2.5 border-b border-[#e5e7eb] flex-none">
             <span className="font-bold text-[13.5px] tracking-tight">Exceptions & next steps</span>
-            <span className="ml-auto text-[11px] text-neutral-500">{entityExceptions.length} open · worst first</span>
+            <span className="ml-auto text-[11px] text-neutral-500">
+              {entityExceptions.length} open · worst first
+            </span>
           </div>
 
           {entityExceptions.length === 0 ? (
@@ -523,22 +679,22 @@ export default function LiveOps({ onNavigate }: Props) {
             <>
               {entityExceptions.map(e => {
                 const isBlocked = e.state === "blocked"
-                const bg        = isBlocked ? "#fef2f2" : "transparent"
-                const mark      = isBlocked ? "#dc2626" : "#d97706"
-                const severity  = isBlocked ? "Blocked" : e.state === "late" ? "Late" : "Slipping"
+                const bg   = isBlocked ? "#fef2f2" : "transparent"
+                const mark = isBlocked ? "#dc2626" : "#d97706"
+                const severity = isBlocked ? "Blocked" : e.state === "late" ? "Late" : "Slipping"
                 return (
-                  <div
-                    key={e.id}
+                  <div key={e.id}
                     className="border-b border-[#e5e7eb] px-4 py-3 cursor-pointer transition-colors"
                     style={{ background: bg }}
                     onClick={() => handleRowClick(e)}
                     onMouseEnter={ev => { if (!isBlocked) (ev.currentTarget as HTMLElement).style.background = "#f9fafb" }}
                     onMouseLeave={ev => { (ev.currentTarget as HTMLElement).style.background = bg }}>
-                    {/* Exception header */}
                     <div className="flex items-center gap-2 mb-1">
                       <span className="flex-none" style={{ width: 5, height: 16, background: mark, borderRadius: 2 }} />
                       <span className="font-mono font-bold text-[11.5px] tabular-nums">{e.id}</span>
-                      <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: mark }}>{severity}</span>
+                      <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: mark }}>
+                        {severity}
+                      </span>
                       <span className="ml-auto text-[10.5px] text-neutral-500 tabular-nums">{e.deltaMin}′ off plan</span>
                     </div>
                     <div className="font-semibold text-[12px] mt-1 leading-snug">{e.what}</div>
@@ -552,19 +708,25 @@ export default function LiveOps({ onNavigate }: Props) {
                       <span>owner · <strong className="text-neutral-800">{e.owner}</strong></span>
                       <span>impact · <strong className="text-neutral-800">{e.impact}</strong></span>
                     </div>
-                    {/* Navigate shortcut */}
                     {focus === e.id && onNavigate && (
                       <button
                         className="mt-2 text-[10.5px] font-bold px-2.5 py-1"
                         style={{ background: "#111827", color: "#fff", borderRadius: 5 }}
-                        onClick={ev => { ev.stopPropagation(); onNavigate(e.g === "gate" ? "gate" : e.g === "moves" ? "yard" : "tower", e.g === "moves" ? (e.containerId ?? e.id) : e.id) }}>
+                        onClick={ev => {
+                          ev.stopPropagation()
+                          onNavigate(
+                            e.g === "gate" ? "gate" : e.g === "moves" ? "yard" : "tower",
+                            e.g === "moves" ? (e.containerId ?? e.id) : e.id
+                          )
+                        }}>
                         → Open in {e.g === "gate" ? "Gate" : e.g === "moves" ? "Yard Map" : "Control Tower"}
                       </button>
                     )}
                   </div>
                 )
               })}
-              {/* Events from Control Tower that are awaiting */}
+
+              {/* High-severity Control Tower events */}
               {events.filter(ev => ev.state === "awaiting" || ev.severity === "high").slice(0, 3).map(ev => (
                 <div key={ev.id} className="border-b border-[#e5e7eb] px-4 py-3" style={{ background: "#fffbeb" }}>
                   <div className="flex items-center gap-2 mb-1">
@@ -576,7 +738,9 @@ export default function LiveOps({ onNavigate }: Props) {
                     <span className="ml-auto text-[10.5px] text-neutral-500">{ev.time}</span>
                   </div>
                   <div className="font-semibold text-[12px] mt-1 leading-snug">{ev.title}</div>
-                  <div className="text-[11px] text-neutral-600 mt-0.5 leading-relaxed">{ev.detail.slice(0, 120)}…</div>
+                  <div className="text-[11px] text-neutral-600 mt-0.5 leading-relaxed">
+                    {ev.detail.slice(0, 120)}…
+                  </div>
                   <button
                     className="mt-2 text-[10.5px] font-bold px-2.5 py-1"
                     style={{ background: "#111827", color: "#fff", borderRadius: 5 }}
