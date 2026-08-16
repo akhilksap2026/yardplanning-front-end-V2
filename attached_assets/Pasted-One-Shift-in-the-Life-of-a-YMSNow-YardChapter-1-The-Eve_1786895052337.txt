@@ -1,0 +1,25 @@
+One Shift in the Life of a YMSNow YardChapter 1 — The Evening Before
+11:59 PM, Aug 12 — Two advance shipping notices land overnight: carrier SCAC1 will deliver container EITU333330-7 at 14:00 tomorrow, and SCAC2 will deliver DAIU444446-0 at 15:00. Before anyone has had their morning coffee, the yard already knows what's coming.
+Chapter 2 — Morning of August 13
+12:00 — SCAC1 sends an ETA update: the truck left the port, arriving 14:15 — fifteen minutes late. YMSNow quietly shifts its expectations. No phone calls, no clipboard updates.
+13:30 — A third ASN arrives: SCAC3 will bring GAIU777776-5 at 14:50. Three inbound containers now on the books, each with a carrier, a time, and an identity the gate can verify.
+Chapter 3 — The Outbound Pickup (14:00–14:07)
+14:00 — Plan P-100: stage outbound container MSCU123456-6 for SCAC1's pickup. Justin takes ForkLift1 to stack position RA0101 and lifts the box, while James drives Jockey1 to fetch chassis CABC54321.
+14:03 — James hooks the chassis and returns; working as a coordinated pair, Justin lowers the container on while James holds position.
+14:05 — The mounted unit rolls to staging slot STG0203. Justin restores order behind them: blocking containers MSCU234517-9 and MSCU345123-6 are re-slotted, one housekeeping move shifts MSCU451236-2. By 14:07 the stack is tidy and the outbound box is staged.
+Chapter 4 — First Truck Through the Gate (14:15–14:43)
+14:15 — SCAC1's truck arrives exactly as predicted. Gate 1 verifies the seal; EITU333330-7 drops on chassis CB211111 at STG0202 — and the moment the gate transaction clears, Plan P-200 issues. Inspector Mike examines the box: damage, seal, paperwork. Clean.
+14:30–14:41 — James hooks and drives it to stack block DB; Justin demounts, stacks it into DB0203, and RF-scans the slot. Inventory now matches physical reality.
+14:43 — The chassis isn't forgotten: James returns CB211111 to chassis row CHA0101 — closing the loop on an asset most yards quietly lose track of.
+Chapter 5 — The Pickup Completes (14:23–14:25)
+14:23 — SCAC1's pickup driver hooks the staged MSCU123456-6. The carrier's special instructions were on the work order, not shouted across the yard.
+14:25 — Gate 2 records the departure — container and chassis together. Nothing leaves without both halves accounted for.
+Chapter 6 — The Disruption (14:25–14:30)
+14:25 — At that very same minute: SCAC2's truck shows up 35 minutes early with DAIU444446-0, dropping it on chassis CB22222 at STG0202. The revised ETA lands a minute later.
+14:26 — YMSNow sees the conflict instantly. Old plan P-300 — which assumed the container was still in the stack — is wrong. It's retired outright, stamped Superseded. No crew will ever chase a box that isn't there.
+14:30 — Plan P-400 goes live: a fresh putaway for the early arrival, with Mike assigned to inspect. The disruption lasted four minutes.
+Chapter 7 — Two Putaways, One Crew, No Collisions (14:30–15:09)
+14:30–14:48 — P-400 executes: inspect, hook, drive, demount, stack DAIU444446-0 into DB0209, RF-confirm, chassis home.
+14:50 — SCAC3 arrives on time at Gate 2 with GAIU777776-5 — no longer a phantom, because its 13:30 ASN was already in the system.
+15:00–15:09 — Plan P-500 starts only after P-400's crew is free — the scheduler never books Justin and James into two bays at once. Same choreography: inspect, hook, drive, demount, stack into DB0211, confirm, return the chassis.
+By 15:09: three containers received, one shipped, every chassis home, and every slot in the system matches the ground.

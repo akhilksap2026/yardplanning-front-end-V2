@@ -1,0 +1,245 @@
+You are working in the yardplanning-front-end-V2 repo (React + TypeScript + Vite + Tailwind).
+Goal: make the app tell one specific demo story ("One Shift in the Life of a YMSNow Yard"),
+embedded inside a realistically populated, coherent yard operation — not as an isolated island.
+
+Three standing requirements for the WHOLE job:
+  A. ENRICH TO MEDIUM SCALE. The final data must feel like a real product with substantial
+     seeded data: ~150 detailed containers, ~45 gate rows, 18 plans, 50 chassis, ~12 operators,
+     ~17 events. Every field on every record must be populated — no blank forms, no "—" where a
+     real value belongs.
+  B. HARMONIZE, DON'T CLASH. The existing ~957 generated yard containers and other
+     operators/equipment stay, but their naming/style must be consistent with the story so a
+     client never sees two different worlds side by side. Use ONE shared reference pool for
+     carriers, consignees, vessels, chassis-ID format, plan-code format, and container-ID format.
+  C. FLAG THE STORY THREAD. Every story record (container, plan, move/step, event, chassis,
+     operator, equipment) carries an optional `story?: true` field so the UI can badge/highlight
+     it. Add a subtle "Demo" badge on flagged items so the scripted thread stands out against the
+     background data.
+
+Do NOT change any CORE NOMENCLATURE. Specifically: do not rename or remove any existing field on
+the Container interface (id, zone, block, row, slot, tier, address, size, grossKg, carrier,
+carrierName, consignee, vessel, terminal, hazmat, imdg, channel, status, hoursToLFD, dwellDays,
+priority, empty, whyHere, seal) or the GateContainerRow interface (containerId, scac, size,
+consignee, carrierName, truckerScac, trucker, driver, plate, channel, appt, gateStatus,
+hoursToLFD, hold, excl, grossKg, isoType, sealNumber). You may only ADD new OPTIONAL fields.
+Reuse existing enum values (gateStatus EXPECTED/…, channel verde/naranja/rojo).
+
+Work in TWO phases. Do NOT start Phase 2 until Phase 1's report is complete.
+
+═══════════════════════════════════════════════════════════════════════
+PHASE 1 — DISCOVERY (read only, change NOTHING)
+═══════════════════════════════════════════════════════════════════════
+Produce a written report:
+
+1. DATA FILES — summarize shape + current row counts:
+   - src/data/gate-seed.ts (GateContainerRow fields; INBOUND_SEED and OUTBOUND_SEED counts)
+   - src/data/yard-data.ts (Container interface; the buildContainers() generator; the CARRIERS,
+     CONSIGNEES, VESSELS, TERMINALS reference pools; EQUIPMENT ids; OPERATORS names)
+   - src/data/yard-ops.ts (Visit fields; VISITS count; EVENTS count; LANES ids; OPERATOR_TASKS)
+   - src/data/planningData.ts (PlanningStep fields; confirm no plan_code exists)
+   - src/data/planningResults.json (step / container / operator counts)
+2. WIRING — open src/lib/DataContext.tsx and list the INITIAL object's named seed imports
+   (MOVES, OPERATORS, CONTAINERS, ZONES, VISITS, LANES, APPOINTMENTS, EVENTS, DIFF_ROWS,
+   OPERATOR_TASKS, …). These are the ONLY integration points; confirm each screen reads via useData().
+3. SCREENS — for each (GateConsole, NightPlanner, ControlTower, OperatorTablet, YardMap, LiveOps)
+   note where story data will surface and confirm the "superseded" plan badge + the
+   "out_of_sequence_arrival" disruption type already exist.
+4. HARMONIZATION SURFACE — confirm buildContainers() already draws from CARRIERS/CONSIGNEES/
+   VESSELS. Report whether these pools are exported or module-local (we will make them the single
+   shared pool).
+5. CHASSIS — search src/ for "chassis"; confirm no chassis entity exists.
+6. BUILD BASELINE — run `npm run build` and `npm run test` on the UNTOUCHED repo and report results.
+   If either fails now, STOP and tell me before changing anything.
+
+Then STOP and wait.
+
+═══════════════════════════════════════════════════════════════════════
+PHASE 2 — IMPLEMENTATION (after Phase 1 report)
+═══════════════════════════════════════════════════════════════════════
+GOLDEN RULES:
+  - Every new interface field is OPTIONAL (with ?). Existing rows must still compile.
+  - Run `npm run build` after EACH step. If it fails, fix or revert THAT step before continuing.
+  - Never delete or rename existing seed rows/fields. Only ADD.
+  - Keep a running list of every file touched.
+
+────────────────────────────────────────────────────────────
+STEP 1 — Shared reference pool (harmonization foundation)
+────────────────────────────────────────────────────────────
+Create src/data/reference-pools.ts exporting ONE canonical set reused by BOTH the generator and
+the story/context seeds, so nothing clashes:
+  - CARRIERS: MSC(MSCU), Maersk(MAEU), CMA CGM(CMAU), Hapag-Lloyd(HLXU), COSCO(COSU), OOCL(OOLU),
+    Evergreen(EGLV), Yang Ming(YMLU), ONE(ONEU), HMM(HMMU)
+  - TRUCKERS: SCAC1 "Seaboard Cartage Co." (94%), SCAC2 "Summit Container Lines" (88%),
+    SCAC3 "Sierra Drayage Group" (91%), RIVA "Transportes Rivas", LAND "Log. Andina", DSUR "Drayage Sur"
+  - CONSIGNEES, VESSELS, CONSIGNEE/priority/channel pools (reuse the exact strings already in yard-data.ts)
+  - Helpers: chassisId(n) → "CB######", chaRow(n) → "CHA####", planCode(n) → "P-###",
+    containerId(scac, seq) → SCAC + 7 digits.
+Refactor yard-data.ts's buildContainers() to import CARRIERS/CONSIGNEES/VESSELS from this module
+(do NOT change the generation logic or the ~957 volume — only the source of the pools). Add
+`story: false` to every generated container object.
+Run `npm run build`.
+
+────────────────────────────────────────────────────────────
+STEP 2 — Story core module (validated data, flagged)
+────────────────────────────────────────────────────────────
+Create src/data/story-seed.ts with the coherence-validated story core, every record carrying
+`story: true`. Use these EXACT values (times are the Aug 13 shift; do not alter):
+
+TRUCKERS: SCAC1/SCAC2/SCAC3 (from reference-pools).
+STORY_OPERATORS: Justin (ForkLift1, RS+IMDG, 14:00–22:00), James (Jockey1, TT, 14:00–22:00),
+  Mike (gate inspector, INSPECT, 14:00–22:00).
+STORY_EQUIPMENT: ForkLift1 (Kalmar DRG450, hourMeter 12480, op Justin),
+  Jockey1 (Terberg YT223, hourMeter 18320, op James).
+STORY_CHASSIS: CABC54321 (40ft gooseneck, home CHA0101, ownedBy SCAC1, status "departed" — leaves
+  mounted with the outbound load), CB211111 (40ft std, home CHA0101, ownedBy yard, returned,
+  currentLocation CHA0101), CB22222 (40ft std, home CHA0102, ownedBy yard, returned, currentLocation CHA0102).
+STORY_CONTAINERS (enriched — fill EVERY field):
+  EITU3333307 disp EITU333330-7 40ftHC 45G1 24600kg tare3980 seal EIT-334120 Evergreen "EVER GIVEN V.118E"
+    consignee "Meridian Auto Parts" verde LFD96h dwell0 P3 role inbound finalSlot DB0203
+  DAIU4444460 disp DAIU444446-0 40ft 42G1 21900kg tare3750 seal DAI-771905 "DAL Shipping" "CMA LAPEROUSE V.204W"
+    consignee "Cordoba Industrial" verde LFD108h dwell0 P3 role inbound finalSlot DB0209
+  GAIU7777765 disp GAIU777776-5 20ft 22G1 16400kg tare2180 seal GAI-220338 "Gold Star Line" "HMM ALGECIRAS V.091E"
+    consignee "Rosario Logistics" verde LFD84h dwell0 P3 role inbound finalSlot DB0211
+  MSCU1234566 disp MSCU123456-6 40ftHC 45G1 23400kg tare3900 seal MSC-661002 MSC "MSC LUCIA V.412E"
+    consignee "Denso Sudamérica" verde LFD6h dwell4 P2 role outbound stackPos RA0101 stagePos STG0203
+    specialInstructions "Reefer genset OFF — dry load. Deliver dock 4, appointment held."
+  MSCU2345179 disp MSCU234517-9 40ft 42G1 19800kg seal MSC-334120 MSC "Bosch Argentina" verde LFD40h dwell6 P3 role rehandle
+  MSCU3451236 disp MSCU345123-6 20ft 22G1 15200kg seal MSC-118093 MSC "Magna Rosario" verde LFD52h dwell3 P4 role rehandle
+  MSCU4512362 disp MSCU451236-2 40ft 42G1 20400kg seal MSC-990241 MSC "Valeo BA" verde LFD64h dwell5 P4 role housekeeping
+STORY_ASNS:
+  EITU3333307 SCAC1 asnReceivedAt 2026-08-12T23:59 appt14:00 etaOriginal14:00 etaRevised14:15
+  DAIU4444460 SCAC2 asnReceivedAt 2026-08-12T23:59 appt15:00 etaOriginal15:00 etaRevised14:25 (early)
+  GAIU7777765 SCAC3 asnReceivedAt 2026-08-13T13:30 appt14:50 etaOriginal14:50 etaRevised14:50
+STORY_PLANS:
+  P-100 "Stage outbound MSCU123456-6" confirmed 14:00–14:07 crew Justin,James
+  P-200 "Putaway EITU333330-7" confirmed 14:15–14:43 crew Justin,James,Mike
+  P-300 "Putaway DAIU444446-0 (stale)" superseded supersededBy P-400 supersededAt 2026-08-13T14:26
+  P-400 "Putaway DAIU444446-0 (early arrival)" in_progress 14:30–14:48 crew Justin,James,Mike
+  P-500 "Putaway GAIU777776-5" confirmed 15:00–15:09 crew Justin,James,Mike
+STORY_STEPS (plan,seq,op,container,from,to,operator,equipment,chassis,start,end,method,note) —
+  use EXACTLY these windows (they are collision-free; the ONE deliberate same-operator overlap is
+  P-100#3 flagged pairedWith:2 for the coordinated lift):
+  P-100#1 "Outbound staging" MSCU1234566 RA0101→RA0101 Justin ForkLift1 - 14:00-14:02 "Crane lift"
+  P-100#2 "Fetch chassis" - CHA0101→RA0101 James Jockey1 CABC54321 14:00-14:03 "Yard-truck haul"
+  P-100#3 "Mount container" MSCU1234566 RA0101→RA0101 Justin ForkLift1 CABC54321 14:03-14:05 "Crane lift" pairedWith:2
+  P-100#4 "Move to staging" MSCU1234566 RA0101→STG0203 James Jockey1 CABC54321 14:05-14:06 "Move to staging"
+  P-100#5 "Digout" MSCU2345179 RA0101→RA0104 Justin ForkLift1 - 14:05-14:06 "Crane lift"
+  P-100#6 "Digout" MSCU3451236 RA0101→RA0105 Justin ForkLift1 - 14:06-14:07 "Crane lift"
+  P-100#7 "Housekeeping" MSCU4512362 RA0102→RA0106 James Jockey1 - 14:06-14:07 "Move to staging"
+  P-200#1 "Inspection" EITU3333307 GATE→GATE Mike - CB211111 14:15-14:20 "Inspection"
+  P-200#2 "Hook chassis" EITU3333307 STG0202→STG0202 James Jockey1 CB211111 14:30-14:32 "Yard-truck haul"
+  P-200#3 "Drive to block" EITU3333307 STG0202→DB James Jockey1 CB211111 14:32-14:36 "Yard-truck haul"
+  P-200#4 "Demount + stack" EITU3333307 DB→DB0203 Justin ForkLift1 CB211111 14:38-14:41 "Crane lift"
+  P-200#5 "Chassis home" - DB→CHA0101 James Jockey1 CB211111 14:41-14:43 "Yard-truck haul"
+  P-400#1 "Inspection" DAIU4444460 GATE→GATE Mike - CB22222 14:30-14:34 "Inspection"
+  P-400#2 "Hook chassis" DAIU4444460 STG0202→STG0202 James Jockey1 CB22222 14:36-14:38 "Yard-truck haul"
+  P-400#3 "Drive to block" DAIU4444460 STG0202→DB James Jockey1 CB22222 14:38-14:41 "Yard-truck haul"
+  P-400#4 "Demount + stack" DAIU4444460 DB→DB0209 Justin ForkLift1 CB22222 14:43-14:46 "Crane lift"
+  P-400#5 "Chassis home" - DB→CHA0102 James Jockey1 CB22222 14:46-14:48 "Yard-truck haul"
+  P-500#1 "Inspection" GAIU7777765 GATE→GATE Mike - CB211111 15:00-15:03 "Inspection"
+  P-500#2 "Hook chassis" GAIU7777765 STG0201→STG0201 James Jockey1 CB211111 15:03-15:05 "Yard-truck haul"
+  P-500#3 "Drive to block" GAIU7777765 STG0201→DB James Jockey1 CB211111 15:05-15:07 "Yard-truck haul"
+  P-500#4 "Demount + stack" GAIU7777765 DB→DB0211 Justin ForkLift1 CB211111 15:07-15:09 "Crane lift"
+  P-500#5 "Chassis home" - DB→CHA0101 James Jockey1 CB211111 15:07-15:09 "Yard-truck haul"
+STORY_GATE_TXNS:
+  14:15 Gate1 IN EITU3333307 CB211111 STG0202 EIT-334120 "Seal verified · clean" → P-200
+  14:23 Gate2 HOOK MSCU1234566 CABC54321 STG0203 MSC-661002 "Pickup driver hooked staged box"
+  14:25 Gate2 OUT MSCU1234566 CABC54321 — MSC-661002 "Departure — container + chassis together"
+  14:25 Gate1 IN DAIU4444460 CB22222 STG0202 DAI-771905 "Early arrival — 35 min ahead" → P-400
+  14:50 Gate2 IN GAIU7777765 CB211111 STG0201 GAI-220338 "On-time arrival · ASN matched" → P-500
+STORY_EVENTS:
+  EV-9001 12:00 ETA_REVISION low suppressed "SCAC1 truck ETA slipped to 14:15" diff{frozenKept7,deltaMin15}
+  EV-9002 13:30 ASN_RECEIVED low replanned "Third ASN — GAIU777776-5 booked 14:50" diff{added1}
+  EV-9003 14:26 OUT_OF_SEQUENCE_ARRIVAL high replanned "DAIU444446-0 arrived 35 min early"
+    diff{cancelled5,added6,reassigned2} supersedes P-300 issues P-400 resolutionMin 4
+STORY_SHIFT_SUMMARY: received3, shipped1, chassisReturned3, chassisTotal3, slotsReconciled true,
+  disruptionsHandled1, disruptionAvgResolveMin4, plansExecuted[P-100,P-200,P-400,P-500],
+  plansSuperseded[P-300], closeTime "15:09".
+Add helper minutesFromHHMM() and expose numeric start/end minutes on STORY_STEPS.
+Run `npm run build` (nothing imports this yet — should pass).
+
+────────────────────────────────────────────────────────────
+STEP 3 — Medium context module (fills the operation to product scale)
+────────────────────────────────────────────────────────────
+Create src/data/context-seed.ts that DETERMINISTICALLY generates (seeded PRNG, so it's stable):
+  - CONTEXT_CONTAINERS: ~145 fully-enriched containers (every field filled: grossKg, tareKg, seal,
+    isoType, consignee, carrierName, vessel, channel, priority, status, hoursToLFD, dwellDays),
+    drawn from reference-pools, `story: false`. IDs use SCAC+7digit via containerId().
+  - CONTEXT_CHASSIS: ~47 chassis (so total with story = 50), IDs via chassisId(), home rows via
+    chaRow(), all fields filled, `story: false`.
+  - CONTEXT_OPERATORS: ~9 roster members (real names), full certs/shift/status, `story: false`
+    (so total roster with Justin/James/Mike = 12).
+  - CONTEXT_PLANS: ~13 plans P-600.. across the shift, mixed statuses (confirmed/completed/
+    in_progress/draft), `story: false` (total 18).
+  - CONTEXT_EVENTS: ~14 events (EQUIPMENT_FAILURE, CUSTOMS_CHANNEL_ASSIGNED, SHIP_DELAY, etc.),
+    full detail text, `story: false` (total 17).
+  - CONTEXT_GATE_ROWS: enough extra inbound/outbound rows to reach ~45 total gate rows, fully
+    populated (driver, plate, seal, appt, gateStatus, hold/excl where relevant), `story: false`.
+Run `npm run build`.
+
+────────────────────────────────────────────────────────────
+STEP 4 — Merge into existing named exports (the ONLY wiring change)
+────────────────────────────────────────────────────────────
+Extend the existing seed exports by CONCATENATING context + story onto them — do not replace:
+  - gate-seed.ts: add OPTIONAL fields asnReceivedAt?, etaOriginal?, etaRevised?, specialInstructions?,
+    chassis?, story? to GateContainerRow. Append CONTEXT_GATE_ROWS + the 4 story gate containers to
+    INBOUND_SEED / OUTBOUND_SEED (keep all 28+31 existing rows).
+  - yard-data.ts: append the 7 STORY_CONTAINERS (mapped to the Container interface — reuse existing
+    fields, add optional story?, asn?/eta? as needed) to the CONTAINERS export so they appear in the
+    yard alongside the generated 957. Merge STORY_OPERATORS + CONTEXT_OPERATORS into OPERATORS and
+    STORY_EQUIPMENT into EQUIPMENT (keep existing entries).
+  - yard-ops.ts: append STORY_EVENTS + CONTEXT_EVENTS to EVENTS; add chassis? optional field to Visit;
+    ensure OPERATOR_TASKS surfaces the story steps for Justin/James/Mike.
+  - planningData.ts: add OPTIONAL plan_code? + story? to PlanningStep; export STORY_PLANS,
+    CONTEXT_PLANS, and stepsForPlan(code) reading from story-seed/context-seed.
+  - Add a chassis? optional field wherever a container/visit references one.
+Do NOT touch DataContext.tsx's INITIAL wiring beyond what these exports already feed. Confirm every
+screen still reads through useData().
+Run `npm run build` AND `npm run test`.
+
+────────────────────────────────────────────────────────────
+STEP 5 — Surface the story in each screen (rendering, not data)
+────────────────────────────────────────────────────────────
+  - GateConsole: Inbound tab shows the 3 story containers as EXPECTED with appts + "ASN received" +
+    "ETA (orig → revised)"; container detail shows mounted chassis + specialInstructions. Show these
+    columns only when the fields are present so existing rows are unaffected.
+  - NightPlanner: plan-grouped view listing all 18 plans with status badges; P-300 renders the
+    existing amber "Superseded" badge; story plans P-100..P-500 show their steps (operator/equipment/
+    from→to/window).
+  - ControlTower: add to CATS map ETA_REVISION→"Shipping", ASN_RECEIVED→"Gate",
+    OUT_OF_SEQUENCE_ARRIVAL→"Yard audit"; EV-9003 detail shows supersedes P-300 / issues P-400 /
+    resolved 4 min.
+  - OperatorTablet: Justin/James/Mike queues show the story steps incl. Hook chassis + Chassis home;
+    RF-scan step matches the story container/slot.
+  - YardMap: story slots RA0101/STG0201/STG0202/STG0203/DB0203/DB0209/DB0211/CHA0101/CHA0102 are
+    locatable (add a display mapping if needed — do NOT change the layout engine).
+  - LiveOps (or a small new view): Shift-summary scorecard from STORY_SHIFT_SUMMARY, using existing
+    .ds-kpi styling.
+Run `npm run build`.
+
+────────────────────────────────────────────────────────────
+STEP 6 — Story highlighting (visual distinguishability)
+────────────────────────────────────────────────────────────
+Add a small, consistent "Demo" badge/highlight for any record where story === true, across every
+screen that lists them (gate rows, plan list, event list, operator queue, container detail, yard
+block tooltip). Use one shared badge component: a subtle pill (e.g. indigo text on light indigo,
+label "Demo" or "★"), never intrusive. Add a header toggle "Highlight demo thread" (default ON)
+that shows/hides the badges so you can present either way. Do not alter non-story rows' appearance
+when the toggle is off.
+Run `npm run build`.
+
+────────────────────────────────────────────────────────────
+STEP 7 — Final verification
+────────────────────────────────────────────────────────────
+Run `npm run build` AND `npm run test` — both must pass. Then confirm:
+  □ Volumes: ~45 gate rows, ~150 detailed + ~957 generated yard containers, 50 chassis, 12
+    operators, 18 plans, 17 events — nothing looks sparse.
+  □ Enrichment: no blank fields/forms on any story or context record.
+  □ Harmonization: context + story share carriers/consignees/vessels and ID formats — no clashes.
+  □ Story thread reaches all 6 screens and each story item shows the Demo badge (toggle ON).
+  □ P-300 amber "Superseded"; EV-9003 shows P-300→P-400; crew windows never overlap (except the
+    flagged coordinated lift); shift summary reads 3 received / 1 shipped / chassis 3/3 / 15:09.
+  □ Core nomenclature unchanged: no Container/GateContainerRow field renamed or removed.
+Give me a final report: every file changed, build+test status, and the checklist green.
+
+THROUGHOUT: additive only, optional fields only, build after every step, revert any step that breaks.
