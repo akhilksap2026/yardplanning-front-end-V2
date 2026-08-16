@@ -99,7 +99,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   const [wRaw,         setWRaw]         = useState([35, 40, 25])
 
   // ── Story plan expand state ──────────────────────────────────────────────────
-  const [expandedPlan, setExpandedPlan] = useState<string | null>(null)
+  const [expandedPlan,  setExpandedPlan]  = useState<string | null>(null)
+  const [plansOpen,     setPlansOpen]     = useState(true)
 
   // ── Constraint toggles + weights ────────────────────────────────────────────
   type ConstraintState = { enabled: boolean; weight: number }
@@ -920,14 +921,22 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           }
           return (
             <div style={{ margin:"0 20px 10px", border:"0.5px solid var(--ds-border)", borderRadius:10, background:"white", overflow:"hidden" }}>
-              <div style={{ padding:"7px 14px", display:"flex", alignItems:"center", gap:8, borderBottom:"0.5px solid var(--ds-border)", background:"var(--ds-border-lt)" }}>
+              <button
+                onClick={() => setPlansOpen(v => !v)}
+                style={{ width:"100%", padding:"7px 14px", display:"flex", alignItems:"center", gap:8,
+                  borderBottom: plansOpen ? "0.5px solid var(--ds-border)" : "none",
+                  background:"var(--ds-border-lt)", cursor:"pointer", textAlign:"left" as const,
+                  border:"none", outline:"none" }}>
                 <span style={{ fontSize:11, fontWeight:600, letterSpacing:"0.05em", textTransform:"uppercase" as const, color:"var(--ds-subtle)" }}>Plans overview</span>
                 <span style={{ fontSize:11, color:"var(--ds-subtle)" }}>{allPlans.length} plans</span>
                 {allPlans.some(p => p.status === "superseded") && (
                   <span style={{ fontSize:11, color:"#b45309" }}>· {allPlans.filter(p=>p.status==="superseded").length} superseded</span>
                 )}
-              </div>
-              <div style={{ display:"flex", flexWrap:"wrap" as const, gap:6, padding:"8px 14px" }}>
+                <span style={{ marginLeft:"auto", fontSize:10, color:"var(--ds-subtle)", transition:"transform 200ms", display:"inline-block",
+                  transform: plansOpen ? "rotate(0deg)" : "rotate(-90deg)" }}>▾</span>
+              </button>
+              <div style={{ display:"flex", flexWrap:"wrap" as const, gap:6, padding: plansOpen ? "8px 14px" : "0 14px",
+                maxHeight: plansOpen ? 1000 : 0, overflow:"hidden", transition:"max-height 220ms ease, padding 220ms ease" }}>
                 {allPlans.map(p => {
                   const st   = planStyle[p.status] ?? { bg:"#f3f4f6", fg:"#6b7280", label: p.status }
                   const isExp = expandedPlan === p.code
