@@ -482,7 +482,7 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                 </div>
                 <button onClick={() => { setQueueIdx(0); setCompletedIds(new Set()); resetForNextJob() }}
                   className="w-full py-3.5 text-white font-bold text-[14px]" style={{ background:AMBER, borderRadius:12 }}>
-                  Restart demo →
+                  Return to queue →
                 </button>
               </div>
             </div>
@@ -804,7 +804,7 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                         <div className="absolute bottom-3 left-0 right-0 flex justify-center">
                           <span className="text-[9px] font-bold tracking-widest px-3 py-1 rounded-full"
                             style={{ background:"rgba(245,158,11,0.18)", color:"#f59e0b", border:"1px solid rgba(245,158,11,0.35)" }}>
-                            TAP TO DEMO SCAN
+                            TAP TO SCAN
                           </span>
                         </div>
                       )}

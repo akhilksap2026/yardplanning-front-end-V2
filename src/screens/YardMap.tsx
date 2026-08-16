@@ -809,12 +809,12 @@ export default function YardMap({ focus, onNavigate }: Props) {
                   background:"white", border:"1px solid #e5e7eb", borderRadius:8,
                   boxShadow:"0 2px 8px rgba(0,0,0,0.09)", overflow:"hidden" }}>
                   <div style={{ padding:"5px 12px", display:"flex", alignItems:"center", gap:6,
-                    background:"#f0f9ff", borderBottom:"1px solid #bae6fd" }}>
+                    background:"#f9fafb", borderBottom:"1px solid #e5e7eb" }}>
                     <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.05em",
-                      textTransform:"uppercase" as const, color:"#0369a1" }}>
-                      Story containers · Zone R
+                      textTransform:"uppercase" as const, color:"#374151" }}>
+                      Zone R — pre-clearance
                     </span>
-                    <span style={{ fontSize:10, color:"#64748b" }}>{storyCtrs.length} containers — not shown in block grid</span>
+                    <span style={{ fontSize:10, color:"#6b7280" }}>{storyCtrs.length} container{storyCtrs.length !== 1 ? "s" : ""}</span>
                   </div>
                   <div style={{ overflow:"auto", maxHeight:200 }}>
                     <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>

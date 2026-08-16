@@ -369,24 +369,24 @@ export default function LiveOps({ onNavigate }: Props) {
         </div>
       </div>
 
-      {/* ── Story shift scorecard ────────────────────────────────────────── */}
-      <div className="flex flex-col border-b-2 border-[#e5e7eb] flex-none bg-[#f0f9ff]">
+      {/* ── Shift progress scorecard ─────────────────────────────────────── */}
+      <div className="flex flex-col border-b-2 border-[#e5e7eb] flex-none bg-[#fafafa]">
         <div className="flex items-baseline gap-3 px-5 py-1.5 border-b border-[#e5e7eb]">
-          <span className="ds-label" style={{ color:"#0369a1" }}>Shift summary · demo story</span>
-          <span className="text-[11px] text-neutral-500">close {STORY_SHIFT_SUMMARY.closeTime} · plans: {STORY_SHIFT_SUMMARY.plansExecuted.join(" · ")}</span>
+          <span className="ds-label text-neutral-500">Shift summary</span>
+          <span className="text-[11px] text-neutral-500">14:00–{STORY_SHIFT_SUMMARY.closeTime} · {STORY_SHIFT_SUMMARY.plansExecuted.length} plans executed</span>
         </div>
         <div className="flex items-stretch">
           {([
-            { k:"Received",           v:String(STORY_SHIFT_SUMMARY.received),               sub:"inbound containers",          color:"#111827" },
-            { k:"Shipped",            v:String(STORY_SHIFT_SUMMARY.shipped),                sub:"outbound dispatched",          color:"#111827" },
+            { k:"Received",           v:String(STORY_SHIFT_SUMMARY.received),               sub:"inbound containers",             color:"#111827" },
+            { k:"Shipped",            v:String(STORY_SHIFT_SUMMARY.shipped),                sub:"outbound dispatched",             color:"#111827" },
             { k:"Chassis returned",   v:`${STORY_SHIFT_SUMMARY.chassisReturned}/${STORY_SHIFT_SUMMARY.chassisTotal}`,  sub:"all accounted for", color: STORY_SHIFT_SUMMARY.chassisReturned === STORY_SHIFT_SUMMARY.chassisTotal ? "#166534" : "#d97706" },
             { k:"Disruptions",        v:String(STORY_SHIFT_SUMMARY.disruptionsHandled),     sub:`avg ${STORY_SHIFT_SUMMARY.disruptionAvgResolveMin} min resolve`, color:"#111827" },
             { k:"Plans executed",     v:String(STORY_SHIFT_SUMMARY.plansExecuted.length),   sub:STORY_SHIFT_SUMMARY.plansExecuted.join(" · "),    color:"#111827" },
             { k:"Plans superseded",   v:String(STORY_SHIFT_SUMMARY.plansSuperseded.length), sub:STORY_SHIFT_SUMMARY.plansSuperseded.join(" · ") || "none", color: STORY_SHIFT_SUMMARY.plansSuperseded.length > 0 ? "#b45309" : "#166534" },
-            { k:"Slots reconciled",   v:STORY_SHIFT_SUMMARY.slotsReconciled ? "Yes" : "No", sub:"end-of-shift audit",           color: STORY_SHIFT_SUMMARY.slotsReconciled ? "#166534" : "#dc2626" },
+            { k:"Slots reconciled",   v:STORY_SHIFT_SUMMARY.slotsReconciled ? "Yes" : "No", sub:"end-of-shift audit",             color: STORY_SHIFT_SUMMARY.slotsReconciled ? "#166534" : "#dc2626" },
           ] as { k: string; v: string; sub: string; color?: string }[]).map((m, i, arr) => (
             <div key={m.k} className="flex-1 px-5 py-2 flex flex-col gap-0.5"
-              style={{ borderRight: i < arr.length - 1 ? "1px solid #bae6fd" : undefined }}>
+              style={{ borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : undefined }}>
               <span className="ds-label text-neutral-500">{m.k}</span>
               <div className="flex items-baseline gap-2">
                 <span className="font-mono font-bold text-[22px] leading-none" style={{ color: m.color }}>{m.v}</span>
