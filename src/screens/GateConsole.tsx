@@ -1202,12 +1202,12 @@ export default function GateConsole({ focus, onNavigate }: Props) {
 
               {/* Pills */}
               {([
-                { id:"all",       label:"All",                  dot:null,     count: allRows.length },
-                { id:"alerts",    label:"Alerts",               dot:C.dangerFg, count: alertCount },
-                { id:"holds",     label:"Holds",                dot:C.warnFg,   count: holdsCount },
-                { id:"in_queue",  label:"In queue",             dot:null,     count: queueCount },
-                { id:"in_yard",   label:"In yard",              dot:null,     count: yardCount  },
-              ] as const).map(pill => {
+                { id:"all",       label:t("common.all"),          dot:null,     count: allRows.length },
+                { id:"alerts",    label:"Alerts",                 dot:C.dangerFg, count: alertCount },
+                { id:"holds",     label:"Holds",                  dot:C.warnFg,   count: holdsCount },
+                { id:"in_queue",  label:t("gateStatus.inQueue"),  dot:null,     count: queueCount },
+                { id:"in_yard",   label:t("gateStatus.served"),   dot:null,     count: yardCount  },
+              ] as { id:"all"|"alerts"|"holds"|"in_queue"|"in_yard"; label:string; dot:string|null; count:number }[]).map(pill => {
                 const active = filterPill === pill.id
                 return (
                   <button key={pill.id} onClick={()=>setFilterPill(pill.id)}
