@@ -2,7 +2,7 @@
  * story-seed.ts
  * Story-core module: the "One Shift in the Life of a YMSNow Yard" demo story.
  * Every record carries `story: true` so screens can filter it in or out.
- * All times are for the Aug 13 2026 14:00–15:09 shift window.
+ * All times are for the Aug 16 2026 06:00–14:00 shift window.
  *
  * Nothing imports this file yet — Step 4 will merge it into the live exports.
  * It is self-contained and must compile cleanly on its own.
@@ -271,7 +271,7 @@ export const STORY_ASNS: StoryASN[] = [
     containerId:   "EITU3333307",
     truckerScac:   "SCAC1",
     truckerName:   SCAC1.name,
-    asnReceivedAt: "2026-08-12T23:59",
+    asnReceivedAt: "2026-08-15T23:59",
     appt:          "14:00",
     etaOriginal:   "14:00",
     etaRevised:    "14:15",
@@ -281,7 +281,7 @@ export const STORY_ASNS: StoryASN[] = [
     containerId:   "DAIU4444460",
     truckerScac:   "SCAC2",
     truckerName:   SCAC2.name,
-    asnReceivedAt: "2026-08-12T23:59",
+    asnReceivedAt: "2026-08-15T23:59",
     appt:          "15:00",
     etaOriginal:   "15:00",
     etaRevised:    "14:25",  // early arrival
@@ -291,7 +291,7 @@ export const STORY_ASNS: StoryASN[] = [
     containerId:   "GAIU7777765",
     truckerScac:   "SCAC3",
     truckerName:   SCAC3.name,
-    asnReceivedAt: "2026-08-13T13:30",
+    asnReceivedAt: "2026-08-16T05:30",
     appt:          "14:50",
     etaOriginal:   "14:50",
     etaRevised:    "14:50",
@@ -344,7 +344,7 @@ export const STORY_PLANS: StoryPlan[] = [
     startMin:     minutesFromHHMM("15:00"), endMin: minutesFromHHMM("15:18"),
     crew:         ["Justin","James","Mike"],
     supersededBy: "P-400",
-    supersededAt: "2026-08-13T14:26",
+    supersededAt: "2026-08-16T07:12",
     story:        true,
   },
   {

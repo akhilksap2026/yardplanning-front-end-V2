@@ -268,7 +268,7 @@ const ZONE_Q_CONTAINERS: Container[] = [
     vessel:"MAERSK SALINA V.238W", terminal:"Terminal 4 BACTSSA",
     hazmat:false, imdg:null, channel:"sea", status:"CUSTOMS_CONTROLLED",
     hoursToLFD:120, dwellDays:8, priority:"P2", empty:false,
-    whyHere:"Quarantine hold: awaiting AFIP/ARCA Licencia No Automática (LNA) approval — auto-parts import, declaration DUA-2026-08-14-00441 lodged.",
+    whyHere:"Quarantine hold: awaiting AFIP/ARCA Licencia No Automática (LNA) approval — auto-parts import, declaration DUA-2026-08-16-00441 lodged.",
     seal:"AR473629", story: false,
   },
   {
@@ -450,13 +450,13 @@ export function buildRetrievalMoves(containers: Container[]): Move[] {
 }
 
 export const EXCEPTIONS = [
-  { id:"EX-01", type:"ZONE_FULL", severity:"high", subject:"Zone C at 80% ceiling", detail:"Two orange-channel arrivals have no eligible customs-controlled slot. Overflow policy requires a ceiling override.", action:"Request override" },
-  { id:"EX-02", type:"NO_CERTIFIED_OPERATOR", severity:"high", subject:"IMDG class 5.1 retrieval 09:20", detail:"Only OP-114 is IMDG certified on shift and is committed to a frozen chain until 09:40.", action:"Escalate" },
+  { id:"EX-01", type:"ZONE_FULL", severity:"medium", subject:"Zone C at 80% ceiling — 1 slot pending", detail:"One orange-channel arrival pending a customs-controlled slot. Ceiling override pre-approved; slot will release once the current retrieval completes.", action:"View slot" },
+  { id:"EX-02", type:"NO_CERTIFIED_OPERATOR", severity:"medium", subject:"IMDG class 5.1 retrieval rescheduled to 09:45", detail:"OP-114 committed to a frozen chain until 09:40; retrieval moved back 25 min with consignee notified. No free-time impact.", action:"Acknowledge" },
   { id:"EX-03", type:"WEIGHT_VS_REACH", severity:"medium", subject:"MSCU4419307 — 30.4 t at row 3", detail:"C4 violation against the Hyster RS46 capacity chart. Re-sited to row 1, tier 1 in Zone B.", action:"Accept re-site" }
 ];
 
 export const ASSUMPTIONS = [
-  { k:"Weight snapshot", v:"WS-2026-08-10#a41f9c", note:"frozen at generation" },
+  { k:"Weight snapshot", v:"WS-2026-08-14#a41f9c", note:"frozen at generation" },
   { k:"Machines available", v:"3 RS + 1 EH", note:"TT-01 in maintenance" },
   { k:"Shift pattern", v:"1 shift · 06:00–14:00", note:"D-10 unconfirmed" },
   { k:"Inbound mode", v:"Drop-and-go", note:"D-01 assumption" },

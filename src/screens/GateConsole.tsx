@@ -1062,7 +1062,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
       {tab==="appts" && (
         <div className="grid flex-1 min-h-0 overflow-auto" style={{ gridTemplateColumns:"minmax(360px,1fr) clamp(260px,26vw,360px)" }}>
           <div className="overflow-auto bg-white" style={{ borderRight:"1px solid #e5e7eb" }}>
-            <div className="px-4 pt-3 pb-1.5 ds-label text-neutral-500 font-bold">Bookable time slots · Tue 12 Aug · capacity from machine-hours, not lanes</div>
+            <div className="px-4 pt-3 pb-1.5 ds-label text-neutral-500 font-bold">Bookable time slots · Sun 16 Aug · capacity from machine-hours, not lanes</div>
             {appointments.map(a=>(
               <button key={a.window} onClick={()=>setApptSel(a.window)}
                 className="block w-full text-left px-4 py-2 border-b border-[#f3f4f6] hover:bg-[#f9fafb] transition-colors"
