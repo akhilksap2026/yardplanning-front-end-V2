@@ -1007,18 +1007,19 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                     {getDisplayOperation(selStep.operation)}
                   </div>
 
-                  {/* Route card — FROM / ↓ / TO */}
+                  {/* Route card — single line: FROM · loc → TO · loc */}
                   <div style={{ background:"var(--ds-border-lt)", border:"0.5px solid var(--ds-border)",
-                    borderRadius:6, padding:"10px 12px", marginBottom:12 }}>
-                    <div style={{ fontSize:10, fontWeight:600, letterSpacing:"0.5px", textTransform:"uppercase",
-                      color:"var(--ds-subtle)", marginBottom:4 }}>FROM</div>
-                    <div style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:500,
-                      color:"var(--text-primary)", marginBottom:8 }}>{fmtLoc(selStep.origin)}</div>
-                    <div style={{ color:"var(--ds-subtle)", fontSize:16, marginBottom:8, lineHeight:1 }}>↓</div>
-                    <div style={{ fontSize:10, fontWeight:600, letterSpacing:"0.5px", textTransform:"uppercase",
-                      color:"var(--ds-subtle)", marginBottom:4 }}>TO</div>
-                    <div style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:500,
-                      color:"var(--text-primary)" }}>{fmtLoc(selStep.destination)}</div>
+                    borderRadius:6, padding:"8px 12px", marginBottom:10,
+                    display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" as const }}>
+                    <span style={{ fontSize:10, fontWeight:600, letterSpacing:"0.5px", textTransform:"uppercase" as const,
+                      color:"var(--ds-subtle)", flexShrink:0 }}>FROM</span>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:500,
+                      color:"var(--text-primary)" }}>{fmtLoc(selStep.origin)}</span>
+                    <span style={{ color:"var(--ds-subtle)", fontSize:14, flexShrink:0 }}>→</span>
+                    <span style={{ fontSize:10, fontWeight:600, letterSpacing:"0.5px", textTransform:"uppercase" as const,
+                      color:"var(--ds-subtle)", flexShrink:0 }}>TO</span>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:500,
+                      color:"var(--text-primary)" }}>{fmtLoc(selStep.destination)}</span>
                   </div>
 
                   {/* Extra movement indicator */}
