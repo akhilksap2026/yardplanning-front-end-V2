@@ -1110,6 +1110,10 @@ export default function GateConsole({ focus, onNavigate }: Props) {
       {(tab === "inbound" || tab === "outbound") && (() => {
         const isInbound = tab === "inbound"
         const allRows   = isInbound ? inboundRows : outboundRows
+        // Story-enriched column flags — additive, invisible on rows that lack the field
+        const hasAsn    = allRows.some(r => !!(r as any).asnReceivedAt)
+        const hasEta    = allRows.some(r => !!(r as any).etaOriginal)
+        const extraCols = (hasAsn ? 1 : 0) + (hasEta ? 1 : 0)
 
         // ── Alert priority sort ───────────────────────────────────────────
         const alertScore = (r: LiveGateRow) =>
@@ -1263,12 +1267,14 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                     <th className={TH} style={{ ...thStyle, textAlign:"right" }}>LFD</th>
                     <th className={TH} style={thStyle}>Hold</th>
                     <th className={TH} style={thStyle}>Status</th>
+                    {isInbound && hasAsn && <th className={TH} style={thStyle}>ASN rcvd</th>}
+                    {isInbound && hasEta && <th className={TH} style={{ ...thStyle, textAlign:"center" as const }}>ETA orig → rev</th>}
                     <th className={TH} style={{ ...thStyle, color:"transparent" }}>·</th>
                   </tr>
                 </thead>
                 <tbody>
                   {visibleRows.length === 0 && (
-                    <tr><td colSpan={11} className="px-5 py-8 text-center"
+                    <tr><td colSpan={11 + extraCols} className="px-5 py-8 text-center"
                       style={{ color: C.textDim, fontSize:12 }}>
                       No containers match the current filter.
                     </td></tr>
@@ -1322,6 +1328,17 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                             <div className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded"
                               style={{ fontSize:11, fontWeight:600, background: alertTag.bg, color: alertTag.fg }}>
                               {isBreach ? "⚠" : "!"} {alertTag.text}
+                            </div>
+                          )}
+                          {/* Story: chassis ID + special instructions */}
+                          {isInbound && !!(r as any).chassis && (
+                            <div style={{ fontSize:11, fontWeight:500, color: C.accentFg, marginTop:4 }}>
+                              🔗 {(r as any).chassis}
+                            </div>
+                          )}
+                          {isInbound && !!(r as any).specialInstructions && (
+                            <div style={{ fontSize:11, color:"#b45309", marginTop:2, fontStyle:"italic" }}>
+                              {(r as any).specialInstructions}
                             </div>
                           )}
                         </td>
@@ -1391,6 +1408,43 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                             {stLabel}
                           </span>
                         </td>
+
+                        {/* 10a. ASN received (story inbound rows only) */}
+                        {isInbound && hasAsn && (
+                          <td style={tdStyle}>
+                            {(r as any).asnReceivedAt ? (
+                              <>
+                                <div style={{ fontSize:12, fontWeight:600, color:"#166534" }}>✓ received</div>
+                                <div className="font-mono" style={{ fontSize:11, color: C.textMuted, marginTop:2 }}>
+                                  {String((r as any).asnReceivedAt).slice(0,10)}
+                                </div>
+                              </>
+                            ) : (
+                              <span style={{ color: C.textDim, fontSize:14 }}>—</span>
+                            )}
+                          </td>
+                        )}
+
+                        {/* 10b. ETA original → revised (story inbound rows only) */}
+                        {isInbound && hasEta && (
+                          <td style={{ ...tdStyle, textAlign:"center" }}>
+                            {(r as any).etaOriginal ? (
+                              <div className="font-mono" style={{ fontSize:12, fontWeight:600 }}>
+                                {(r as any).etaRevised && (r as any).etaRevised !== (r as any).etaOriginal ? (
+                                  <>
+                                    <span style={{ color: C.textMuted }}>{(r as any).etaOriginal}</span>
+                                    <span style={{ color: C.textDim }}> → </span>
+                                    <span style={{ color:"#d97706" }}>{(r as any).etaRevised}</span>
+                                  </>
+                                ) : (
+                                  <span style={{ color: C.text }}>{(r as any).etaOriginal}</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span style={{ color: C.textDim, fontSize:14 }}>—</span>
+                            )}
+                          </td>
+                        )}
 
                         {/* 11. Seal (compact) */}
                         <td style={{ ...tdStyle, textAlign:"right" }}>

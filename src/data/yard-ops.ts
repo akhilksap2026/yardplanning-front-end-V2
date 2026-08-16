@@ -1,7 +1,11 @@
+import { STORY_EVENTS, STORY_STEPS } from "./story-seed";
+import { CONTEXT_EVENTS } from "./context-seed";
+
 export interface Visit {
   id: string; plate: string; carrier: string; driver: string; purpose: string; appt: string;
   queueIn: string|null; checkIn: string|null; atPosition: string|null; served: string|null;
   gateOut: string|null; state: string; turn: number; lane: string; container: string; excl: string|null;
+  chassis?: string;
 }
 
 export const VISITS: Visit[] = [
@@ -40,7 +44,7 @@ export interface Event {
   diff: { cancelled: number; added: number; reassigned: number; frozenKept: number; deltaMin: number; adherence: number };
 }
 
-export const EVENTS: Event[] = [
+const _EVENTS_BASE: Event[] = [
   { id:"EV-7741", time:"06:07", type:"EQUIPMENT_FAILURE", severity:"high", state:"replanned", auto:"Partial", title:"RS-03 hydraulic fault — out of service", detail:"Hyster RS46 reported a hydraulic fault at row C-02. 14 assigned moves redistributed across RS-01 and RS-02; one IMDG retrieval escalated because OP-114 is the sole certified operator on shift.", diff:{cancelled:0,added:2,reassigned:14,frozenKept:5,deltaMin:26,adherence:-4} },
   { id:"EV-7742", time:"06:19", type:"CUSTOMS_CHANNEL_ASSIGNED", severity:"high", state:"replanned", auto:"Auto", title:"MSCU4419307 assigned orange channel", detail:"ARCA selectivity returned Sea channel. Container routed to inspection bay, reserved staging slot released and backfilled with the next LFD-critical unit. Dwell forecast extended 4.1 days, which re-tiers its slot assignment to deep-and-low.", diff:{cancelled:1,added:3,reassigned:2,frozenKept:0,deltaMin:11,adherence:-1} },
   { id:"EV-7743", time:"06:24", type:"SHIP_DELAY", severity:"medium", state:"suppressed", auto:"Auto", title:"MSC LUCIA V.412E ETA slipped 45 min", detail:"Projected saving from resequencing is 3.2 machine-minutes, below the 8-minute minimum improvement threshold. Replan suppressed by the stability controller; the baseline holds and operators see no change.", diff:{cancelled:0,added:0,reassigned:0,frozenKept:12,deltaMin:3.2,adherence:0} },
@@ -72,23 +76,48 @@ function _stepDur(s: PlanningStep): string {
   return ((new Date(s.estimated_end).getTime() - new Date(s.estimated_start).getTime()) / 60000).toFixed(1)
 }
 
-export const OPERATOR_TASKS = allSteps
-  .filter(s => s.operator != null && s.step_status !== "Completed")
-  .slice(0, 5)
-  .map((s, i) => ({
-    id:        `MV-${1028 + i}`,
-    seq:       `${s.planned_step ?? s.step_number ?? i + 1} of ${allSteps.filter(x => x.operator === s.operator).length}`,
-    type:      s.operation,
-    container: s.container_id ?? "",
-    from:      _fmtLoc(s.origin),
-    to:        _fmtLoc(s.destination),
-    est:       _stepDur(s),
-    reason:    s.operator_pickup ?? s.operation,
-  }))
+// Story tasks for Justin / James / Mike — mapped from STORY_STEPS, surfaced first
+const _storyTasks = STORY_STEPS.map((s, i) => ({
+  id:        `MV-ST-${String(i + 1).padStart(3, "0")}`,
+  seq:       `${s.seq} of ${STORY_STEPS.filter(x => x.planCode === s.planCode).length}`,
+  type:      s.operation,
+  container: s.containerId ?? "",
+  from:      s.from,
+  to:        s.to,
+  est:       String(s.endMin - s.startMin),
+  reason:    `${s.planCode} · ${s.method}`,
+  chassis:   s.chassis ?? undefined,
+}));
+
+export const OPERATOR_TASKS = [
+  ..._storyTasks,
+  ...allSteps
+    .filter(s => s.operator != null && s.step_status !== "Completed")
+    .slice(0, 5)
+    .map((s, i) => ({
+      id:        `MV-${1028 + i}`,
+      seq:       `${s.planned_step ?? s.step_number ?? i + 1} of ${allSteps.filter(x => x.operator === s.operator).length}`,
+      type:      s.operation,
+      container: s.container_id ?? "",
+      from:      _fmtLoc(s.origin),
+      to:        _fmtLoc(s.destination),
+      est:       _stepDur(s),
+      reason:    s.operator_pickup ?? s.operation,
+    })),
+];
 
 /** Seed queue for each operator — task IDs in execution order */
 export const OPERATOR_QUEUES: Record<string, string[]> = {
   "OP-114": ["MV-1028", "MV-1029", "MV-1030", "MV-1031", "MV-1032"],
+  "OP-J01": STORY_STEPS
+    .map((s, i) => ({ id: `MV-ST-${String(i + 1).padStart(3, "0")}`, op: s.operator }))
+    .filter(t => t.op === "Justin").map(t => t.id),
+  "OP-J02": STORY_STEPS
+    .map((s, i) => ({ id: `MV-ST-${String(i + 1).padStart(3, "0")}`, op: s.operator }))
+    .filter(t => t.op === "James").map(t => t.id),
+  "OP-M01": STORY_STEPS
+    .map((s, i) => ({ id: `MV-ST-${String(i + 1).padStart(3, "0")}`, op: s.operator }))
+    .filter(t => t.op === "Mike").map(t => t.id),
 };
 
 export const TURN_BY_HOUR = [
@@ -117,4 +146,12 @@ export const CAPACITY = [
   { month:"Nov", volume:900, required:40.2, available:32, breach:true },
   { month:"Dec", volume:980, required:44.8, available:40, breach:true },
   { month:"Jan", volume:1050, required:49.1, available:40, breach:true }
+];
+
+// ── Merged EVENTS export (base + story + context) ─────────────────────────────
+
+export const EVENTS: Event[] = [
+  ..._EVENTS_BASE,
+  ...STORY_EVENTS,
+  ...CONTEXT_EVENTS,
 ];

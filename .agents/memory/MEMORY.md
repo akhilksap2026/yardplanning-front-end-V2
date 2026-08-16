@@ -2,3 +2,4 @@
 - [PostgreSQL numeric types](pg-numeric-casting.md) — pg returns DECIMAL/NUMERIC as strings; always cast ::float in SELECT for any numeric column used in JS arithmetic
 - [Design system applied](design-system.md) — full DS applied to all 6 screens + CommandPalette; key tokens and gotchas documented
 - [i18n architecture](i18n-architecture.md) — lightweight LangContext + useLang() hook; EN/ES; persisted to settings table in DB
+- [Story seed type shapes](story-seed-types.md) — StoryPlan/ContextPlan use `title` not `label`, `startTime`/`endTime` not `window`; StoryShiftSummary has no KPI shorthands

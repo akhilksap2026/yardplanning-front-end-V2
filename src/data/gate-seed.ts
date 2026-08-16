@@ -7,6 +7,7 @@
  * scac        = shipping-line BIC/SCAC (always the first 4 chars of containerId)
  * truckerScac = road-carrier SCAC from the truckers lookup table
  */
+import { CONTEXT_GATE_ROWS } from "./context-seed";
 
 export interface GateContainerRow {
   containerId:  string
@@ -28,14 +29,26 @@ export interface GateContainerRow {
   isoType:      string
   sealNumber:   string
   /** Populated by the live API join — free days granted by the shipping line */
-  freeDays?:    number
+  freeDays?:           number
   /** Populated by the live API join — detention rate basis */
-  detentionBasis?: string
+  detentionBasis?:     string
+  /** ISO-8601 datetime when the ASN/booking was received at the gate system */
+  asnReceivedAt?:      string
+  /** "HH:MM" original ETA before any revision */
+  etaOriginal?:        string
+  /** "HH:MM" revised ETA (differs from etaOriginal when an ETA_REVISION fired) */
+  etaRevised?:         string
+  /** Chassis ID that arrived or departed with this container */
+  chassis?:            string
+  /** Free-text handling instructions surfaced in the gate detail panel */
+  specialInstructions?: string
+  /** true on the 4 story gate rows; false on context-generated rows */
+  story?:              boolean
 }
 
 // ─── INBOUND — 28 containers ──────────────────────────────────────────────
 
-export const INBOUND_SEED: GateContainerRow[] = [
+const _INBOUND_BASE: GateContainerRow[] = [
   { containerId:"OOLU0000043", scac:"OOLU", size:"40ft HC", consignee:"Bosch Argentina",        carrierName:"OOCL",            truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"M. Coronel",   plate:"AD 190 QT", channel:"road",    appt:"06:00", gateStatus:"GATE_OUT",    hoursToLFD:48,  hold:null,      excl:null,                                          grossKg:24_800, isoType:"45G1", sealNumber:"BRG-441892" },
   { containerId:"TCLU0000041", scac:"TCLU", size:"20ft",    consignee:"Magna Rosario",           carrierName:"Triton Container", truckerScac:"LAND", trucker:"Log. Andina",       driver:"R. Paz",       plate:"AE 552 RB", channel:"road",    appt:"06:15", gateStatus:"GATE_OUT",    hoursToLFD:72,  hold:null,      excl:null,                                          grossKg:18_400, isoType:"22G1", sealNumber:"TRI-009341" },
   { containerId:"MSCU0000040", scac:"MSCU", size:"40ft",    consignee:"Denso Sudamérica",        carrierName:"MSC",             truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"L. Ferreyra",  plate:"AB 774 JD", channel:"sea",     appt:"06:30", gateStatus:"GATE_OUT",    hoursToLFD:20,  hold:"customs", excl:"Customs hold — pending ARCA release",         grossKg:21_200, isoType:"42G1", sealNumber:"MSC-774002" },
@@ -88,7 +101,7 @@ export const INBOUND_SEED: GateContainerRow[] = [
 
 // ─── OUTBOUND — 31 containers ─────────────────────────────────────────────
 
-export const OUTBOUND_SEED: GateContainerRow[] = [
+const _OUTBOUND_BASE: GateContainerRow[] = [
   { containerId:"TCLU0000006", scac:"TCLU", size:"40ft HC", consignee:"Denso Sudamérica",        carrierName:"Triton Container", truckerScac:"DSUR", trucker:"Drayage Sur",       driver:"P. Molina",    plate:"AC 883 MN", channel:"road",    appt:"06:00", gateStatus:"GATE_OUT",    hoursToLFD:0,   hold:null,      excl:null,                                          grossKg:23_400, isoType:"45G1", sealNumber:"TRI-661002" },
   { containerId:"OOLU0000008", scac:"OOLU", size:"20ft",    consignee:"Autopartes del Sur SA",   carrierName:"OOCL",            truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"J. Álvarez",   plate:"AF 421 KL", channel:"road",    appt:"06:15", gateStatus:"GATE_OUT",    hoursToLFD:2,   hold:null,      excl:null,                                          grossKg:14_200, isoType:"22G1", sealNumber:"OOC-019931" },
   { containerId:"MSCU0000005", scac:"MSCU", size:"40ft",    consignee:"Bosch Argentina",         carrierName:"MSC",             truckerScac:"LAND", trucker:"Log. Andina",       driver:"C. Ríos",      plate:"AM 330 BV", channel:"sea",     appt:"06:30", gateStatus:"SERVED",      hoursToLFD:8,   hold:null,      excl:"Weight discrepancy — reweigh in progress",    grossKg:26_800, isoType:"42G1", sealNumber:"MSC-002441" },
@@ -135,4 +148,67 @@ export const OUTBOUND_SEED: GateContainerRow[] = [
   { containerId:"OOLU0000043b", scac:"OOLU", size:"40ft HC", consignee:"Tenneco Argentina",      carrierName:"OOCL",            truckerScac:"EDPL", trucker:"Expreso del Plata", driver:"F. Altamirano",plate:"BO 889 YT", channel:"road",    appt:"17:15", gateStatus:"EXPECTED",    hoursToLFD:104, hold:null,      excl:null,                                          grossKg:25_900, isoType:"45G1", sealNumber:"OOC-112891" },
   { containerId:"TCLU0000044b", scac:"TCLU", size:"20ft",    consignee:"Scania Argentina",       carrierName:"Triton Container", truckerScac:"RIVA", trucker:"Transportes Rivas", driver:"G. Sandoval",  plate:"BP 221 NM", channel:"road",    appt:"17:30", gateStatus:"EXPECTED",    hoursToLFD:48,  hold:null,      excl:null,                                          grossKg:17_300, isoType:"22G1", sealNumber:"TRI-991801" },
   { containerId:"CMAU0000045b", scac:"CMAU", size:"40ft",    consignee:"Volvo Group Arg.",       carrierName:"CMA CGM",         truckerScac:"LAND", trucker:"Log. Andina",       driver:"J. Álvarez",   plate:"BQ 663 JF", channel:"road",    appt:"17:45", gateStatus:"EXPECTED",    hoursToLFD:80,  hold:null,      excl:null,                                          grossKg:23_700, isoType:"42G1", sealNumber:"CMA-881923" },
-]
+];
+
+// ── Story gate rows ────────────────────────────────────────────────────────────
+
+const _STORY_INBOUND: GateContainerRow[] = [
+  {
+    containerId:"EITU3333307", scac:"EGLV", size:"40ft HC",
+    consignee:"Meridian Auto Parts", carrierName:"Evergreen",
+    truckerScac:"SCAC1", trucker:"Seaboard Cartage Co.",
+    driver:"A. Vega", plate:"CA 014 SC", channel:"road",
+    appt:"14:00", gateStatus:"SERVED", hoursToLFD:96,
+    hold:null, excl:null, grossKg:24_600, isoType:"45G1", sealNumber:"EIT-334120",
+    story:true, asnReceivedAt:"2026-08-12T23:59", etaOriginal:"14:00", etaRevised:"14:15",
+    chassis:"CB211111",
+  },
+  {
+    containerId:"DAIU4444460", scac:"DAIU", size:"40ft",
+    consignee:"Cordoba Industrial", carrierName:"DAL Shipping",
+    truckerScac:"SCAC2", trucker:"Summit Container Lines",
+    driver:"B. Castro", plate:"CB 088 SM", channel:"road",
+    appt:"15:00", gateStatus:"AT_POSITION", hoursToLFD:108,
+    hold:null, excl:"Early arrival — 35 min ahead of window",
+    grossKg:21_900, isoType:"42G1", sealNumber:"DAI-771905",
+    story:true, asnReceivedAt:"2026-08-12T23:59", etaOriginal:"15:00", etaRevised:"14:25",
+    chassis:"CB22222",
+  },
+  {
+    containerId:"GAIU7777765", scac:"GAIU", size:"20ft",
+    consignee:"Rosario Logistics", carrierName:"Gold Star Line",
+    truckerScac:"SCAC3", trucker:"Sierra Drayage Group",
+    driver:"C. Mora", plate:"CC 152 SG", channel:"road",
+    appt:"14:50", gateStatus:"EXPECTED", hoursToLFD:84,
+    hold:null, excl:null, grossKg:16_400, isoType:"22G1", sealNumber:"GAI-220338",
+    story:true, asnReceivedAt:"2026-08-13T13:30", etaOriginal:"14:50", etaRevised:"14:50",
+    chassis:"CB211111",
+  },
+];
+
+const _STORY_OUTBOUND: GateContainerRow[] = [
+  {
+    containerId:"MSCU1234566", scac:"MSCU", size:"40ft HC",
+    consignee:"Denso Sudamérica", carrierName:"MSC",
+    truckerScac:"SCAC1", trucker:"Seaboard Cartage Co.",
+    driver:"R. Quintero", plate:"CA 014 SC", channel:"road",
+    appt:"14:23", gateStatus:"GATE_OUT", hoursToLFD:6,
+    hold:null, excl:null, grossKg:23_400, isoType:"45G1", sealNumber:"MSC-661002",
+    story:true, chassis:"CABC54321",
+    specialInstructions:"Reefer genset OFF — dry load. Deliver dock 4, appointment held.",
+  },
+];
+
+// ── Final merged exports (base + context + story) ─────────────────────────────
+
+export const INBOUND_SEED: GateContainerRow[] = [
+  ..._INBOUND_BASE,
+  ...(CONTEXT_GATE_ROWS.filter(r => r.direction === "inbound") as GateContainerRow[]),
+  ..._STORY_INBOUND,
+];
+
+export const OUTBOUND_SEED: GateContainerRow[] = [
+  ..._OUTBOUND_BASE,
+  ...(CONTEXT_GATE_ROWS.filter(r => r.direction === "outbound") as GateContainerRow[]),
+  ..._STORY_OUTBOUND,
+];

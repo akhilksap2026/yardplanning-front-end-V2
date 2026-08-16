@@ -799,6 +799,48 @@ export default function YardMap({ focus, onNavigate }: Props) {
                 showCongestion={false}
               />
             )}
+
+            {/* ── Story container locator (zone R — outside block grid) ──────── */}
+            {(() => {
+              const storyCtrs = containers.filter(c => !!(c as any).story)
+              if (!storyCtrs.length) return null
+              return (
+                <div style={{ position:"absolute", bottom:8, left:8, zIndex:20, maxWidth:380,
+                  background:"white", border:"1px solid #e5e7eb", borderRadius:8,
+                  boxShadow:"0 2px 8px rgba(0,0,0,0.09)", overflow:"hidden" }}>
+                  <div style={{ padding:"5px 12px", display:"flex", alignItems:"center", gap:6,
+                    background:"#f0f9ff", borderBottom:"1px solid #bae6fd" }}>
+                    <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.05em",
+                      textTransform:"uppercase" as const, color:"#0369a1" }}>
+                      Story containers · Zone R
+                    </span>
+                    <span style={{ fontSize:10, color:"#64748b" }}>{storyCtrs.length} containers — not shown in block grid</span>
+                  </div>
+                  <div style={{ overflow:"auto", maxHeight:200 }}>
+                    <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
+                      <thead>
+                        <tr style={{ background:"#f9fafb", borderBottom:"1px solid #e5e7eb" }}>
+                          <th style={{ padding:"4px 10px", textAlign:"left" as const, fontWeight:600, color:"#6b7280", fontSize:10 }}>Container</th>
+                          <th style={{ padding:"4px 10px", textAlign:"left" as const, fontWeight:600, color:"#6b7280", fontSize:10 }}>Slot address</th>
+                          <th style={{ padding:"4px 10px", textAlign:"left" as const, fontWeight:600, color:"#6b7280", fontSize:10 }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {storyCtrs.map(c => (
+                          <tr key={c.id} style={{ borderBottom:"1px solid #f3f4f6" }}
+                            onClick={() => setSel(c.id)}
+                            className="cursor-pointer hover:bg-[#f0f9ff] transition-colors">
+                            <td className="font-mono" style={{ padding:"4px 10px", fontWeight:600 }}>{c.id}</td>
+                            <td className="font-mono" style={{ padding:"4px 10px", color:"#0369a1" }}>{c.address || "—"}</td>
+                            <td style={{ padding:"4px 10px", color:"#6b7280" }}>{c.status || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
 
           {/* ── RIGHT DRAWER — flex sibling that slides in ─────────────────────── */}

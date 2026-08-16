@@ -5,6 +5,8 @@
 // assignments are guaranteed consistent.
 
 import fixture from "./planningResults.json";
+import { STORY_PLANS, STORY_STEPS, type StoryStep } from "./story-seed";
+import { CONTEXT_PLANS } from "./context-seed";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -54,6 +56,10 @@ export interface PlanningStep {
   estimated_end: string | null;
   actual_start: string | null;
   actual_end: string | null;
+  /** Plan code this step belongs to (populated for story/context steps) */
+  plan_code?: string | null;
+  /** true on story steps, false/absent on fixture steps */
+  story?: boolean;
 }
 
 export interface ContainerSummary {
@@ -172,4 +178,18 @@ export function stepsByBay(): Map<number | string, PlanningStep[]> {
     }
   }
   return byBay;
+}
+
+// ── Story / context plan integration ──────────────────────────────────────────
+
+/** Re-exported so screens can import plans from a single entry-point */
+export { STORY_PLANS, CONTEXT_PLANS };
+
+/**
+ * All story steps for a given plan code, ordered by seq.
+ * Returns an empty array for unknown plan codes.
+ */
+export function stepsForPlan(code: string): StoryStep[] {
+  return STORY_STEPS.filter(s => s.planCode === code)
+    .sort((a, b) => a.seq - b.seq);
 }

@@ -1,0 +1,106 @@
+PHASE 2 — IMPLEMENTATION (after Phase 1 report)
+═══════════════════════════════════════════════════════════════════════
+GOLDEN RULES:
+  - Every new interface field is OPTIONAL (with ?). Existing rows must still compile.
+  - Run `npm run build` after EACH step. If it fails, fix or revert THAT step before continuing.
+  - Never delete or rename existing seed rows/fields. Only ADD.
+  - Keep a running list of every file touched.
+
+────────────────────────────────────────────────────────────
+STEP 1 — Shared reference pool (harmonization foundation)
+────────────────────────────────────────────────────────────
+Create src/data/reference-pools.ts exporting ONE canonical set reused by BOTH the generator and
+the story/context seeds, so nothing clashes:
+  - CARRIERS: MSC(MSCU), Maersk(MAEU), CMA CGM(CMAU), Hapag-Lloyd(HLXU), COSCO(COSU), OOCL(OOLU),
+    Evergreen(EGLV), Yang Ming(YMLU), ONE(ONEU), HMM(HMMU)
+  - TRUCKERS: SCAC1 "Seaboard Cartage Co." (94%), SCAC2 "Summit Container Lines" (88%),
+    SCAC3 "Sierra Drayage Group" (91%), RIVA "Transportes Rivas", LAND "Log. Andina", DSUR "Drayage Sur"
+  - CONSIGNEES, priority/channel pools (reuse the exact strings already in yard-data.ts). Do NOT
+    include a vessels pool — vessels are out of scope for this app.
+  - Helpers: chassisId(n) → "CB######", chaRow(n) → "CHA####", planCode(n) → "P-###",
+    containerId(scac, seq) → SCAC + 7 digits.
+Refactor yard-data.ts's buildContainers() to import CARRIERS/CONSIGNEES from this module (do NOT
+change the generation logic or the ~957 volume — only the source of the pools). Leave the
+generator's existing `vessel` assignment as-is so nothing breaks, but do not add vessel data to any
+new record. Add `story: false` to every generated container object.
+Run `npm run build`.
+
+────────────────────────────────────────────────────────────
+STEP 2 — Story core module (validated data, flagged)
+────────────────────────────────────────────────────────────
+Create src/data/story-seed.ts with the coherence-validated story core, every record carrying
+`story: true`. Use these EXACT values (times are the Aug 13 shift; do not alter):
+
+TRUCKERS: SCAC1/SCAC2/SCAC3 (from reference-pools).
+STORY_OPERATORS: Justin (ForkLift1, RS+IMDG, 14:00–22:00), James (Jockey1, TT, 14:00–22:00),
+  Mike (gate inspector, INSPECT, 14:00–22:00).
+STORY_EQUIPMENT: ForkLift1 (Kalmar DRG450, hourMeter 12480, op Justin),
+  Jockey1 (Terberg YT223, hourMeter 18320, op James).
+STORY_CHASSIS: CABC54321 (40ft gooseneck, home CHA0101, ownedBy SCAC1, status "departed" — leaves
+  mounted with the outbound load), CB211111 (40ft std, home CHA0101, ownedBy yard, returned,
+  currentLocation CHA0101), CB22222 (40ft std, home CHA0102, ownedBy yard, returned, currentLocation CHA0102).
+STORY_CONTAINERS (enriched — fill EVERY field):
+  EITU3333307 disp EITU333330-7 40ftHC 45G1 24600kg tare3980 seal EIT-334120 Evergreen
+    consignee "Meridian Auto Parts" verde LFD96h dwell0 P3 role inbound finalSlot DB0203
+  DAIU4444460 disp DAIU444446-0 40ft 42G1 21900kg tare3750 seal DAI-771905 "DAL Shipping"
+    consignee "Cordoba Industrial" verde LFD108h dwell0 P3 role inbound finalSlot DB0209
+  GAIU7777765 disp GAIU777776-5 20ft 22G1 16400kg tare2180 seal GAI-220338 "Gold Star Line"
+    consignee "Rosario Logistics" verde LFD84h dwell0 P3 role inbound finalSlot DB0211
+  MSCU1234566 disp MSCU123456-6 40ftHC 45G1 23400kg tare3900 seal MSC-661002 MSC
+    consignee "Denso Sudamérica" verde LFD6h dwell4 P2 role outbound stackPos RA0101 stagePos STG0203
+  (no vessel field on any story container — vessels are out of scope)
+    specialInstructions "Reefer genset OFF — dry load. Deliver dock 4, appointment held."
+  MSCU2345179 disp MSCU234517-9 40ft 42G1 19800kg seal MSC-334120 MSC "Bosch Argentina" verde LFD40h dwell6 P3 role rehandle
+  MSCU3451236 disp MSCU345123-6 20ft 22G1 15200kg seal MSC-118093 MSC "Magna Rosario" verde LFD52h dwell3 P4 role rehandle
+  MSCU4512362 disp MSCU451236-2 40ft 42G1 20400kg seal MSC-990241 MSC "Valeo BA" verde LFD64h dwell5 P4 role housekeeping
+STORY_ASNS:
+  EITU3333307 SCAC1 asnReceivedAt 2026-08-12T23:59 appt14:00 etaOriginal14:00 etaRevised14:15
+  DAIU4444460 SCAC2 asnReceivedAt 2026-08-12T23:59 appt15:00 etaOriginal15:00 etaRevised14:25 (early)
+  GAIU7777765 SCAC3 asnReceivedAt 2026-08-13T13:30 appt14:50 etaOriginal14:50 etaRevised14:50
+STORY_PLANS:
+  P-100 "Stage outbound MSCU123456-6" confirmed 14:00–14:07 crew Justin,James
+  P-200 "Putaway EITU333330-7" confirmed 14:15–14:43 crew Justin,James,Mike
+  P-300 "Putaway DAIU444446-0 (stale)" superseded supersededBy P-400 supersededAt 2026-08-13T14:26
+  P-400 "Putaway DAIU444446-0 (early arrival)" in_progress 14:30–14:48 crew Justin,James,Mike
+  P-500 "Putaway GAIU777776-5" confirmed 15:00–15:09 crew Justin,James,Mike
+STORY_STEPS (plan,seq,op,container,from,to,operator,equipment,chassis,start,end,method,note) —
+  use EXACTLY these windows (they are collision-free; the ONE deliberate same-operator overlap is
+  P-100#3 flagged pairedWith:2 for the coordinated lift):
+  P-100#1 "Outbound staging" MSCU1234566 RA0101→RA0101 Justin ForkLift1 - 14:00-14:02 "Crane lift"
+  P-100#2 "Fetch chassis" - CHA0101→RA0101 James Jockey1 CABC54321 14:00-14:03 "Yard-truck haul"
+  P-100#3 "Mount container" MSCU1234566 RA0101→RA0101 Justin ForkLift1 CABC54321 14:03-14:05 "Crane lift" pairedWith:2
+  P-100#4 "Move to staging" MSCU1234566 RA0101→STG0203 James Jockey1 CABC54321 14:05-14:06 "Move to staging"
+  P-100#5 "Digout" MSCU2345179 RA0101→RA0104 Justin ForkLift1 - 14:05-14:06 "Crane lift"
+  P-100#6 "Digout" MSCU3451236 RA0101→RA0105 Justin ForkLift1 - 14:06-14:07 "Crane lift"
+  P-100#7 "Housekeeping" MSCU4512362 RA0102→RA0106 James Jockey1 - 14:06-14:07 "Move to staging"
+  P-200#1 "Inspection" EITU3333307 GATE→GATE Mike - CB211111 14:15-14:20 "Inspection"
+  P-200#2 "Hook chassis" EITU3333307 STG0202→STG0202 James Jockey1 CB211111 14:30-14:32 "Yard-truck haul"
+  P-200#3 "Drive to block" EITU3333307 STG0202→DB James Jockey1 CB211111 14:32-14:36 "Yard-truck haul"
+  P-200#4 "Demount + stack" EITU3333307 DB→DB0203 Justin ForkLift1 CB211111 14:38-14:41 "Crane lift"
+  P-200#5 "Chassis home" - DB→CHA0101 James Jockey1 CB211111 14:41-14:43 "Yard-truck haul"
+  P-400#1 "Inspection" DAIU4444460 GATE→GATE Mike - CB22222 14:30-14:34 "Inspection"
+  P-400#2 "Hook chassis" DAIU4444460 STG0202→STG0202 James Jockey1 CB22222 14:36-14:38 "Yard-truck haul"
+  P-400#3 "Drive to block" DAIU4444460 STG0202→DB James Jockey1 CB22222 14:38-14:41 "Yard-truck haul"
+  P-400#4 "Demount + stack" DAIU4444460 DB→DB0209 Justin ForkLift1 CB22222 14:43-14:46 "Crane lift"
+  P-400#5 "Chassis home" - DB→CHA0102 James Jockey1 CB22222 14:46-14:48 "Yard-truck haul"
+  P-500#1 "Inspection" GAIU7777765 GATE→GATE Mike - CB211111 15:00-15:03 "Inspection"
+  P-500#2 "Hook chassis" GAIU7777765 STG0201→STG0201 James Jockey1 CB211111 15:03-15:05 "Yard-truck haul"
+  P-500#3 "Drive to block" GAIU7777765 STG0201→DB James Jockey1 CB211111 15:05-15:07 "Yard-truck haul"
+  P-500#4 "Demount + stack" GAIU7777765 DB→DB0211 Justin ForkLift1 CB211111 15:07-15:09 "Crane lift"
+  P-500#5 "Chassis home" - DB→CHA0101 James Jockey1 CB211111 15:07-15:09 "Yard-truck haul"
+STORY_GATE_TXNS:
+  14:15 Gate1 IN EITU3333307 CB211111 STG0202 EIT-334120 "Seal verified · clean" → P-200
+  14:23 Gate2 HOOK MSCU1234566 CABC54321 STG0203 MSC-661002 "Pickup driver hooked staged box"
+  14:25 Gate2 OUT MSCU1234566 CABC54321 — MSC-661002 "Departure — container + chassis together"
+  14:25 Gate1 IN DAIU4444460 CB22222 STG0202 DAI-771905 "Early arrival — 35 min ahead" → P-400
+  14:50 Gate2 IN GAIU7777765 CB211111 STG0201 GAI-220338 "On-time arrival · ASN matched" → P-500
+STORY_EVENTS:
+  EV-9001 12:00 ETA_REVISION low suppressed "SCAC1 truck ETA slipped to 14:15" diff{frozenKept7,deltaMin15}
+  EV-9002 13:30 ASN_RECEIVED low replanned "Third ASN — GAIU777776-5 booked 14:50" diff{added1}
+  EV-9003 14:26 OUT_OF_SEQUENCE_ARRIVAL high replanned "DAIU444446-0 arrived 35 min early"
+    diff{cancelled5,added6,reassigned2} supersedes P-300 issues P-400 resolutionMin 4
+STORY_SHIFT_SUMMARY: received3, shipped1, chassisReturned3, chassisTotal3, slotsReconciled true,
+  disruptionsHandled1, disruptionAvgResolveMin4, plansExecuted[P-100,P-200,P-400,P-500],
+  plansSuperseded[P-300], closeTime "15:09".
+Add helper minutesFromHHMM() and expose numeric start/end minutes on STORY_STEPS.
+Run `npm run build` (nothing imports this yet — should pass).

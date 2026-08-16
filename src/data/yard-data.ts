@@ -1,3 +1,11 @@
+// Shared reference pools (CARRIERS, CONSIGNEES, helpers) live in reference-pools.ts.
+// This file imports from there and re-exports so existing imports from yard-data continue to work.
+import { CARRIERS, CONSIGNEES } from "./reference-pools";
+export { CARRIERS, CONSIGNEES };
+// Story + context data merged into named exports at the bottom of this file.
+import { STORY_CONTAINERS, STORY_OPERATORS, STORY_EQUIPMENT } from "./story-seed";
+import { CONTEXT_CONTAINERS, CONTEXT_OPERATORS } from "./context-seed";
+
 // Seed data — deterministic seeded PRNG so output is identical every load
 const rnd = (() => { let s = 0x5f3a91; return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();
 const pick = <T>(a: T[]): T => a[Math.floor(rnd() * a.length)];
@@ -23,18 +31,7 @@ function makeId(owner: string) {
   return pfx + checkDigit(pfx);
 }
 
-export const CARRIERS = [
-  { code: "MSCU", name: "MSC",                   freeDays: 7,  basis: "calendar", tiers: [[8,14,45],[15,21,90],[22,99,150]] },
-  { code: "MAEU", name: "Maersk",                freeDays: 10, basis: "working",  tiers: [[11,17,40],[18,24,85],[25,99,140]] },
-  { code: "CMAU", name: "CMA CGM",               freeDays: 7,  basis: "calendar", tiers: [[8,14,50],[15,21,95],[22,99,160]] },
-  { code: "HLXU", name: "Hapag-Lloyd",           freeDays: 5,  basis: "calendar", tiers: [[6,12,55],[13,20,100],[21,99,165]] },
-  { code: "COSU", name: "COSCO",                 freeDays: 14, basis: "calendar", tiers: [[15,21,38],[22,28,80],[29,99,135]] },
-  { code: "OOLU", name: "OOCL",                  freeDays: 7,  basis: "calendar", tiers: [[8,14,48],[15,21,92],[22,99,155]] },
-  { code: "TCLU", name: "Triton Container",      freeDays: 10, basis: "calendar", tiers: [[11,17,42],[18,24,88],[25,99,145]] },
-  { code: "CSNU", name: "Cosco Shipping",        freeDays: 14, basis: "calendar", tiers: [[15,21,38],[22,28,80],[29,99,135]] },
-  { code: "EGLV", name: "Evergreen",             freeDays: 7,  basis: "calendar", tiers: [[8,14,46],[15,21,91],[22,99,152]] },
-  { code: "YMLU", name: "Yang Ming",             freeDays: 7,  basis: "calendar", tiers: [[8,14,47],[15,21,93],[22,99,158]] },
-];
+// CARRIERS now imported from reference-pools.ts and re-exported above.
 
 export const TRUCKERS = [
   { scac: "RIVA", name: "Transportes Rivas",  region: "Buenos Aires Metro" },
@@ -42,7 +39,7 @@ export const TRUCKERS = [
   { scac: "DSUR", name: "Drayage Sur",         region: "Gran Buenos Aires"  },
   { scac: "EDPL", name: "Expreso del Plata",   region: "Buenos Aires Metro" },
 ];
-export const CONSIGNEES = ["Autopartes del Sur SA","Bosch Argentina","Denso Sudamérica","Magna Rosario","Valeo BA","ZF Pilar","Continental Arg."];
+// CONSIGNEES now imported from reference-pools.ts and re-exported above.
 export const VESSELS = ["MSC LUCIA V.412E","MAERSK SALINA V.238W","CMA CGM ANDES V.117N","SANTOS EXPRESS V.902","CAP SAN LORENZO V.331"];
 export const TERMINALS = ["TRP Terminal 5","Terminal 4 BACTSSA","Exolgan Dock Sud","Terminales Río de la Plata"];
 export const DEPOTS = [
@@ -68,7 +65,7 @@ export const ZONES: Zone[] = [
   { id:"Q", name:"Zone Q — Quarantine / M&R", blocks:1, rows:1, slots:6, maxTiers:1, ceiling:1.0, hazmat:false, customs:false, quarantine:true },
 ];
 
-export const EQUIPMENT = [
+const _EQUIPMENT_BASE = [
   { id:"RS-01", type:"Reach stacker", model:"Kalmar DRG450", maxRowDepth:3, status:"available", hourMeter:11840, maintenanceDue:"in 140 h" },
   { id:"RS-02", type:"Reach stacker", model:"Kalmar DRG450", maxRowDepth:3, status:"available", hourMeter:9620, maintenanceDue:"in 380 h" },
   { id:"RS-03", type:"Reach stacker", model:"Hyster RS46", maxRowDepth:2, status:"available", hourMeter:14210, maintenanceDue:"in 60 h" },
@@ -76,7 +73,7 @@ export const EQUIPMENT = [
   { id:"TT-01", type:"Terminal tractor", model:"Terberg YT223", maxRowDepth:0, status:"maintenance", hourMeter:20110, maintenanceDue:"in service" }
 ];
 
-export const OPERATORS = [
+const _OPERATORS_BASE = [
   { id:"OP-114", name:"R. Giménez", equipment:"RS-01", certs:["IMDG","RS"], shift:"06:00–14:00", status:"on shift" },
   { id:"OP-207", name:"M. Sosa", equipment:"RS-02", certs:["RS"], shift:"06:00–14:00", status:"on shift" },
   { id:"OP-231", name:"L. Duarte", equipment:"RS-03", certs:["RS"], shift:"06:00–14:00", status:"on shift" },
@@ -101,6 +98,18 @@ export interface Container {
   hold?: "customs" | "quality" | "damage" | null;
   highValue?: boolean;
   ageDays?: number;
+  /** true on the seven story-shift containers; false (or absent) on all generated ones */
+  story?: boolean;
+  /** narrative role in the story shift ("inbound" | "outbound" | "rehandle" | "housekeeping") */
+  role?: string;
+  /** target block address for inbound putaway (e.g. "DB0203") */
+  finalSlot?: string;
+  /** current yard-block address for outbound containers (e.g. "RA0101") */
+  stackPos?: string;
+  /** staging address after outbound prep (e.g. "STG0203") */
+  stagePos?: string;
+  /** free-text gate / handling instructions surfaced in the detail panel */
+  specialInstructions?: string;
 }
 
 function buildContainers(): Container[] {
@@ -159,6 +168,7 @@ function buildContainers(): Container[] {
               empty, whyHere: whyRaw, seal: "AR" + int(200000,999999),
               // ── new optional fields ──────────────────────────────────────────
               ageDays: dwellDays,
+              story: false,
               ...(z.id === "F"
                 ? { reefer: true, tempSetPoint: "-18°C" }
                 : {}),
@@ -190,7 +200,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     hazmat:false, imdg:null, channel:"road", status:"IN_YARD",
     hoursToLFD:36, dwellDays:4, priority:"P2", empty:false,
     whyHere:"Reefer zone: temperature-controlled cargo requires plug-in bay; set-point −18 °C.",
-    seal:"AR481293"
+    seal:"AR481293", story: false,
   },
   {
     id: "MAEU5120473",
@@ -201,7 +211,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     hazmat:false, imdg:null, channel:"road", status:"IN_YARD",
     hoursToLFD:52, dwellDays:3, priority:"P2", empty:false,
     whyHere:"Reefer zone: temperature-sensitive primer concentrate; Valeo spec requires 2–8 °C cold-chain throughout transit.",
-    seal:"AR620841"
+    seal:"AR620841", story: false,
   },
   {
     id: "CMAU7733185",
@@ -212,7 +222,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     hazmat:false, imdg:null, channel:"road", status:"IN_YARD",
     hoursToLFD:18, dwellDays:6, priority:"P1", empty:false,
     whyHere:"Reefer zone: LFD in 18 h, pre-positioned for earliest retrieval window.",
-    seal:"AR715503"
+    seal:"AR715503", story: false,
   },
   {
     id: "HLXU9016542",
@@ -223,7 +233,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     hazmat:false, imdg:null, channel:"road", status:"IN_YARD",
     hoursToLFD:72, dwellDays:2, priority:"P3", empty:false,
     whyHere:"Reefer zone: solvent-based e-coat additive requiring −18 °C cold-chain; ZF Pilar specification sheet on file.",
-    seal:"AR344987"
+    seal:"AR344987", story: false,
   },
   {
     id: "COSU2487316",
@@ -234,7 +244,7 @@ const ZONE_F_CONTAINERS: Container[] = [
     hazmat:false, imdg:null, channel:"sea", status:"IN_YARD",
     hoursToLFD:44, dwellDays:5, priority:"P2", empty:false,
     whyHere:"Reefer zone: orange-channel inspection pending; held in temp-controlled bay during review.",
-    seal:"AR562104"
+    seal:"AR562104", story: false,
   },
 ];
 
@@ -248,7 +258,7 @@ const ZONE_Q_CONTAINERS: Container[] = [
     hazmat:false, imdg:null, channel:"rail", status:"CUSTOMS_CONTROLLED",
     hoursToLFD:96, dwellDays:11, priority:"P1", empty:false,
     whyHere:"Quarantine hold: M&R inspection booked 10:00 — door seal damage reported at gate-in.",
-    seal:"AR839201"
+    seal:"AR839201", story: false,
   },
   {
     id: "MAEU3674921",
@@ -259,7 +269,7 @@ const ZONE_Q_CONTAINERS: Container[] = [
     hazmat:false, imdg:null, channel:"sea", status:"CUSTOMS_CONTROLLED",
     hoursToLFD:120, dwellDays:8, priority:"P2", empty:false,
     whyHere:"Quarantine hold: awaiting AFIP/ARCA Licencia No Automática (LNA) approval — auto-parts import, declaration DUA-2026-08-14-00441 lodged.",
-    seal:"AR473629"
+    seal:"AR473629", story: false,
   },
   {
     id: "CMAU5890438",
@@ -270,11 +280,11 @@ const ZONE_Q_CONTAINERS: Container[] = [
     hazmat:false, imdg:null, channel:"—", status:"IN_YARD",
     hoursToLFD:48, dwellDays:3, priority:"P3", empty:true,
     whyHere:"M&R bay: empty unit with forklift pocket damage — awaiting structural inspection sign-off.",
-    seal:"AR610057"
+    seal:"AR610057", story: false,
   },
 ];
 
-export const CONTAINERS: Container[] = [
+const _CONTAINERS_BASE: Container[] = [
   ...buildContainers(),
   ...ZONE_F_CONTAINERS,
   ...ZONE_Q_CONTAINERS,
@@ -319,10 +329,10 @@ export interface Move {
 function buildMoves(): Move[] {
   const out: Move[] = [];
   let t = 6 * 60;
-  const onShift = OPERATORS.filter(o => o.status === "on shift");
+  const onShift = _OPERATORS_BASE.filter(o => o.status === "on shift");
   for (let i = 1; i <= 96; i++) {
     const type = pick(MOVE_TYPES);
-    const c = pick(CONTAINERS);
+    const c = pick(_CONTAINERS_BASE);
     const op = pick(onShift);
     const est = +(2.6 + rnd() * 4.4).toFixed(1);
     const start = t;
@@ -353,7 +363,7 @@ const _builtMoves = buildMoves()
 // Destination "A-03-2-5-4": tier=4, row=2 → Rule B fires.
 // This move exists ONLY to demonstrate the hard-filter UI in Night Planner.
 // Remove or replace with a real move before using in production.
-const _demoContainer = CONTAINERS.find(c => c.zone === "A" && !c.empty && c.grossKg > 20000) ?? CONTAINERS[0]
+const _demoContainer = _CONTAINERS_BASE.find(c => c.zone === "A" && !c.empty && c.grossKg > 20000) ?? _CONTAINERS_BASE[0]
 const DEMO_ILLEGAL_MOVE: Move = {
   id: "MV-9001", seq: 97, type: "RESHUFFLE",
   containerId: _demoContainer.id,
@@ -369,8 +379,8 @@ const DEMO_ILLEGAL_MOVE: Move = {
 // ── DEMO: size-mismatch move — triggers Rule C (20ft cannot stack on 40ft) ───
 // Finds a ground-tier 40GP in Zone A and a 20GP mover at runtime, so the
 // demo works regardless of PRNG seed. Clearly commented as demo-only.
-const _40gpBelow = CONTAINERS.find(c => c.size === "40GP" && c.tier === 1 && c.zone === "A" && !c.empty)
-const _20gpMover = CONTAINERS.find(c => c.size === "20GP" && !c.empty && c.id !== _40gpBelow?.id)
+const _40gpBelow = _CONTAINERS_BASE.find(c => c.size === "40GP" && c.tier === 1 && c.zone === "A" && !c.empty)
+const _20gpMover = _CONTAINERS_BASE.find(c => c.size === "20GP" && !c.empty && c.id !== _40gpBelow?.id)
 const DEMO_SIZE_MISMATCH_MOVE: Move | undefined = _40gpBelow && _20gpMover
   ? {
       id: "MV-9002", seq: 98, type: "RESHUFFLE",
@@ -454,4 +464,25 @@ export const ASSUMPTIONS = [
   { k:"Arrival profile", v:"34 containers · peak 07:00–09:30", note:"from terminal feed" },
   { k:"Wind forecast", v:"22 km/h peak", note:"below tier-3 limit" },
   { k:"Travel matrix", v:"Geometry-seeded", note:"learned actuals from wk 6" }
+];
+
+// ── Story + context merge (Step 4) ────────────────────────────────────────────
+// Base arrays (_*_BASE) were renamed above; these final exports concatenate
+// context-seed + story-seed data without touching any existing rows.
+
+export const CONTAINERS: Container[] = [
+  ..._CONTAINERS_BASE,
+  ...(STORY_CONTAINERS as unknown as Container[]),
+  ...(CONTEXT_CONTAINERS as Container[]),
+];
+
+export const OPERATORS = [
+  ..._OPERATORS_BASE,
+  ...STORY_OPERATORS,
+  ...CONTEXT_OPERATORS,
+];
+
+export const EQUIPMENT = [
+  ..._EQUIPMENT_BASE,
+  ...STORY_EQUIPMENT,
 ];

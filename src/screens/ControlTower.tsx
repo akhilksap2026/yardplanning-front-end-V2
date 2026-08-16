@@ -17,14 +17,21 @@ interface Props {
 }
 
 const CATS: Record<string, string> = {
-  EQUIPMENT_FAILURE:       "Equipment",
-  CUSTOMS_CHANNEL_ASSIGNED:"Customs",
-  SHIP_DELAY:              "Shipping",
-  DEPOT_REDIRECTION:       "Depot",
-  CONTAINER_NOT_FOUND:     "Yard audit",
-  APPOINTMENT_NO_SHOW:     "Gate",
-  DETENTION_BREACH:        "Detention",
-  AUDIT_DISCREPANCY:       "Yard audit",
+  EQUIPMENT_FAILURE:        "Equipment",
+  CUSTOMS_CHANNEL_ASSIGNED: "Customs",
+  SHIP_DELAY:               "Shipping",
+  DEPOT_REDIRECTION:        "Depot",
+  CONTAINER_NOT_FOUND:      "Yard audit",
+  APPOINTMENT_NO_SHOW:      "Gate",
+  DETENTION_BREACH:         "Detention",
+  AUDIT_DISCREPANCY:        "Yard audit",
+  // Step 5 — story + context event types
+  ETA_REVISION:             "Shipping",
+  ASN_RECEIVED:             "Gate",
+  OUT_OF_SEQUENCE_ARRIVAL:  "Yard audit",
+  INSPECTION_HOLD:          "Yard audit",
+  TERMINAL_DELAY:           "Shipping",
+  WEIGHT_VARIANCE:          "Yard audit",
 }
 
 const DISRUPTION_OPTIONS: { value: DisruptionType; label: string }[] = [

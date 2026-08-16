@@ -640,6 +640,13 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                         {displayTask.size}{displayTask.size&&displayTask.weight?" · ":""}{displayTask.weight}
                       </div>
                     )}
+                    {/* Chassis field — story steps (Hook / Return chassis) */}
+                    {!demoMode && !backendConnected && (seedTask as any)?.chassis && (
+                      <div className="font-mono text-[12px] mt-1.5 flex items-center gap-1" style={{ color:"#4f46e5" }}>
+                        <span style={{ fontSize:14 }}>🔗</span>
+                        <span>Chassis&nbsp;{(seedTask as any).chassis}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* FROM → TO */}
