@@ -6,12 +6,14 @@ export interface Visit {
   queueIn: string|null; checkIn: string|null; atPosition: string|null; served: string|null;
   gateOut: string|null; state: string; turn: number; lane: string; container: string; excl: string|null;
   chassis?: string;
+  /** Full staging-area address where this container is (or will be) pre-staged, e.g. "S-01-1-2-1" */
+  stagingLane?: string;
 }
 
 export const VISITS: Visit[] = [
   // ── 06:00–07:00 band (original story visits) ───────────────────────────────
   { id:"V-2041", plate:"AF 421 KL", carrier:"Transportes Rivas",  driver:"J. Álvarez",  purpose:"Inbound drop",    appt:"06:00", queueIn:"05:52", checkIn:"05:58", atPosition:"06:03", served:"06:09", gateOut:"06:11", state:"GATE_OUT",  turn:0,  lane:"R-03", container:"MSCU4419307", excl:null },
-  { id:"V-2042", plate:"AC 883 MN", carrier:"Drayage Sur",         driver:"P. Molina",   purpose:"Customer pickup", appt:"06:15", queueIn:"06:08", checkIn:"06:14", atPosition:"06:18", served:"06:26", gateOut:null,    state:"SERVED",     turn:18, lane:"S-02", container:"MAEU3109651", excl:null },
+  { id:"V-2042", plate:"AC 883 MN", carrier:"Drayage Sur",         driver:"P. Molina",   purpose:"Customer pickup", appt:"06:15", queueIn:"06:08", checkIn:"06:14", atPosition:"06:18", served:"06:26", gateOut:null,    state:"SERVED",     turn:18, lane:"S-02", container:"MAEU3109651", excl:null,                                    stagingLane:"S-02-1-3-1" },
   { id:"V-2043", plate:"AD 190 QT", carrier:"Transportes Rivas",  driver:"M. Coronel",  purpose:"Empty return",    appt:"06:30", queueIn:"06:21", checkIn:"06:29", atPosition:"06:34", served:null,    gateOut:null,    state:"AT_POSITION", turn:12, lane:"E-01", container:"CMAU9963816", excl:null },
   { id:"V-2044", plate:"AE 552 RB", carrier:"Log. Andina",         driver:"R. Paz",      purpose:"Inbound drop",    appt:"06:30", queueIn:"06:27", checkIn:"06:33", atPosition:null,    served:null,    gateOut:null,    state:"CHECKED_IN",  turn:9,  lane:"R-05", container:"HLXU7959453", excl:"Missing EIR photo set" },
   { id:"V-2045", plate:"AB 774 JD", carrier:"Drayage Sur",         driver:"L. Ferreyra", purpose:"Full transfer",   appt:"06:45", queueIn:"06:36", checkIn:null,    atPosition:null,    served:null,    gateOut:null,    state:"IN_QUEUE",    turn:6,  lane:"—",    container:"COSU3308834", excl:null },
@@ -21,10 +23,10 @@ export const VISITS: Visit[] = [
 
   // ── 07:15–08:00 band ───────────────────────────────────────────────────────
   { id:"V-2049", plate:"AK 112 WZ", carrier:"Carga Express",       driver:"B. Vargas",   purpose:"Inbound drop",    appt:"07:15", queueIn:"07:09", checkIn:"07:16", atPosition:"07:22", served:"07:38", gateOut:"07:43", state:"GATE_OUT",  turn:0,  lane:"R-01", container:"TCKU3862910", excl:null },
-  { id:"V-2050", plate:"AL 345 MQ", carrier:"Flota Norte",          driver:"C. Aguirre",  purpose:"Customer pickup", appt:"07:15", queueIn:"07:12", checkIn:"07:19", atPosition:"07:26", served:"07:41", gateOut:"07:46", state:"GATE_OUT",  turn:0,  lane:"S-01", container:"TGHU4591023", excl:null },
+  { id:"V-2050", plate:"AL 345 MQ", carrier:"Flota Norte",          driver:"C. Aguirre",  purpose:"Customer pickup", appt:"07:15", queueIn:"07:12", checkIn:"07:19", atPosition:"07:26", served:"07:41", gateOut:"07:46", state:"GATE_OUT",  turn:0,  lane:"S-01", container:"TGHU4591023", excl:null,                                    stagingLane:"S-01-2-1-1" },
   { id:"V-2051", plate:"AM 667 PK", carrier:"Transportes Rivas",   driver:"E. Quispe",   purpose:"Empty return",    appt:"07:30", queueIn:"07:21", checkIn:"07:28", atPosition:"07:35", served:"07:50", gateOut:"07:55", state:"GATE_OUT",  turn:0,  lane:"E-02", container:"UACU8023417", excl:null },
   { id:"V-2052", plate:"AN 890 JH", carrier:"Drayage Sur",          driver:"F. Romero",   purpose:"Inbound drop",    appt:"07:30", queueIn:"07:25", checkIn:"07:32", atPosition:"07:39", served:"07:58", gateOut:"08:03", state:"GATE_OUT",  turn:0,  lane:"R-04", container:"SUDU7104582", excl:null },
-  { id:"V-2053", plate:"AP 221 TL", carrier:"Log. Andina",          driver:"G. Sánchez",  purpose:"Customer pickup", appt:"07:45", queueIn:"07:38", checkIn:"07:46", atPosition:"07:53", served:"08:09", gateOut:"08:14", state:"GATE_OUT",  turn:0,  lane:"S-02", container:"APZU2937641", excl:null },
+  { id:"V-2053", plate:"AP 221 TL", carrier:"Log. Andina",          driver:"G. Sánchez",  purpose:"Customer pickup", appt:"07:45", queueIn:"07:38", checkIn:"07:46", atPosition:"07:53", served:"08:09", gateOut:"08:14", state:"GATE_OUT",  turn:0,  lane:"S-02", container:"APZU2937641", excl:null,                                    stagingLane:"S-02-3-2-1" },
   { id:"V-2054", plate:"AQ 543 NR", carrier:"Carga Express",        driver:"H. Torres",   purpose:"Inbound drop",    appt:"07:45", queueIn:"07:41", checkIn:"07:49", atPosition:"07:56", served:"08:13", gateOut:"08:18", state:"GATE_OUT",  turn:0,  lane:"R-02", container:"FSCU6418203", excl:null },
 
   // ── 08:00–09:00 band ───────────────────────────────────────────────────────
@@ -70,7 +72,7 @@ export const VISITS: Visit[] = [
   // ── 13:00–14:00 band — mix of cleared, in-progress, approaching ────────────
   { id:"V-2085", plate:"BV 685 NJ", carrier:"Flota Norte",          driver:"N. Soto",     purpose:"Full transfer",   appt:"13:00", queueIn:"12:54", checkIn:"13:02", atPosition:"13:09", served:"13:28", gateOut:"13:33", state:"GATE_OUT",  turn:0,  lane:"S-03", container:"TCKU7384921", excl:null },
   { id:"V-2086", plate:"BW 018 RQ", carrier:"Transportes Rivas",   driver:"O. Tapia",    purpose:"Inbound drop",    appt:"13:00", queueIn:"12:58", checkIn:"13:06", atPosition:"13:13", served:"13:33", gateOut:"13:38", state:"GATE_OUT",  turn:0,  lane:"R-03", container:"TGHU8046293", excl:null },
-  { id:"V-2087", plate:"BX 350 HV", carrier:"Drayage Sur",          driver:"P. Urquiza",  purpose:"Customer pickup", appt:"13:15", queueIn:"13:10", checkIn:"13:18", atPosition:"13:25", served:"13:45", gateOut:null,    state:"SERVED",     turn:3,  lane:"S-01", container:"UACU3719485", excl:null },
+  { id:"V-2087", plate:"BX 350 HV", carrier:"Drayage Sur",          driver:"P. Urquiza",  purpose:"Customer pickup", appt:"13:15", queueIn:"13:10", checkIn:"13:18", atPosition:"13:25", served:"13:45", gateOut:null,    state:"SERVED",     turn:3,  lane:"S-01", container:"UACU3719485", excl:null,                                    stagingLane:"S-01-1-2-1" },
   { id:"V-2088", plate:"BY 683 ZK", carrier:"Log. Andina",          driver:"Q. Valdivia", purpose:"Empty return",    appt:"13:30", queueIn:"13:24", checkIn:"13:32", atPosition:null,    served:null,    gateOut:null,    state:"CHECKED_IN",  turn:5,  lane:"E-02", container:"SUDU6482017", excl:null },
   { id:"V-2089", plate:"BZ 915 MF", carrier:"Carga Express",        driver:"R. Zambrano", purpose:"Inbound drop",    appt:"13:45", queueIn:"13:39", checkIn:null,    atPosition:null,    served:null,    gateOut:null,    state:"IN_QUEUE",    turn:7,  lane:"—",    container:"APZU1593840", excl:null },
   { id:"V-2090", plate:"CA 248 WN", carrier:"Flota Norte",          driver:"S. Zenteno",  purpose:"Customer pickup", appt:"14:00", queueIn:null,    checkIn:null,    atPosition:null,    served:null,    gateOut:null,    state:"APPROACHING", turn:0,  lane:"—",    container:"FSCU2807364", excl:null },

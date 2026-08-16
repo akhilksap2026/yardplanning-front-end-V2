@@ -57,6 +57,22 @@ const DAMAGE_CODES    = ["CRD-1 dent","CRD-2 scratch","BNT bent","HOL hole","RST
 const CANT_FIND_OPTS  = ["Not at this location","Wrong bay / row","Slot is empty","Container obstructed"]
 const EQUIP_OPTS      = ["Mechanical failure","Flat tyre","Hydraulic issue","Lights out","Other"]
 
+// ── Supervisor override — PIN registry (demo) ─────────────────────────────────
+// In production this would be validated server-side against an HSM-backed PIN store.
+const SUPERVISOR_PINS: Record<string, string> = {
+  "9001": "C. Fuentes (Yard Manager)",
+  "9002": "M. Herrera (Shift Supervisor)",
+  "9003": "L. Mora (Deputy Supervisor)",
+}
+
+// ── Override reason codes ─────────────────────────────────────────────────────
+const OVERRIDE_REASONS = [
+  { code:"CONT-SWAP",  label:"Container in slot doesn't match WMS record" },
+  { code:"OCR-FAIL",   label:"Label obscured / camera misread" },
+  { code:"EMERG-MOVE", label:"Emergency relocation — pre-approved by supervisor" },
+  { code:"WMS-ERR",    label:"WMS addressing error confirmed" },
+]
+
 // ── SVG icons ─────────────────────────────────────────────────────────────────
 function IcoCheck() { return <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> }
 function IcoCamera(){ return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> }
@@ -202,6 +218,16 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
   const [auditOpen,      setAuditOpen]      = useState(false)
   const [justCompleted,  setJustCompleted]  = useState(false)   // success toast on job-card
 
+  // ── Supervisor override state ─────────────────────────────────────────────
+  const [mismatchStep,   setMismatchStep]   = useState<"options"|"auth"|"reason">("options")
+  const [authMode,       setAuthMode]       = useState<"pin"|"nfc">("pin")
+  const [pinInput,       setPinInput]       = useState("")
+  const [pinError,       setPinError]       = useState<string|null>(null)
+  const [nfcTapping,     setNfcTapping]     = useState(false)
+  const [supervisorName, setSupervisorName] = useState<string|null>(null)
+  const [overrideReason, setOverrideReason] = useState<string|null>(null)
+  const [overrideAudit,  setOverrideAudit]  = useState<{t:string;what:string}[]>([])
+
   // ── Derived task ──────────────────────────────────────────────────────────
   const seedTask = operatorTasks[queueIdx] ?? null
 
@@ -282,6 +308,51 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
     setPhotoCaptured({}); setSelectedDmg(new Set()); setConfirmError(null)
   }, [focus])
 
+  // ── Supervisor override helpers ───────────────────────────────────────────
+  function resetMismatch() {
+    setMismatchStep("options"); setAuthMode("pin"); setPinInput("")
+    setPinError(null); setNfcTapping(false); setSupervisorName(null); setOverrideReason(null)
+  }
+
+  function openMismatch() {
+    resetMismatch()
+    setOverlay("mismatch")
+  }
+
+  function handlePinSubmit() {
+    const name = SUPERVISOR_PINS[pinInput]
+    if (!name) { setPinError("Invalid PIN — try again"); setPinInput(""); return }
+    setSupervisorName(name); setPinError(null); setMismatchStep("reason")
+  }
+
+  async function handleNfcTap() {
+    setNfcTapping(true)
+    await new Promise(r => setTimeout(r, 1800))
+    // Simulate NFC badge read — in production replaced by Web NFC API / hardware SDK
+    setSupervisorName("M. Herrera (Shift Supervisor)")
+    setNfcTapping(false); setMismatchStep("reason")
+  }
+
+  async function handleOverrideProceed() {
+    if (!overrideReason || !supervisorName) return
+    const now = new Date()
+    const ts  = now.toTimeString().slice(0, 8)
+    const entry = {
+      t: ts,
+      what: `Scan override — supervisor: ${supervisorName} · reason: ${overrideReason} · scanned: ${scanResult?.scanned ?? "—"} · expected: ${scanResult?.expected ?? "—"}`,
+    }
+    setOverrideAudit(prev => [...prev, entry])
+    // Best-effort persist to audit trail in Control Tower
+    const overId = `SUP-OVR-${now.getTime()}`
+    backendApi.postEvent({
+      id: overId, time: ts.slice(0, 5), type: "SCAN_MISMATCH_OVERRIDE",
+      severity: "medium", state: "resolved", auto: "Manual",
+      title: `Scan mismatch override — ${supervisorName.split(" (")[0]}`,
+      detail: `Scanned: ${scanResult?.scanned ?? "—"} · Expected: ${scanResult?.expected ?? "—"} · Reason: ${overrideReason} · Operator: ${jockeyName}`,
+    }).catch(() => {})
+    resetMismatch(); setOverlay(null); setScanResult(null); setScanInput(""); setWizardStep("map")
+  }
+
   // Skip current job and advance to next (shared by cant-find, quarantine, etc.)
   function skipCurrentJob() {
     if (demoMode) { resetForNextJob(); return } // demo: reset wizard, keep DEMO_TASK
@@ -328,13 +399,13 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
         const res = { match: result.match, scanned: scanInput.trim(), expected: engineTask.container.container_number }
         setScanResult(res)
         if (result.match) setTimeout(() => { setWizardStep("map"); resetScan() }, 900)
-        else setOverlay("mismatch")
+        else openMismatch()
       } catch {
         const match = scanInput.trim().toUpperCase() === engineTask.container.container_number.toUpperCase()
         const res = { match, scanned: scanInput.trim(), expected: engineTask.container.container_number }
         setScanResult(res)
         if (match) setTimeout(() => { setWizardStep("map"); resetScan() }, 900)
-        else setOverlay("mismatch")
+        else openMismatch()
       } finally { setScanning(false) }
     } else {
       // Seed or demo mode — local match only, never touches backend
@@ -342,7 +413,7 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
       const match = scanInput.trim().toUpperCase() === expected.toUpperCase()
       setScanResult({ match, scanned: scanInput.trim(), expected })
       if (match) setTimeout(() => { setWizardStep("map"); resetScan() }, 900)
-      else setOverlay("mismatch")
+      else openMismatch()
     }
   }
 
@@ -988,33 +1059,188 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                 </div>
               )}
 
-              {/* Overlay: Scan mismatch */}
+              {/* Overlay: Scan mismatch — 3-step supervisor gate */}
               {overlay === "mismatch" && (
                 <div className="absolute inset-0 bg-white flex flex-col z-10">
-                  <div className="px-4 py-4 border-b border-[#f3f4f6]" style={{ background:"#fffbeb" }}>
-                    <div className="font-black text-[15px] text-neutral-900 mb-0.5">⚠ Scan mismatch</div>
-                    <div className="text-[12px] text-neutral-600">
-                      Scanned <span className="font-mono font-bold">{scanResult?.scanned.toUpperCase()}</span>
-                      <br/>Expected <span className="font-mono font-bold">{scanResult?.expected}</span>
+
+                  {/* ── Persistent header ── */}
+                  <div className="px-4 py-3 border-b border-[#f3f4f6]" style={{ background:"#fffbeb" }}>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-black text-[15px] text-neutral-900">⚠ Scan mismatch</span>
+                      {mismatchStep === "auth" && (
+                        <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ background:"#fee2e2", color:"#b91c1c" }}>SUPERVISOR REQUIRED</span>
+                      )}
+                      {mismatchStep === "reason" && (
+                        <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ background:"#dcfce7", color:"#15803d" }}>
+                          ✓ {supervisorName?.split(" (")[0]}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11.5px] text-neutral-500">
+                      Scanned <span className="font-mono font-bold text-neutral-800">{scanResult?.scanned.toUpperCase()}</span>
+                      {" · "}Expected <span className="font-mono font-bold text-neutral-800">{scanResult?.expected}</span>
                     </div>
                   </div>
-                  <div className="px-4 py-4 flex flex-col gap-2">
-                    <button onClick={() => { setOverlay(null); setScanResult(null); setScanInput("") }}
-                      className="w-full py-4 font-black text-[15px] text-white"
-                      style={{ background:AMBER, borderRadius:12 }}>
-                      Try again →
-                    </button>
-                    <button onClick={() => { setOverlay(null); setScanResult(null); setScanInput(""); setWizardStep("map") }}
-                      className="w-full py-3.5 font-semibold text-[13px]"
-                      style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:12 }}>
-                      Override — proceed to drop →
-                    </button>
-                    <button onClick={() => setOverlay("cant-find")}
-                      className="w-full py-3.5 font-semibold text-[13px]"
-                      style={{ background:"#fef2f2", color:"#7f1d1d", border:`1.5px solid ${RED}`, borderRadius:12 }}>
-                      Wrong container in slot — report
-                    </button>
-                  </div>
+
+                  {/* ── Step 1: action choice ── */}
+                  {mismatchStep === "options" && (
+                    <div className="px-4 py-4 flex flex-col gap-2.5">
+                      <button onClick={() => { resetMismatch(); setOverlay(null); setScanResult(null); setScanInput("") }}
+                        className="w-full py-4 font-black text-[15px] text-white"
+                        style={{ background:AMBER, borderRadius:12 }}>
+                        Try again →
+                      </button>
+                      <button onClick={() => setMismatchStep("auth")}
+                        className="w-full py-3.5 font-semibold text-[13px]"
+                        style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:12 }}>
+                        Override — supervisor authorisation required
+                      </button>
+                      <button onClick={() => { resetMismatch(); setOverlay("cant-find") }}
+                        className="w-full py-3.5 font-semibold text-[13px]"
+                        style={{ background:"#fef2f2", color:"#7f1d1d", border:`1.5px solid ${RED}`, borderRadius:12 }}>
+                        Wrong container in slot — report
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ── Step 2: supervisor authentication (PIN or NFC) ── */}
+                  {mismatchStep === "auth" && (
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                      {/* Auth mode switcher */}
+                      <div className="flex border-b border-[#e5e7eb]" style={{ background:"#f9fafb" }}>
+                        {(["pin","nfc"] as const).map(mode => (
+                          <button key={mode}
+                            onClick={() => { setAuthMode(mode); setPinInput(""); setPinError(null) }}
+                            className="flex-1 py-2.5 text-[11.5px] font-bold tracking-wide transition-colors"
+                            style={{
+                              background: authMode===mode ? "white" : "transparent",
+                              color: authMode===mode ? NAVY : "#9ca3af",
+                              borderBottom: authMode===mode ? `2.5px solid ${AMBER}` : "2.5px solid transparent",
+                            }}>
+                            {mode === "pin" ? "🔢  ENTER PIN" : "📡  NFC BADGE"}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* PIN pad */}
+                      {authMode === "pin" && (
+                        <div className="flex-1 flex flex-col items-center px-4 pt-5 pb-2">
+                          <div className="text-[10.5px] font-bold text-neutral-500 tracking-widest mb-4">
+                            SUPERVISOR 4-DIGIT PIN
+                          </div>
+                          {/* Dot indicator */}
+                          <div className="flex gap-3 mb-4">
+                            {[0,1,2,3].map(i => (
+                              <div key={i} className="w-3.5 h-3.5 rounded-full border-2 transition-all"
+                                style={{ background: i < pinInput.length ? NAVY : "transparent", borderColor: i < pinInput.length ? NAVY : "#d1d5db" }} />
+                            ))}
+                          </div>
+                          {pinError && (
+                            <div className="text-[11.5px] font-bold mb-3" style={{ color:RED }}>{pinError}</div>
+                          )}
+                          {/* Numeric keypad */}
+                          <div className="grid grid-cols-3 gap-2.5 w-full max-w-[240px]">
+                            {["1","2","3","4","5","6","7","8","9","⌫","0","✓"].map(k => {
+                              const isBack   = k === "⌫"
+                              const isSubmit = k === "✓"
+                              const disabled = isSubmit && pinInput.length < 4
+                              return (
+                                <button key={k} disabled={disabled}
+                                  onClick={() => {
+                                    if (isBack)        { setPinInput(p => p.slice(0,-1)); setPinError(null) }
+                                    else if (isSubmit) { handlePinSubmit() }
+                                    else if (pinInput.length < 4) setPinInput(p => p + k)
+                                  }}
+                                  className="flex items-center justify-center font-black text-[20px] transition-all active:scale-95"
+                                  style={{
+                                    height: 52, borderRadius: 12,
+                                    background: isSubmit ? (disabled ? "#e5e7eb" : NAVY) : isBack ? "#f3f4f6" : "#f9fafb",
+                                    color: isSubmit ? (disabled ? "#9ca3af" : "white") : "#1c2333",
+                                    border: isSubmit ? "none" : "1px solid #e5e7eb",
+                                  }}>
+                                  {k}
+                                </button>
+                              )
+                            })}
+                          </div>
+                          <div className="mt-3 text-[10px] text-neutral-400 text-center">
+                            Demo PINs: 9001 · 9002 · 9003
+                          </div>
+                        </div>
+                      )}
+
+                      {/* NFC tap panel */}
+                      {authMode === "nfc" && (
+                        <div className="flex-1 flex flex-col items-center justify-center px-6 gap-4">
+                          <div className="relative flex items-center justify-center rounded-full transition-all"
+                            style={{ width:96, height:96, background: nfcTapping?"#dbeafe":"#f3f4f6", border:`3px solid ${nfcTapping?"#2563eb":"#d1d5db"}` }}>
+                            <span style={{ fontSize:38 }}>📡</span>
+                            {nfcTapping && (
+                              <div className="absolute inset-0 rounded-full animate-ping opacity-25"
+                                style={{ background:"#2563eb" }} />
+                            )}
+                          </div>
+                          <div className="text-[13px] font-bold text-neutral-700 text-center leading-snug">
+                            {nfcTapping ? "Reading badge…" : "Hold supervisor NFC badge\nnear the device"}
+                          </div>
+                          {!nfcTapping && (
+                            <button onClick={handleNfcTap}
+                              className="px-8 py-3 font-bold text-[13px] text-white transition-all active:scale-95"
+                              style={{ background:"#2563eb", borderRadius:12 }}>
+                              Simulate badge tap
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="px-4 pb-3">
+                        <button onClick={() => setMismatchStep("options")}
+                          className="w-full py-2.5 text-[12px] font-semibold"
+                          style={{ background:"transparent", color:"#9ca3af" }}>
+                          ← Back
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Step 3: reason code ── */}
+                  {mismatchStep === "reason" && (
+                    <div className="flex-1 flex flex-col px-4 pt-4 gap-2.5 overflow-hidden">
+                      <div className="text-[10.5px] font-bold text-neutral-500 tracking-widest mb-0.5">
+                        SELECT OVERRIDE REASON
+                      </div>
+                      <div className="flex flex-col gap-2 overflow-y-auto" style={{ scrollbarWidth:"none" }}>
+                        {OVERRIDE_REASONS.map(r => (
+                          <button key={r.code} onClick={() => setOverrideReason(r.code)}
+                            className="text-left px-4 py-3.5 text-[13px] font-semibold transition-all"
+                            style={{
+                              borderRadius:12,
+                              border:`1.5px solid ${overrideReason===r.code ? NAVY : "#e5e7eb"}`,
+                              background: overrideReason===r.code ? NAVY : "white",
+                              color: overrideReason===r.code ? "white" : "#374151",
+                            }}>
+                            <span className="font-mono text-[10px] mr-2 opacity-50">{r.code}</span>
+                            {r.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mt-auto pb-4 pt-2 flex flex-col gap-2">
+                        <button onClick={handleOverrideProceed} disabled={!overrideReason}
+                          className="w-full py-4 font-black text-[15px] text-white transition-all"
+                          style={{ background: overrideReason ? NAVY : "#9ca3af", borderRadius:12 }}>
+                          Authorise &amp; proceed to drop →
+                        </button>
+                        <button onClick={() => { setOverrideReason(null); setMismatchStep("auth") }}
+                          className="w-full py-2.5 text-[12px] font-semibold"
+                          style={{ background:"transparent", color:"#9ca3af" }}>
+                          ← Change authorisation
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               )}
 
@@ -1182,7 +1408,13 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
             className="flex items-center justify-between w-full px-4 py-3 border-b border-[#e5e7eb] hover:bg-[#f9fafb] transition-colors text-left">
             <div className="flex items-center gap-2">
               <span className="ds-label font-bold text-neutral-500">Audit log</span>
-              <span className="text-[10px] text-neutral-400">{auditEntries.length} entries</span>
+              <span className="text-[10px] text-neutral-400">{auditEntries.length + overrideAudit.length} entries</span>
+              {overrideAudit.length > 0 && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                  style={{ background:"#fef3c7", color:AMBER }}>
+                  {overrideAudit.length} override{overrideAudit.length > 1 ? "s" : ""}
+                </span>
+              )}
             </div>
             <span style={{ fontSize:9, color:"#9ca3af" }}>{auditOpen?"▲":"▼"}</span>
           </button>
@@ -1192,6 +1424,13 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                 <div key={a.t} className="flex gap-3 px-4 py-1.5 text-[11.5px] border-b border-[#f3f4f6]">
                   <span className="w-14 text-neutral-500 font-mono flex-none">{a.t}</span>
                   <span className="flex-1 leading-relaxed">{a.what}</span>
+                </div>
+              ))}
+              {overrideAudit.map((a, i) => (
+                <div key={`ovr-${i}`} className="flex gap-3 px-4 py-1.5 text-[11.5px] border-b border-[#f3f4f6]"
+                  style={{ background:"#fffbeb" }}>
+                  <span className="w-14 font-mono flex-none" style={{ color:AMBER }}>{a.t}</span>
+                  <span className="flex-1 leading-relaxed font-semibold" style={{ color:"#92400e" }}>{a.what}</span>
                 </div>
               ))}
             </div>

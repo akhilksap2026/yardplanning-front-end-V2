@@ -37,11 +37,11 @@ const EXCL_REASONS = [
 ]
 
 // Step 3: visit table column definitions
-const VISIT_COLS = ["TRUCK","LIFECYCLE","TURN","PURPOSE","CONTAINER","APPT","EXCLUSION"] as const
+const VISIT_COLS = ["TRUCK","LIFECYCLE","TURN","YARD_READY","PURPOSE","CONTAINER","APPT","EXCLUSION"] as const
 type VisitCol = typeof VISIT_COLS[number]
-const DEFAULT_VISIT_COLS = new Set<VisitCol>(["TRUCK","LIFECYCLE","TURN"])
+const DEFAULT_VISIT_COLS = new Set<VisitCol>(["TRUCK","LIFECYCLE","TURN","YARD_READY"])
 const VISIT_COL_LABELS: Record<VisitCol, string> = {
-  TRUCK: "TRUCK", LIFECYCLE: "STATUS", TURN: "QUEUE #",
+  TRUCK: "TRUCK", LIFECYCLE: "STATUS", TURN: "QUEUE #", YARD_READY: "YARD READY",
   PURPOSE: "PURPOSE", CONTAINER: "CONTAINER", APPT: "TIME SLOT", EXCLUSION: "EXCEPTION",
 }
 
@@ -84,6 +84,8 @@ export default function GateConsole({ focus, onNavigate }: Props) {
   const [receiptOpen,     setReceiptOpen]     = useState(false)          // Step 4
   const [eirPhotosOpen,   setEirPhotosOpen]   = useState(false)          // Step 4
   const [moreActionsOpen, setMoreActionsOpen] = useState(false)          // Step 4
+  const [atPositioning,   setAtPositioning]   = useState(false)          // AT_POSITION transition
+  const [atPositionDone,  setAtPositionDone]  = useState(false)          // AT_POSITION transition
   const colChooserRef  = useRef<HTMLDivElement>(null)
   const moreActionsRef = useRef<HTMLDivElement>(null)
 
@@ -167,6 +169,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
   useEffect(() => {
     setCheckInDone(false); setEirDone(false); setExclOpen(false); setExclReason(null)
     setReceiptOpen(false); setEirPhotosOpen(false)
+    setAtPositionDone(false); setAtPositioning(false)
   }, [sel])
 
   useEffect(() => {
@@ -316,6 +319,36 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     (laneCountsByState.assigned||0)+(laneCountsByState.loading||0)+(laneCountsByState.staged||0)+(laneCountsByState.clearing||0)
       ? `${(laneCountsByState.assigned||0)+(laneCountsByState.loading||0)+(laneCountsByState.staged||0)+(laneCountsByState.clearing||0)} in use` : null,
   ].filter(Boolean).join(" · ")
+
+  // ── Yard Ready helper ────────────────────────────────────────────────────
+  function visitYardReady(v: Visit): 'green' | 'amber' | 'red' | 'na' {
+    // Pre-staged: already sitting in a staging lane
+    if (v.lane.startsWith('S-')) return 'green'
+    // Only outbound pickups need a pre-staging readiness check
+    if (!/pickup|retrieval/i.test(v.purpose)) return 'na'
+    // Look up the container address and count blocking units
+    const cont = containers.find(c => c.id === v.container)
+    if (!cont) return 'amber'
+    const check = computeRehandleCost(cont.address, containers)
+    return check.accessible ? 'amber' : 'red'
+  }
+
+  // ── AT_POSITION transition handler ───────────────────────────────────────
+  async function handleAtPosition() {
+    if (atPositioning || atPositionDone) return
+    setAtPositioning(true)
+    try {
+      const now  = new Date()
+      const time = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`
+      await backendApi.patchVisit(selVisit.id, { state: "AT_POSITION", at_position: time })
+      await refresh(["visits"])
+      setAtPositionDone(true)
+    } catch (err) {
+      console.error("[GateConsole] at-position failed:", err)
+    } finally {
+      setAtPositioning(false)
+    }
+  }
 
   // ── Step 3: Column helpers ────────────────────────────────────────────────
   function toggleVisitCol(col: VisitCol) {
@@ -591,9 +624,10 @@ export default function GateConsole({ focus, onNavigate }: Props) {
               <table className="w-full border-collapse" style={{ fontSize:11 }}>
                 <thead>
                   <tr>
-                    {visibleCols.has("TRUCK")     && <th className="ds-th text-left">{t("gate.col.truck")}</th>}
+                    {visibleCols.has("TRUCK")      && <th className="ds-th text-left">{t("gate.col.truck")}</th>}
                     {visibleCols.has("LIFECYCLE") && <th className="ds-th text-left">{t("gate.col.lifecycle")}</th>}
                     {visibleCols.has("TURN")      && <th className="ds-th text-left">{t("gate.col.turn")}</th>}
+                    {visibleCols.has("YARD_READY")&& <th className="ds-th text-left">{t("gate.col.yardReady")}</th>}
                     {visibleCols.has("PURPOSE")   && <th className="ds-th text-left">{t("gate.col.purpose")}</th>}
                     {visibleCols.has("CONTAINER") && <th className="ds-th text-left">{t("gate.col.container")}</th>}
                     {visibleCols.has("APPT")      && <th className="ds-th text-left">{t("gate.col.appt")}</th>}
@@ -634,6 +668,27 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                       {visibleCols.has("TURN") && (
                         <td className={`px-2 py-2.5 font-mono font-bold ${v.turn>=15?"text-[#dc2626]":""}`}>{v.turn?v.turn+"′":"—"}</td>
                       )}
+                      {/* YARD READY */}
+                      {visibleCols.has("YARD_READY") && (() => {
+                        const yr = visitYardReady(v)
+                        const cfg = {
+                          green: { dot:"#16a34a", bg:"#f0fdf4", border:"#bbf7d0", label: t("gate.yardReady.green") },
+                          amber: { dot:"#d97706", bg:"#fffbeb", border:"#fde68a", label: t("gate.yardReady.amber") },
+                          red:   { dot:"#dc2626", bg:"#fef2f2", border:"#fecaca", label: t("gate.yardReady.red")   },
+                          na:    { dot:"#9ca3af", bg:"transparent", border:"transparent", label: "—" },
+                        }[yr]
+                        return (
+                          <td className="px-2 py-2.5">
+                            {yr === 'na' ? <span className="text-neutral-400 text-[10.5px]">—</span> : (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold"
+                                style={{ background: cfg.bg, border:`1px solid ${cfg.border}`, borderRadius:4 }}>
+                                <span className="w-1.5 h-1.5 rounded-full flex-none" style={{ background: cfg.dot }} />
+                                {cfg.label}
+                              </span>
+                            )}
+                          </td>
+                        )
+                      })()}
                       {/* PURPOSE */}
                       {visibleCols.has("PURPOSE") && (
                         <td className="px-2 py-2.5" style={{ fontSize:11 }}>{v.purpose}</td>
@@ -662,7 +717,32 @@ export default function GateConsole({ focus, onNavigate }: Props) {
             <div className="px-4 pt-4 pb-3">
               <div className="ds-label text-neutral-500"><span className="font-mono">{selVisit.id}</span> · {selVisit.purpose}</div>
               <div className="font-semibold text-[17px] mt-1 tracking-tight font-mono">{selVisit.plate}</div>
-              <div className="text-[12px] text-neutral-600 mt-0.5">{selVisit.carrier} · {selVisit.driver} · lane <span className="font-mono">{selVisit.lane}</span></div>
+              <div className="text-[12px] text-neutral-600 mt-0.5">
+                {selVisit.carrier} · {selVisit.driver} · lane <span className="font-mono">{selVisit.lane}</span>
+                {selVisit.stagingLane && (
+                  <> · staging <span className="font-mono font-semibold" style={{ color:"#16a34a" }}>{selVisit.stagingLane}</span></>
+                )}
+              </div>
+              {/* Yard Ready badge */}
+              {(() => {
+                const yr = visitYardReady(selVisit)
+                if (yr === 'na') return null
+                const cfg = {
+                  green: { dot:"#16a34a", bg:"#f0fdf4", border:"#bbf7d0", text:"#15803d", label: t("gate.yardReady.green"), desc: t("gate.yardReady.greenDesc") },
+                  amber: { dot:"#d97706", bg:"#fffbeb", border:"#fde68a", text:"#92400e", label: t("gate.yardReady.amber"), desc: t("gate.yardReady.amberDesc") },
+                  red:   { dot:"#dc2626", bg:"#fef2f2", border:"#fecaca", text:"#991b1b", label: t("gate.yardReady.red"),   desc: t("gate.yardReady.redDesc")   },
+                }[yr]
+                return (
+                  <div className="flex items-start gap-2 mt-2 px-3 py-2 text-[11.5px]"
+                    style={{ background: cfg.bg, border:`1px solid ${cfg.border}`, borderRadius:5, color: cfg.text }}>
+                    <span className="w-2 h-2 rounded-full flex-none mt-0.5" style={{ background: cfg.dot }} />
+                    <div>
+                      <span className="font-semibold">{t("gate.col.yardReady")}: {cfg.label}</span>
+                      <span className="ml-2 font-normal opacity-80">{cfg.desc}</span>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Step 4: Lifecycle timeline — always visible */}
@@ -760,6 +840,34 @@ export default function GateConsole({ focus, onNavigate }: Props) {
               {checkInDone && (
                 <div className="text-[10px] font-semibold text-[#059669] mb-1.5 px-0.5">EDI 322 sent ✓</div>
               )}
+              {/* AT_POSITION action — shown once checked in */}
+              {(selVisit.state === "CHECKED_IN" || checkInDone) && (() => {
+                const yr = visitYardReady(selVisit)
+                const blocked = yr === 'red'
+                return (
+                  <div className="mt-2 mb-1">
+                    <div className="ds-label text-neutral-400 mb-1.5">At position</div>
+                    {blocked ? (
+                      <div className="px-3 py-2.5 text-[11.5px] leading-snug"
+                        style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:5, color:"#991b1b" }}>
+                        <div className="font-semibold mb-0.5">⛔ {t("gate.yardReady.red")} — {t("gate.atPositionBlocked")}</div>
+                        <div className="text-[10.5px] font-normal" style={{ color:"#dc2626" }}>{t("gate.atPositionBlockedDesc")}</div>
+                      </div>
+                    ) : (
+                      <button className="w-full text-[11.5px] text-left px-3 py-2.5 font-semibold"
+                        style={{
+                          background: atPositionDone ? "#059669" : "#1d4ed8",
+                          color:"#fff", borderRadius:5,
+                          opacity: atPositioning ? 0.5 : 1,
+                          cursor: atPositionDone ? "default" : "pointer",
+                        }}
+                        onClick={handleAtPosition} disabled={atPositioning || atPositionDone}>
+                        {atPositionDone ? "✓ At position — processing started" : atPositioning ? "Moving to position…" : "Mark at position"}
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
               {/* More actions dropdown */}
               <div ref={moreActionsRef} className="relative">
                 <button onClick={()=>setMoreActionsOpen(v=>!v)}
