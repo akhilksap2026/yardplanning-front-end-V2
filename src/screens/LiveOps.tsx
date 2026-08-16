@@ -53,6 +53,7 @@ interface Entity {
   actualStart: number | null; actualEnd: number | null
   blocking: string | null; cause: string | null
   owner: string; impact: string; next: string
+  containerId?: string   // moves: used as YardMap focus key
 }
 
 // ── State classification ───────────────────────────────────────────────────
@@ -132,6 +133,7 @@ export default function LiveOps({ onNavigate }: Props) {
       owner:        `Ops · ${m.operatorName}`,
       impact:       isDone ? "Complete" : isInProg ? "In progress" : "Scheduled",
       next:         m.reason ?? "Execute per sequence",
+      containerId:  m.containerId,   // YardMap resolves by container ID, not move ID
     }
   }), [moves])
 
@@ -240,9 +242,14 @@ export default function LiveOps({ onNavigate }: Props) {
     // Navigate on double-click pattern: if already focused, deep-link
     if (focus === e.id) {
       if      (e.g === "gate")  onNavigate("gate",  e.id)
-      else if (e.g === "moves") onNavigate("yard",  e.id)
+      else if (e.g === "moves") onNavigate("yard",  e.containerId ?? e.id)
       else if (e.g === "equip") onNavigate("tower")
     }
+  }
+
+  // ── KPI navigate helper ───────────────────────────────────────────────────
+  function nav(to: string, focus?: string) {
+    onNavigate?.(to, focus)
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -292,24 +299,28 @@ export default function LiveOps({ onNavigate }: Props) {
           {dbLoading ? (
             [0,1,2,3,4].map(i => <Skeleton key={i} variant="kpi" />)
           ) : ([
-            { k: "Inbound containers",  v: String(inboundCnt),            sub: "containers today",  color: "#111827" },
-            { k: "Outbound containers", v: String(outboundCnt),           sub: "containers today",  color: "#111827" },
-            { k: "Operators available", v: String(opsAvail),              sub: `${opsAvail} of ${equipTotal} on shift`, color: opsAvail < equipTotal ? "#d97706" : "#111827" },
-            { k: "Moves created",       v: String(movesTotal),            sub: "in shift plan",     color: "#111827" },
-            { k: "Detention risk",      v: `$${detRiskK}k`,              sub: "next 72 h",         color: detRiskK > 5 ? "#dc2626" : "#d97706" },
-          ] as { k: string; v: string; sub: string; color?: string }[]).map((m, i, arr) => (
-            <div
+            { k: "Inbound containers",  v: String(inboundCnt),  sub: "containers today",              color: "#111827",                                     to: "gate",     fk: "inbound"  },
+            { k: "Outbound containers", v: String(outboundCnt), sub: "containers today",              color: "#111827",                                     to: "gate",     fk: "outbound" },
+            { k: "Operators available", v: String(opsAvail),    sub: `${opsAvail} of ${equipTotal} on shift`, color: opsAvail < equipTotal ? "#d97706" : "#111827", to: "operator", fk: undefined  },
+            { k: "Moves created",       v: String(movesTotal),  sub: "in shift plan",                color: "#111827",                                     to: "plan",     fk: undefined  },
+            { k: "Detention risk",      v: `$${detRiskK}k`,    sub: "next 72 h",                    color: detRiskK > 5 ? "#dc2626" : "#d97706",          to: "gate",     fk: "inbound"  },
+          ] as { k: string; v: string; sub: string; color?: string; to: string; fk?: string }[]).map((m, i, arr) => {
+            const hint = m.to === "gate" ? "Gate & Appointments" : m.to === "plan" ? "Planner" : m.to === "operator" ? "Operator Tablet" : "Control Tower"
+            return (
+            <button
               key={m.k}
-              className="flex-1 px-5 py-2.5 flex flex-col gap-0.5"
-              style={{ borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : undefined }}
+              onClick={() => nav(m.to, m.fk)}
+              className="flex-1 px-5 py-2.5 flex flex-col gap-0.5 text-left transition-colors hover:bg-[#f9fafb] group"
+              style={{ borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : undefined, cursor: "pointer" }}
             >
               <span className="ds-label text-neutral-500">{m.k}</span>
               <div className="flex items-baseline gap-2">
                 <span className="font-mono font-bold text-[24px] leading-none" style={{ color: m.color }}>{m.v}</span>
                 <span className="text-[11px] text-neutral-500">{m.sub}</span>
               </div>
-            </div>
-          ))}
+              <span className="text-[9.5px] text-neutral-300 group-hover:text-blue-400 transition-colors">→ {hint}</span>
+            </button>
+          )})}
 
           {/* Toggle button — flush right, matching GateConsole style */}
           <button
@@ -325,20 +336,22 @@ export default function LiveOps({ onNavigate }: Props) {
         {showMore && (
           <div className="flex items-stretch border-t border-[#e5e7eb] bg-[#fafafa]">
             {([
-              { k: "Equipment on yard",      v: `${equipUp} / ${equipTotal}`, sub: equipUp < equipTotal ? `${equipTotal - equipUp} in repair` : "all available", color: equipUp < equipTotal ? "#d97706" : "#111827" },
-              { k: "Unresolved exceptions",  v: String(unresolvedEx),          sub: "need attention",   color: unresolvedEx > 0 ? "#dc2626" : "#111827" },
-            ] as { k: string; v: string; sub: string; color?: string }[]).map((m, i) => (
-              <div
+              { k: "Equipment on yard",     v: `${equipUp} / ${equipTotal}`, sub: equipUp < equipTotal ? `${equipTotal - equipUp} in repair` : "all available", color: equipUp < equipTotal ? "#d97706" : "#111827", to: "tower" },
+              { k: "Unresolved exceptions", v: String(unresolvedEx),         sub: "need attention",                                                              color: unresolvedEx > 0 ? "#dc2626" : "#111827",    to: "tower" },
+            ] as { k: string; v: string; sub: string; color?: string; to: string }[]).map((m, i) => (
+              <button
                 key={m.k}
-                className="px-5 py-2 flex flex-col gap-0.5"
-                style={{ borderRight: i === 0 ? "1px solid #e5e7eb" : undefined, minWidth: 180 }}
+                onClick={() => nav(m.to)}
+                className="px-5 py-2 flex flex-col gap-0.5 text-left transition-colors hover:bg-white group"
+                style={{ borderRight: i === 0 ? "1px solid #e5e7eb" : undefined, minWidth: 180, cursor: "pointer" }}
               >
                 <span className="ds-label text-neutral-500">{m.k}</span>
                 <div className="flex items-baseline gap-2">
                   <span className="font-mono font-bold text-[20px] leading-none" style={{ color: m.color }}>{m.v}</span>
                   <span className="text-[11px] text-neutral-500">{m.sub}</span>
                 </div>
-              </div>
+                <span className="text-[9.5px] text-neutral-300 group-hover:text-blue-400 transition-colors">→ Control Tower</span>
+              </button>
             ))}
           </div>
         )}
@@ -352,7 +365,12 @@ export default function LiveOps({ onNavigate }: Props) {
         </div>
         <div className="flex gap-1.5 items-end h-16">
           {hourBars.map(h => (
-            <div key={h.hour} className="flex-1 flex flex-col justify-end gap-0.5 relative" style={{ minWidth: 28 }}>
+            <button
+              key={h.hour}
+              title={`Set view to ${h.hour}:00`}
+              onClick={() => { setNow(parseInt(h.hour, 10) * 60); setFocus(null) }}
+              className="flex-1 flex flex-col justify-end gap-0.5 relative group hover:opacity-80 transition-opacity"
+              style={{ minWidth: 28, cursor: "pointer", background: "transparent", padding: 0 }}>
               {h.isNow && (
                 <div className="absolute left-1/2 -translate-x-1/2" style={{ top: -4, bottom: 14, width: 2, background: "#4f46e5" }} />
               )}
@@ -361,7 +379,7 @@ export default function LiveOps({ onNavigate }: Props) {
               {/* Actual bar (solid, overlapping via negative margin) */}
               <div style={{ height: h.actualH, background: h.color, marginTop: -2 }} className="relative z-10" />
               <span className="text-center tabular-nums" style={{ fontSize: 9.5, color: h.labelColor, fontWeight: h.labelWeight }}>{h.hour}</span>
-            </div>
+            </button>
           ))}
         </div>
         <div className="text-[10.5px] text-neutral-500 mt-1.5">
@@ -377,23 +395,27 @@ export default function LiveOps({ onNavigate }: Props) {
         </div>
         <div className="flex items-stretch">
           {([
-            { k:"Received",           v:String(STORY_SHIFT_SUMMARY.received),               sub:"inbound containers",             color:"#111827" },
-            { k:"Shipped",            v:String(STORY_SHIFT_SUMMARY.shipped),                sub:"outbound dispatched",             color:"#111827" },
-            { k:"Chassis returned",   v:`${STORY_SHIFT_SUMMARY.chassisReturned}/${STORY_SHIFT_SUMMARY.chassisTotal}`,  sub:"all accounted for", color: STORY_SHIFT_SUMMARY.chassisReturned === STORY_SHIFT_SUMMARY.chassisTotal ? "#166534" : "#d97706" },
-            { k:"Disruptions",        v:String(STORY_SHIFT_SUMMARY.disruptionsHandled),     sub:`avg ${STORY_SHIFT_SUMMARY.disruptionAvgResolveMin} min resolve`, color:"#111827" },
-            { k:"Plans executed",     v:String(STORY_SHIFT_SUMMARY.plansExecuted.length),   sub:STORY_SHIFT_SUMMARY.plansExecuted.join(" · "),    color:"#111827" },
-            { k:"Plans superseded",   v:String(STORY_SHIFT_SUMMARY.plansSuperseded.length), sub:STORY_SHIFT_SUMMARY.plansSuperseded.join(" · ") || "none", color: STORY_SHIFT_SUMMARY.plansSuperseded.length > 0 ? "#b45309" : "#166534" },
-            { k:"Slots reconciled",   v:STORY_SHIFT_SUMMARY.slotsReconciled ? "Yes" : "No", sub:"end-of-shift audit",             color: STORY_SHIFT_SUMMARY.slotsReconciled ? "#166534" : "#dc2626" },
-          ] as { k: string; v: string; sub: string; color?: string }[]).map((m, i, arr) => (
-            <div key={m.k} className="flex-1 px-5 py-2 flex flex-col gap-0.5"
-              style={{ borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : undefined }}>
+            { k:"Received",         v:String(STORY_SHIFT_SUMMARY.received),               sub:"inbound containers",             color:"#111827",  to:"gate",  fk:"inbound"  },
+            { k:"Shipped",          v:String(STORY_SHIFT_SUMMARY.shipped),                sub:"outbound dispatched",             color:"#111827",  to:"gate",  fk:"outbound" },
+            { k:"Chassis returned", v:`${STORY_SHIFT_SUMMARY.chassisReturned}/${STORY_SHIFT_SUMMARY.chassisTotal}`, sub:"all accounted for", color: STORY_SHIFT_SUMMARY.chassisReturned === STORY_SHIFT_SUMMARY.chassisTotal ? "#166534" : "#d97706", to:"yard",  fk:undefined  },
+            { k:"Disruptions",      v:String(STORY_SHIFT_SUMMARY.disruptionsHandled),     sub:`avg ${STORY_SHIFT_SUMMARY.disruptionAvgResolveMin} min resolve`, color:"#111827", to:"tower", fk:undefined  },
+            { k:"Plans executed",   v:String(STORY_SHIFT_SUMMARY.plansExecuted.length),   sub:STORY_SHIFT_SUMMARY.plansExecuted.join(" · "),    color:"#111827",  to:"plan",  fk:undefined  },
+            { k:"Plans superseded", v:String(STORY_SHIFT_SUMMARY.plansSuperseded.length), sub:STORY_SHIFT_SUMMARY.plansSuperseded.join(" · ") || "none", color: STORY_SHIFT_SUMMARY.plansSuperseded.length > 0 ? "#b45309" : "#166534", to:"plan", fk:undefined },
+            { k:"Slots reconciled", v:STORY_SHIFT_SUMMARY.slotsReconciled ? "Yes" : "No", sub:"end-of-shift audit",             color: STORY_SHIFT_SUMMARY.slotsReconciled ? "#166534" : "#dc2626", to:"yard", fk:undefined },
+          ] as { k: string; v: string; sub: string; color?: string; to: string; fk?: string }[]).map((m, i, arr) => {
+            const hint = m.to === "gate" ? "Gate" : m.to === "plan" ? "Planner" : m.to === "yard" ? "Yard Map" : "Control Tower"
+            return (
+            <button key={m.k} onClick={() => nav(m.to, m.fk)}
+              className="flex-1 px-5 py-2 flex flex-col gap-0.5 text-left transition-colors hover:bg-white group"
+              style={{ borderRight: i < arr.length - 1 ? "1px solid #e5e7eb" : undefined, cursor:"pointer" }}>
               <span className="ds-label text-neutral-500">{m.k}</span>
               <div className="flex items-baseline gap-2">
                 <span className="font-mono font-bold text-[22px] leading-none" style={{ color: m.color }}>{m.v}</span>
                 <span className="text-[11px] text-neutral-500">{m.sub}</span>
               </div>
-            </div>
-          ))}
+              <span className="text-[9.5px] text-neutral-300 group-hover:text-blue-400 transition-colors">→ {hint}</span>
+            </button>
+          )})}
         </div>
       </div>
 
@@ -405,10 +427,17 @@ export default function LiveOps({ onNavigate }: Props) {
           {groups.map(grp => (
             <div key={grp.g} style={{ borderBottom: "2px solid #e5e7eb" }}>
               {/* Group header */}
-              <div className="flex items-baseline gap-2.5 px-5 py-2.5">
+              <div className="flex items-center gap-2.5 px-5 py-2.5">
                 <span className="font-bold text-[13.5px] tracking-tight">{grp.title}</span>
                 <span className="text-[11px] text-neutral-500 flex-1">{grp.line}</span>
                 <span className="text-[10.5px] font-bold tracking-wide uppercase" style={{ color: grp.stateColor }}>{grp.stateLabel}</span>
+                {onNavigate && (
+                  <button
+                    onClick={() => nav(grp.g === "gate" ? "gate" : grp.g === "moves" ? "yard" : "tower")}
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors ml-1">
+                    Open →
+                  </button>
+                )}
               </div>
               {/* Rows */}
               <div className="flex flex-col">
@@ -463,7 +492,7 @@ export default function LiveOps({ onNavigate }: Props) {
                       if (!onNavigate) return
                       const row = grp.rows.find(r => r.id === focus)!
                       if      (grp.g === "gate")  onNavigate("gate",  row.id)
-                      else if (grp.g === "moves") onNavigate("yard",  row.id)
+                      else if (grp.g === "moves") onNavigate("yard",  row.containerId ?? row.id)
                       else                        onNavigate("tower")
                     }}
                     className="ml-auto text-[10.5px] font-bold px-3 py-1"
@@ -528,7 +557,7 @@ export default function LiveOps({ onNavigate }: Props) {
                       <button
                         className="mt-2 text-[10.5px] font-bold px-2.5 py-1"
                         style={{ background: "#111827", color: "#fff", borderRadius: 5 }}
-                        onClick={ev => { ev.stopPropagation(); onNavigate(e.g === "gate" ? "gate" : e.g === "moves" ? "yard" : "tower", e.id) }}>
+                        onClick={ev => { ev.stopPropagation(); onNavigate(e.g === "gate" ? "gate" : e.g === "moves" ? "yard" : "tower", e.g === "moves" ? (e.containerId ?? e.id) : e.id) }}>
                         → Open in {e.g === "gate" ? "Gate" : e.g === "moves" ? "Yard Map" : "Control Tower"}
                       </button>
                     )}
@@ -551,7 +580,7 @@ export default function LiveOps({ onNavigate }: Props) {
                   <button
                     className="mt-2 text-[10.5px] font-bold px-2.5 py-1"
                     style={{ background: "#111827", color: "#fff", borderRadius: 5 }}
-                    onClick={() => onNavigate?.("tower")}>
+                    onClick={() => onNavigate?.("tower", ev.id)}>
                     → View in Control Tower
                   </button>
                 </div>
