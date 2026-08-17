@@ -407,21 +407,6 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                 <div className="text-[12.5px] leading-relaxed mt-1.5 text-neutral-700 max-w-2xl">{selEvent.detail}</div>
               </div>
 
-              {/* Plan impact summary */}
-              {activeDiffStats && (
-                <div className="px-5 py-3 border-b border-[var(--ds-border)] bg-[#f0fdf4]">
-                  <div className="text-[11px] font-bold uppercase tracking-widest text-emerald-700 mb-1">{t("tower.engineResponse")}</div>
-                  <div className="text-[13px] text-neutral-800 leading-relaxed">
-                    {t("tower.planAdjusted")}
-                    {Number(activeDiffStats.reassigned) > 0 && <> <strong>{activeDiffStats.reassigned} {t("tower.movesReassigned")}</strong></>}
-                    {Number(activeDiffStats.added) > 0 && <>, <strong>{activeDiffStats.added} {t("tower.movesAdded")}</strong></>}
-                    {Number(activeDiffStats.cancelled) > 0 && <>, <strong>{activeDiffStats.cancelled} {t("tower.movesRemoved")}</strong></>}
-                    {Number(activeDiffStats.reassigned) === 0 && Number(activeDiffStats.added) === 0 && Number(activeDiffStats.cancelled) === 0 && <> <strong>no changes needed</strong></>}
-                    .
-                  </div>
-                </div>
-              )}
-
               {/* Suppressed state */}
               {selEvent.state === "suppressed" ? (
                 <div className="px-5 py-5 max-w-2xl">
@@ -505,18 +490,45 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                     if (!hasChanges) {
                       return <div className="px-5 py-4 text-[12px] text-neutral-400">No plan changes for this alert.</div>
                     }
-                    // Build a plain-language description matching the engine response
-                    const parts: string[] = []
-                    if (Number(s!.reassigned) > 0) parts.push(`${s!.reassigned} move${Number(s!.reassigned) === 1 ? "" : "s"} reassigned`)
-                    if (Number(s!.added) > 0)      parts.push(`${s!.added} added`)
-                    if (Number(s!.cancelled) > 0)  parts.push(`${s!.cancelled} removed`)
+                    // Build synthetic rows from the aggregate stats — same table structure as diffRows
+                    type SyntheticRow = { action: string; label: string; color: string; count: number; description: string }
+                    const synRows: SyntheticRow[] = []
+                    if (Number(s!.reassigned) > 0) synRows.push({ action: "REASSIGNED", label: "Reassigned", color: "var(--ds-amber)",  count: Number(s!.reassigned), description: `${s!.reassigned} move${Number(s!.reassigned) === 1 ? "" : "s"} redistributed by the engine after the disruption.` })
+                    if (Number(s!.added) > 0)      synRows.push({ action: "ADDED",      label: "Added",      color: "#059669",          count: Number(s!.added),      description: `${s!.added} new move${Number(s!.added) === 1 ? "" : "s"} inserted into the plan.` })
+                    if (Number(s!.cancelled) > 0)  synRows.push({ action: "CANCELLED",  label: "Removed",    color: "var(--ds-red)",    count: Number(s!.cancelled),  description: `${s!.cancelled} move${Number(s!.cancelled) === 1 ? "" : "s"} removed from the plan.` })
                     return (
-                      <div className="px-5 py-4">
-                        <div className="text-[11px] font-bold uppercase tracking-widest text-emerald-700 mb-1">{t("tower.engineResponse")}</div>
-                        <div className="text-[13px] text-neutral-800 leading-relaxed">
-                          {t("tower.planAdjusted")} <strong>{parts.join(", ")}</strong>.
+                      <>
+                        <div className="px-5 pt-3 pb-1">
+                          <span className="ds-label">What changed in the plan</span>
                         </div>
-                      </div>
+                        <table className="w-full border-collapse text-[12px]">
+                          <thead>
+                            <tr>
+                              {["Move", "Before", "After", "Reason", "Status"].map((h, i) => (
+                                <th key={h} className="ds-th text-left" style={{ paddingLeft: i === 0 ? 20 : 12, paddingRight: i === 4 ? 20 : 12 }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {synRows.map(row => (
+                              <tr key={row.action} className="border-b border-[var(--ds-border-lt)]">
+                                <td className="py-2 pl-5 pr-2 align-top">
+                                  <div className="font-mono font-semibold text-[11.5px]">—</div>
+                                  <div className="text-[10px] font-bold mt-0.5" style={{ color: row.color }}>{row.label}</div>
+                                </td>
+                                <td className="px-3 py-2 align-top text-neutral-400 font-mono text-[11.5px]">—</td>
+                                <td className="px-3 py-2 align-top font-mono font-semibold text-[11.5px]">
+                                  <span className="font-bold text-[12px]" style={{ fontFamily: "inherit", color: row.color }}>×{row.count}</span>
+                                </td>
+                                <td className="px-3 py-2 align-top text-neutral-600 leading-relaxed">{row.description}</td>
+                                <td className="py-2 pl-3 pr-5 align-top">
+                                  <span className="text-[11px] text-neutral-300">—</span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </>
                     )
                   })()}
                 </div>

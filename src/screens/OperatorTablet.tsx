@@ -509,34 +509,61 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
           <span className="font-semibold text-[15px] tracking-tight">Operator Tablet</span>
           <span className="text-[11px] text-neutral-500 ml-2">Select your operator identity</span>
         </div>
-        <div className="flex flex-1 items-center justify-center p-8">
-          <div className={phoneFrame} style={{ ...phoneStyle, background:"#1e3a5f", height:560, minHeight:560, maxHeight:560 }}>
-            <div className="flex justify-center pt-3 pb-1 flex-none">
-              <div style={{ width:100, height:24, background:NAVY, borderRadius:12 }} />
+        <div className="flex-1 py-8 px-6 flex justify-center items-center overflow-auto bg-[#eef0f4]">
+          <div className={phoneFrame} style={{ ...phoneStyle, height:560, minHeight:560, maxHeight:560 }}>
+
+            {/* Amber notch */}
+            <div className="flex justify-center pt-3 pb-1 flex-none" style={{ background:AMBER }}>
+              <div style={{ width:100, height:22, background:NAVY, borderRadius:12 }} />
             </div>
-            <div className="flex flex-col items-center pt-6 pb-4 flex-none">
-              <div className="w-14 h-14 flex items-center justify-center mb-3 font-black text-white text-xl" style={{ background:AMBER, borderRadius:16 }}>YN</div>
-              <div className="text-white font-black text-[20px] tracking-tight">YMSNow Mobile</div>
-              <div className="text-white/60 text-[12px] mt-0.5">Operator app · v3.4</div>
-            </div>
-            <div className="flex flex-col gap-3 px-5 py-4 flex-1">
-              <div className="text-white/50 text-[11px] font-semibold tracking-wider text-center mb-1">WHO ARE YOU?</div>
-              {SEED_OPERATORS.map(op => (
-                <button key={op.name} onClick={() => setSelectedSeedOperator(op.name)}
-                  className="flex items-center gap-3 text-left px-4 py-3.5 transition-all active:scale-[0.97]"
-                  style={{ background:"#fff", borderRadius:12 }}>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-[13px] text-white flex-none"
-                    style={{ background:AMBER }}>
-                    {op.initials}
+
+            {/* Amber header — app identity */}
+            <div className="flex-none px-4 pt-3 pb-3" style={{ background:AMBER }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center font-black text-[11px]"
+                    style={{ background:"rgba(255,255,255,0.22)", color:"#fff", border:"1.5px solid rgba(255,255,255,0.35)" }}>
+                    YN
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-[14px] text-neutral-900">{op.name.replace(/^J-\d+\s+/, "")}</div>
-                    <div className="text-[11px] text-neutral-500">{op.badge} · {op.steps} moves assigned</div>
+                  <div>
+                    <div className="text-[9px] font-semibold leading-none" style={{ color:"rgba(255,255,255,0.6)" }}>OPERATOR APP</div>
+                    <div className="text-[12px] font-black text-white leading-tight">YMSNow Mobile</div>
                   </div>
-                  <span className="text-neutral-300">›</span>
-                </button>
-              ))}
+                </div>
+                <div className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                  style={{ background:"rgba(255,255,255,0.18)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>
+                  v3.4
+                </div>
+              </div>
+              <div className="text-[10px] mt-2" style={{ color:"rgba(255,255,255,0.65)" }}>
+                Tap your name to start your shift
+              </div>
             </div>
+
+            {/* White content */}
+            <div className="flex-1 min-h-0 overflow-y-auto bg-white" style={{ scrollbarWidth:"none" }}>
+              <div className="px-4 pt-4 pb-4">
+                <div className="text-[10px] font-bold tracking-widest text-neutral-400 mb-3">WHO ARE YOU?</div>
+                <div className="flex flex-col gap-2">
+                  {SEED_OPERATORS.map(op => (
+                    <button key={op.name} onClick={() => setSelectedSeedOperator(op.name)}
+                      className="flex items-center gap-3 text-left px-4 py-3.5 w-full transition-all active:scale-[0.97]"
+                      style={{ background:"#f9fafb", borderRadius:12, border:"1px solid #f3f4f6" }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-[13px] text-white flex-none"
+                        style={{ background:AMBER }}>
+                        {op.initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-[14px] text-neutral-900">{op.name.replace(/^J-\d+\s+/, "")}</div>
+                        <div className="text-[11px] text-neutral-500">{op.badge} · {op.steps} moves assigned</div>
+                      </div>
+                      <span className="text-neutral-300">›</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -556,34 +583,67 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
           <span className="font-semibold text-[15px] tracking-tight">Operator Tablet</span>
           <span className="text-[11px] text-neutral-500 ml-2">Backend connected — select your jockey</span>
         </div>
-        <div className="flex flex-1 items-center justify-center p-8">
-          <div className={phoneFrame} style={{ ...phoneStyle, background:"#1e3a5f", height:680, minHeight:680, maxHeight:680 }}>
-            <div className="flex justify-center pt-3 pb-1 flex-none"><div style={{ width:100, height:24, background:NAVY, borderRadius:12 }} /></div>
-            <div className="flex flex-col items-center pt-6 pb-4 flex-none">
-              <div className="w-14 h-14 flex items-center justify-center mb-3 font-black text-white text-xl" style={{ background:AMBER, borderRadius:16 }}>YN</div>
-              <div className="text-white font-black text-[20px] tracking-tight">YMSNow Mobile</div>
-              <div className="text-white/60 text-[12px] mt-0.5">Operator app · v3.4</div>
+        <div className="flex-1 py-8 px-6 flex justify-center items-center overflow-auto bg-[#eef0f4]">
+          <div className={phoneFrame} style={{ ...phoneStyle, height:620, minHeight:620, maxHeight:620 }}>
+
+            {/* Amber notch */}
+            <div className="flex justify-center pt-3 pb-1 flex-none" style={{ background:AMBER }}>
+              <div style={{ width:100, height:22, background:NAVY, borderRadius:12 }} />
             </div>
-            <div className="flex flex-col gap-3 px-5 py-4 flex-1">
-              <div className="text-white/50 text-[11px] font-semibold tracking-wider text-center mb-1">WHO ARE YOU?</div>
-              {availableJockeys.length === 0
-                ? <div className="bg-white/10 rounded-xl px-4 py-4 text-white/70 text-[13px] text-center">No jockeys available from engine</div>
-                : availableJockeys.slice(0,4).map(j => (
-                  <button key={j.id} onClick={() => setSelectedJockeyId(j.id)}
-                    className="flex items-center gap-3 text-left px-4 py-3.5 transition-all active:scale-[0.97]"
-                    style={{ background:"#fff", borderRadius:12 }}>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-[13px] text-white flex-none" style={{ background:AMBER }}>
-                      {j.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-[14px] text-neutral-900">{j.name}</div>
-                      <div className="text-[11px] text-neutral-500 capitalize">{j.status} · speed ×{j.speed_factor}</div>
-                    </div>
-                    <span className="text-neutral-300">›</span>
-                  </button>
-                ))
-              }
+
+            {/* Amber header */}
+            <div className="flex-none px-4 pt-3 pb-3" style={{ background:AMBER }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center font-black text-[11px]"
+                    style={{ background:"rgba(255,255,255,0.22)", color:"#fff", border:"1.5px solid rgba(255,255,255,0.35)" }}>
+                    YN
+                  </div>
+                  <div>
+                    <div className="text-[9px] font-semibold leading-none" style={{ color:"rgba(255,255,255,0.6)" }}>OPERATOR APP</div>
+                    <div className="text-[12px] font-black text-white leading-tight">YMSNow Mobile</div>
+                  </div>
+                </div>
+                <div className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                  style={{ background:"rgba(255,255,255,0.18)", color:"#fff", border:"1px solid rgba(255,255,255,0.3)" }}>
+                  v3.4
+                </div>
+              </div>
+              <div className="text-[10px] mt-2" style={{ color:"rgba(255,255,255,0.65)" }}>
+                Tap your name to start your shift
+              </div>
             </div>
+
+            {/* White content */}
+            <div className="flex-1 min-h-0 overflow-y-auto bg-white" style={{ scrollbarWidth:"none" }}>
+              <div className="px-4 pt-4 pb-4">
+                <div className="text-[10px] font-bold tracking-widest text-neutral-400 mb-3">WHO ARE YOU?</div>
+                <div className="flex flex-col gap-2">
+                  {availableJockeys.length === 0
+                    ? <div className="px-4 py-4 text-[13px] text-center text-neutral-400"
+                        style={{ background:"#f9fafb", borderRadius:12, border:"1px solid #f3f4f6" }}>
+                        No jockeys available from engine
+                      </div>
+                    : availableJockeys.slice(0,4).map(j => (
+                      <button key={j.id} onClick={() => setSelectedJockeyId(j.id)}
+                        className="flex items-center gap-3 text-left px-4 py-3.5 w-full transition-all active:scale-[0.97]"
+                        style={{ background:"#f9fafb", borderRadius:12, border:"1px solid #f3f4f6" }}>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-[13px] text-white flex-none"
+                          style={{ background:AMBER }}>
+                          {j.name.split(" ").map((w: string)=>w[0]).join("").slice(0,2).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-[14px] text-neutral-900">{j.name}</div>
+                          <div className="text-[11px] text-neutral-500 capitalize">{j.status} · speed ×{j.speed_factor}</div>
+                        </div>
+                        <span className="text-neutral-300">›</span>
+                      </button>
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
