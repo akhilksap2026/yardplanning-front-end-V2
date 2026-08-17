@@ -1,5 +1,81 @@
+import { useState } from "react"
 import { OPTIMIZER_VS_BASELINE } from "@/data/plan-metrics"
 
+// ── Plain-language tooltips ───────────────────────────────────────────────────
+const METRIC_TIPS: Record<string, string> = {
+  "Moves":                            "Every time a container is lifted or shifted. Fewer moves = less equipment time and less risk of damage.",
+  "Reshuffles (premarshal + digout)": "Extra moves needed to dig out a buried container. Each reshuffle delays the truck waiting at the gate.",
+  "Detention exposure":               "Money owed to the shipping line if a container isn't collected before its free-storage deadline.",
+  "Truck turn P50":                   "Half of all trucks were processed faster than this. Lower is better.",
+  "Truck turn P90":                   "9 out of 10 trucks were processed faster than this — reflects your near-worst-case experience.",
+  "Machine-hours":                    "Total hours all equipment was running across the shift. Less time = lower fuel and labour cost.",
+  "On-time departure":                "Share of trucks that left within their booked time window.",
+}
+
+const OBJECTIVE_TIPS: Record<string, string> = {
+  "Machine minutes":      "Keep total equipment running time as short as possible.",
+  "Weighted lateness":    "Prioritise containers closest to their collection deadline first.",
+  "Predicted reshuffles": "Stack containers so you won't have to move them twice to reach another.",
+  "Detention exposure":   "Reduce the risk of overstay fees charged by the shipping line.",
+}
+
+// ── Floating info bubble ──────────────────────────────────────────────────────
+function InfoTip({ text }: { text: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: 5, verticalAlign: "middle" }}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      {/* ① trigger icon */}
+      <span style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        width: 14, height: 14, borderRadius: "50%",
+        fontSize: 9, fontWeight: 700, lineHeight: 1,
+        background: "var(--ds-border)", color: "var(--text-muted)",
+        cursor: "default", userSelect: "none", flexShrink: 0,
+      }}>?</span>
+
+      {/* ② bubble */}
+      {open && (
+        <span style={{
+          position: "absolute",
+          bottom: "calc(100% + 6px)",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 50,
+          width: 200,
+          background: "#1e293b",
+          color: "#f1f5f9",
+          fontSize: 11.5,
+          lineHeight: 1.5,
+          padding: "7px 10px",
+          borderRadius: 8,
+          boxShadow: "0 4px 14px rgba(0,0,0,0.22)",
+          pointerEvents: "none",
+          whiteSpace: "normal",
+          textAlign: "left",
+          fontWeight: 400,
+        }}>
+          {text}
+          {/* tail */}
+          <span style={{
+            position: "absolute",
+            top: "100%", left: "50%",
+            transform: "translateX(-50%)",
+            width: 0, height: 0,
+            borderLeft: "5px solid transparent",
+            borderRight: "5px solid transparent",
+            borderTop: "5px solid #1e293b",
+          }} />
+        </span>
+      )}
+    </span>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function OptimizerComparison() {
   const { rows, headline, objective } = OPTIMIZER_VS_BASELINE
 
@@ -52,7 +128,10 @@ export default function OptimizerComparison() {
                 <tr key={r.metric}
                   style={{ background: i % 2 === 0 ? "transparent" : "var(--ds-surface-hover, #fafafa)" }}>
                   <td className="ds-td" style={{ paddingLeft: 16, fontWeight: 500 }}>
-                    {r.metric}
+                    <span style={{ display: "inline-flex", alignItems: "center" }}>
+                      {r.metric}
+                      {METRIC_TIPS[r.metric] && <InfoTip text={METRIC_TIPS[r.metric]} />}
+                    </span>
                     {"optimized_note" in r && r.optimized_note && (
                       <span style={{ display: "block", fontSize: 10.5, color: "var(--text-muted)", fontWeight: 400, marginTop: 1 }}>
                         {r.optimized_note}
@@ -100,8 +179,11 @@ export default function OptimizerComparison() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {objective.map(o => (
               <div key={o.k}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-primary)" }}>{o.k}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-primary)", display: "inline-flex", alignItems: "center" }}>
+                    {o.k}
+                    {OBJECTIVE_TIPS[o.k] && <InfoTip text={OBJECTIVE_TIPS[o.k]} />}
+                  </span>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600,
                     color: "var(--ds-accent)" }}>{o.pct}%</span>
                 </div>
