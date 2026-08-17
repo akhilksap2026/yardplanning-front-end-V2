@@ -16,6 +16,7 @@ import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, isExtraMov
 import { useLang } from "@/lib/i18n"
 import ShiftScorecard from "@/screens/ShiftScorecard"
 import OptimizerComparison from "@/screens/OptimizerComparison"
+import PlannerGantt from "@/components/PlannerGantt"
 
 interface Props {
   focus: string | null
@@ -135,7 +136,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   const [colChooserOpen,    setColChooserOpen]     = useState(false)          // Step 3
   const [constraintsOpen,   setConstraintsOpen]    = useState(false)          // Step 4
   const [moveHistoryOpen,   setMoveHistoryOpen]    = useState(false)          // Step 4
-  const [ganttExpanded,     setGanttExpanded]      = useState(false)          // Step 5
+  const [ganttExpanded,     setGanttExpanded]      = useState(true)           // Step 5 — always open
   const colChooserRef = useRef<HTMLDivElement>(null)
 
   // ── Manual edit state ────────────────────────────────────────────────────
@@ -242,7 +243,6 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       setFilter("ALL")
       setSel(allSteps[0] ? stepId(allSteps[0]) : "")
       setQ("")
-      setGanttExpanded(false)
       setPlanSource("seed")
       return
     }
@@ -250,7 +250,6 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
       setFilter("Premarshal ahead of retrieval")
       setSel("")
       setQ("")
-      setGanttExpanded(false)
       return
     }
     if (focus === "demo:select") {
@@ -259,7 +258,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         allSteps.find(s => s.operation === "Premarshal ahead of retrieval" && s.step_status !== "Blocked") ??
         allSteps.find(s => s.operation === "Premarshal ahead of retrieval") ??
         allSteps[0]
-      if (step) { setSel(stepId(step)); setTab("detail"); setFilter("ALL"); setQ(""); setGanttExpanded(false) }
+      if (step) { setSel(stepId(step)); setTab("detail"); setFilter("ALL"); setQ("") }
       return
     }
     if (focus === "demo:gantt") {
@@ -1247,62 +1246,15 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
               <div style={{ width:"0%", height:"100%", background:"var(--ds-accent)", borderRadius:2 }} />
             </div>
             <span style={{ fontFamily:"var(--font-mono)", fontSize:11 }}>{nextBreakTime}</span>
-            {/* Show Gantt button */}
-            <button onClick={()=>setGanttExpanded(v=>!v)} className="ds-btn ds-btn-ghost"
-              style={{ marginLeft:"auto", gap:4, fontSize:12 }}>
-              <i className="ti ti-chart-gantt" style={{ fontSize:13 }} />
-              {ganttExpanded?"Collapse ▲":"Show Gantt ▼"}
-            </button>
+            <i className="ti ti-chart-gantt" style={{ fontSize:13, color:"var(--ds-subtle)", marginLeft:"auto" }} />
           </div>
 
-          {/* Gantt — expands below the row */}
-          <div style={{ overflow:"hidden", maxHeight:ganttExpanded?220:0, transition:"max-height 220ms ease" }}>
-            <div style={{ borderTop:"0.5px solid var(--ds-border)" }}>
-              <div style={{ padding:"4px 14px", fontSize:11, color:"var(--ds-subtle)" }}>
-                {published?"Frozen window 20 min · in-progress moves immutable":"Preview — freeze applies at publication"}
-              </div>
-              <div style={{ display:"grid", gridTemplateColumns:"132px 1fr" }}>
-                <div />
-                <div style={{ display:"flex", borderBottom:"0.5px solid var(--ds-border)" }}>
-                  {HOURS.map(h => (
-                    <div key={h} style={{ flex:1, fontFamily:"var(--font-mono)", fontSize:9,
-                      color:"var(--ds-subtle)", borderLeft:"0.5px solid var(--ds-border)", padding:"2px 4px" }}>{h}</div>
-                  ))}
-                </div>
-                {operatorNames().map(opName => {
-                  const opSteps = stepsForOperator(opName)
-                  return (
-                    <div key={opName} style={{ display:"contents" }}>
-                      <div style={{ padding:"4px 14px", fontSize:11.5,
-                        borderBottom:"0.5px solid var(--ds-border)", display:"flex", justifyContent:"space-between" }}>
-                        <span style={{ fontWeight:600 }}>{opName}</span>
-                        <span style={{ color:"var(--ds-subtle)" }}>{opSteps.length} steps</span>
-                      </div>
-                      <div style={{ position:"relative", height:32,
-                        borderBottom:"0.5px solid var(--ds-border)", borderLeft:"0.5px solid var(--ds-border)" }}>
-                        {opSteps.map((s, gi) => {
-                          const startMin = isoToMin(s.estimated_start)
-                          const endMin   = isoToMin(s.estimated_end)
-                          if (startMin==null||endMin==null) return null
-                          const sid = stepId(s)
-                          return (
-                            <div key={`g-${gi}`}
-                              onClick={()=>{setSel(sid);setTab("detail")}}
-                              title={`${getDisplayContainerId(s)} · ${getDisplayOperation(s.operation)} · ${fmtIso(s.estimated_start)}–${fmtIso(s.estimated_end)}`}
-                              style={{ position:"absolute", top:8, height:12, cursor:"pointer", borderRadius:2,
-                                left:(Math.max(0,startMin-SHIFT_START_MIN)/SHIFT_DURATION_MIN*100).toFixed(2)+"%",
-                                width:Math.max(0.5,(endMin-startMin)/SHIFT_DURATION_MIN*100).toFixed(2)+"%",
-                                background:sid===sel?"var(--ds-accent)":s.step_status==="Blocked"?"var(--ds-subtle)":"var(--ds-fg)" }}
-                            />
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
+          {/* Gantt — always visible, no collapse */}
+          <PlannerGantt
+            sel={sel}
+            onSelect={sid => { setSel(sid); setTab("detail") }}
+            published={published}
+          />
         </div>
 
       </>)}
