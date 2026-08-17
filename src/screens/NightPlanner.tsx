@@ -304,6 +304,9 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   const selStep      = allSteps.find(s => stepId(s) === sel) ?? null
   const onShift      = operators.filter(o => o.status === "on shift")
   const frozenCount  = allSteps.filter(s => s.step_status === "Blocked").length
+  // Next break derived from shift constants (SHIFT_START_MIN + 3.5 h = 23:30 for a 20:00 start)
+  const breakTotalMins = (SHIFT_START_MIN + 210) % (24 * 60)
+  const nextBreakTime  = `${String(Math.floor(breakTotalMins / 60)).padStart(2, "0")}:${String(breakTotalMins % 60).padStart(2, "0")}`
   const hotContainerIds = getHotContainers(CONTAINERS, 6)
 
   // ── Engine derived values ─────────────────────────────────────────────────
@@ -452,7 +455,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   const primaryKpis = [
     { k:t("planner.kpi.inbound"),  v:String(inbounds),           sub:"containers today",                                                                      red:false },
     { k:t("planner.kpi.outbound"), v:String(outbounds),          sub:"containers today",                                                                      red:false },
-    { k:t("planner.kpi.operators"), v:String(totalOperators),     sub:`${totalOperators} of ${totalOperators} on shift`,                                       red:false },
+    { k:t("planner.kpi.operators"), v:String(operators.length),   sub:`${onShift.length} of ${operators.length} on shift`,                                   red:false },
     { k:t("planner.kpi.movesCreated"), v:String(totalSteps),         sub:"in shift plan",                                                                         red:false },
     { k:t("planner.kpi.detentionRisk"), v:"$8.4k",                    sub:"next 72 h",                                                                             red:true  },
   ]
@@ -1230,12 +1233,12 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             <span style={{ width:1, height:16, background:"var(--ds-border)", margin:"0 12px" }} />
             <i className="ti ti-coffee" style={{ fontSize:15, color:"var(--ds-subtle)", marginRight:8 }} />
             <span>Next break</span>
-            {/* Progress track 60px × 4px, 65% fill */}
+            {/* Progress track — 0% at shift start (simulation begins at SHIFT_START) */}
             <div style={{ width:60, height:4, background:"var(--ds-border)", borderRadius:2,
               margin:"0 8px", overflow:"hidden", flexShrink:0 }}>
-              <div style={{ width:"65%", height:"100%", background:"var(--ds-accent)", borderRadius:2 }} />
+              <div style={{ width:"0%", height:"100%", background:"var(--ds-accent)", borderRadius:2 }} />
             </div>
-            <span style={{ fontFamily:"var(--font-mono)", fontSize:11 }}>09:30</span>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:11 }}>{nextBreakTime}</span>
             {/* Show Gantt button */}
             <button onClick={()=>setGanttExpanded(v=>!v)} className="ds-btn ds-btn-ghost"
               style={{ marginLeft:"auto", gap:4, fontSize:12 }}>
