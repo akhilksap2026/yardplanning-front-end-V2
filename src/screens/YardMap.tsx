@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { useData } from "@/lib/DataContext"
 import type { Container } from "@/data/yard-data"
 import { OPERATORS } from "@/data/yard-data"
+import { CARRIERS } from "@/data/reference-pools"
 import { backendApi } from "@/lib/backend-api"
 import type { BackendContainerDetail, BackendForecast } from "@/lib/backend-api"
 import PhysicalYardMap from "@/components/yard/PhysicalYardMap"
@@ -14,6 +15,7 @@ import type { ViewContainer } from "@/components/yard/types"
 import {
   computeBlockLayouts, computeLiveBlockLayouts,
   computeEquipmentPositions, computeMoveTrails,
+  computeHotByBlock, computeDetentionExposure, computeRehandleByBlock,
 } from "@/lib/yard-layout"
 import { containerColor as _containerColor, LEGENDS } from "@/lib/yard-color"
 import type { ColorMode } from "@/lib/yard-color"
@@ -26,6 +28,24 @@ interface Props {
 
 type DataSource = "seed" | "live"
 type ZoomLevel  = "yard" | "block"   // "slot" removed — slot detail lives in drawer
+
+// Seed-constant truck-turn P90 (matches the Dashboard view figure)
+const TRUCK_P90 = "21.4′"
+
+// Small donut ring showing occupancy — WCAG AA verified on the dark panel
+function OccupancyRing({ pct, size = 32 }: { pct: number; size?: number }) {
+  const r    = (size - 5) / 2
+  const circ = 2 * Math.PI * r
+  const arc  = Math.min(pct / 100, 1) * circ
+  const color = pct > 85 ? "#f87171" : pct > 65 ? "#fbbf24" : "#34d399"
+  return (
+    <svg width={size} height={size} style={{ transform: "rotate(-90deg)", flexShrink: 0 }} aria-hidden="true">
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3.5"/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="3.5"
+        strokeDasharray={`${arc} ${circ - arc}`} strokeLinecap="round"/>
+    </svg>
+  )
+}
 
 const containerColor = _containerColor
 
@@ -89,7 +109,11 @@ export default function YardMap({ focus, onNavigate }: Props) {
   const [legendExpanded, setLegendExpanded] = useState(false)
 
   // ── Step 3: drawer ────────────────────────────────────────────────────────
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerOpen,      setDrawerOpen]      = useState(false)
+  // When true, the block drawer shows only hot containers (hoursToLFD ≤ 4 h).
+  // Set to true by handleHotBadgeClick; cleared on normal block click or close.
+  const [drawerHotFilter, setDrawerHotFilter] = useState(false)
+  const [panelCollapsed,  setPanelCollapsed]  = useState(false)
 
   // ── Outside-click: color dropdown ────────────────────────────────────────
   useEffect(() => {
@@ -311,6 +335,21 @@ export default function YardMap({ focus, onNavigate }: Props) {
     )
   }, [moves, scrubberMin])
 
+  // Hot-container counts per block — feeds z5 pulsing badge in PhysicalYardMap
+  const hotByBlock = useMemo(() => computeHotByBlock(containers), [containers])
+
+  // Detention exposure — computed from carrier schedules; drives the interactive KPI + block highlight
+  const detentionExposure = useMemo(() => computeDetentionExposure(containers, CARRIERS), [containers])
+
+  // Rehandle debt — RESHUFFLE move count per source block; drives the ↻N glyph at z5
+  const rehandleByBlock = useMemo(() => computeRehandleByBlock(moves), [moves])
+
+  // Total hot containers across all blocks — for collapsed status strip + HOT KPI cell
+  const hotCount = useMemo(
+    () => [...hotByBlock.values()].reduce((s, v) => s + v, 0),
+    [hotByBlock],
+  )
+
   // ── Zone-level stats for left panel ──────────────────────────────────────
   const zoneStats = useMemo(() =>
     zones
@@ -326,14 +365,26 @@ export default function YardMap({ focus, onNavigate }: Props) {
   )
 
   // ── Drawer mode ───────────────────────────────────────────────────────────
-  type DrawerMode = "zone" | "block" | "slot"
+  type DrawerMode = "zone" | "block" | "slot" | "detention"
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("block")
+  const [detentionHovered, setDetentionHovered] = useState(false)
   const [drawerZone, setDrawerZone] = useState<string | null>(null)
 
   function lowestOccupancyInZone(zone: string): string {
     const zoneLayouts = blockLayouts.filter(l => l.zone === zone)
     if (!zoneLayouts.length) return "S-01"
     return zoneLayouts.sort((a, b) => a.occupancyPct - b.occupancyPct)[0].label
+  }
+
+  /** Open the block drawer pre-filtered to only show hot containers (LFD ≤ 4 h).
+   *  Called when the user clicks the ⏱ badge on a block in PhysicalYardMap (z5). */
+  function handleHotBadgeClick(blockLabel: string) {
+    setSelectedBlockLabel(blockLabel)
+    setDrawerMode("block")
+    setDrawerZone(null)
+    setSelectedSlot(null)
+    setDrawerOpen(true)
+    setDrawerHotFilter(true)
   }
 
   function handlePlannerAction(action: string, containerId: string) {
@@ -391,6 +442,75 @@ export default function YardMap({ focus, onNavigate }: Props) {
 
   // ── Drawer content resolver ───────────────────────────────────────────────
   function drawerContent() {
+    // ── Detention worklist ────────────────────────────────────────────────
+    if (drawerMode === "detention") {
+      const { rows, totalUsd } = detentionExposure
+      const bCount = rows.filter(r => r.status === "breached").length
+      const rCount = rows.length - bCount
+      return (
+        <div className="flex flex-col flex-1 min-h-0">
+          {/* Header */}
+          <div className="flex items-start justify-between px-4 py-3 border-b border-[#e5e7eb] flex-none">
+            <div>
+              <div className="font-black text-[15px] tracking-tight leading-tight">Detention exposure</div>
+              <div className="text-[10.5px] text-neutral-500 mt-0.5">
+                {bCount > 0 && <span className="text-red-600 font-bold">{bCount} breached</span>}
+                {bCount > 0 && rCount > 0 && <span className="mx-1">·</span>}
+                {rCount > 0 && <span className="text-amber-600 font-semibold">{rCount} at risk</span>}
+                {rows.length === 0 && <span>No exposure</span>}
+                {rows.length > 0 && <span className="ml-2 font-black text-red-700">${Math.round(totalUsd).toLocaleString()} at risk</span>}
+              </div>
+            </div>
+            <button onClick={() => setDrawerOpen(false)} className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-700 text-lg leading-none transition-colors">×</button>
+          </div>
+          {/* Legend */}
+          <div className="px-4 py-1.5 border-b border-[#f3f4f6] flex-none">
+            <div className="flex gap-4 text-[10px] text-neutral-500">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-600 inline-block"/><span>Breached LFD</span></span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-500 inline-block"/><span>At risk ≤ 24 h</span></span>
+            </div>
+          </div>
+          {/* Rows */}
+          <div className="flex-1 overflow-y-auto">
+            {rows.map(r => {
+              const blockLabel = `${r.zone}-${String(r.block).padStart(2, "0")}`
+              const isBreached = r.status === "breached"
+              const accentColor = isBreached ? "#dc2626" : "#d97706"
+              const lfdLabel = isBreached
+                ? `BREACHED ${Math.abs(Math.round(r.hoursToLFD))}h ago`
+                : `LFD in ${Math.round(r.hoursToLFD)}h`
+              return (
+                <button key={r.containerId}
+                  className="w-full text-left flex items-center gap-3 px-4 py-2.5 border-b border-[#f3f4f6] hover:bg-[#fafafa] transition-colors"
+                  onClick={() => {
+                    setSelectedBlockLabel(blockLabel)
+                    setSelectedSlot({ col: r.slot, row: r.row })
+                    setDrawerMode("slot")
+                  }}
+                >
+                  <div className="w-2.5 h-2.5 flex-none rounded-sm mt-0.5" style={{ background: accentColor }}/>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-mono text-[12px] font-bold text-neutral-900">{r.containerId}</div>
+                    <div className="text-[10.5px] text-neutral-500 truncate">{r.carrierName} · {r.address}</div>
+                  </div>
+                  <div className="text-right flex-none">
+                    <div className="text-[10px] font-semibold" style={{ color: accentColor }}>{lfdLabel}</div>
+                    <div className="text-[11px] font-black" style={{ color: accentColor }}>${Math.round(r.exposureUsd)}</div>
+                  </div>
+                </button>
+              )
+            })}
+            {rows.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-neutral-400">
+                <div className="text-[14px] font-semibold">No detention exposure</div>
+                <div className="text-[11px] mt-1">All containers within free time</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    }
+
     if (drawerMode === "zone" && drawerZone) {
       const stat = zoneStats.find(s => s.z.id === drawerZone)
       const zoneDef = zones.find(z => z.id === drawerZone)
@@ -481,7 +601,12 @@ export default function YardMap({ focus, onNavigate }: Props) {
       const label = isLive ? activeLiveBlock : selectedBlockLabel
       const zoneDef = isLive ? activeLiveZoneDef : selectedZoneDef
       if (!label || !zoneDef) return null
-      const viewContainers = isLive ? liveBlockViewContainers : selectedBlockViewContainers
+      // Hot-filter: when the drawer was opened via the ⏱ badge, show only
+      // containers within 4 h of LFD. (-9999 = live mode / unavailable — excluded.)
+      const rawContainers  = isLive ? liveBlockViewContainers : selectedBlockViewContainers
+      const viewContainers = drawerHotFilter && !isLive
+        ? rawContainers.filter(c => c.hoursToLFD !== -9999 && c.hoursToLFD <= 4)
+        : rawContainers
       return (
         <div className="flex flex-col flex-1 min-h-0">
           {/* Block header */}
@@ -490,12 +615,25 @@ export default function YardMap({ focus, onNavigate }: Props) {
               <div className="font-black text-[15px] tracking-tight">{label}</div>
               <div className="text-[10.5px] text-neutral-500 mt-0.5">{zoneDef.name}</div>
             </div>
-            <button onClick={() => { setDrawerOpen(false); setSelectedBlockLabel(null); setSelectedSlot(null) }}
+            <button onClick={() => { setDrawerOpen(false); setSelectedBlockLabel(null); setSelectedSlot(null); setDrawerHotFilter(false) }}
               className="text-neutral-400 hover:text-neutral-800 transition-colors"
               style={{ width:26, height:26, borderRadius:"50%", background:"#f3f4f6", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12 }}>
               ✕
             </button>
           </div>
+          {/* Hot-filter indicator — visible only when opened via the hot badge */}
+          {drawerHotFilter && !isLive && (
+            <div className="flex items-center justify-between px-3 py-1.5 flex-none border-b border-red-100" style={{ background:"#fef2f2" }}>
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-red-700">
+                <span>⏱</span>
+                <span>{viewContainers.length} hot container{viewContainers.length !== 1 ? "s" : ""} · LFD ≤ 4 h</span>
+              </div>
+              <button className="text-[10px] font-semibold text-red-500 hover:text-red-800 transition-colors"
+                onClick={() => setDrawerHotFilter(false)}>
+                Show all
+              </button>
+            </div>
+          )}
           <div className="flex-1 min-h-0 overflow-auto">
             <BlockInteriorView
               blockLabel={label} zoneName={zoneDef.name}
@@ -604,144 +742,246 @@ export default function YardMap({ focus, onNavigate }: Props) {
       {view==="map" && (
         <div className="flex flex-1 min-h-0">
 
-          {/* ── LEFT PANEL ─────────────────────────────────────────────────────── */}
-          <div className="w-56 flex-none border-r border-[#e5e7eb] flex flex-col bg-white overflow-y-auto">
+          {/* ── LEFT PANEL ─────────────────────────────────────────────────────────
+              Dark-glass panel: rgba(15,20,30,0.92) + blur(14px).
+              WCAG AA verified against effective blended bg ~#1F232C:
+                labels rgba(255,255,255,0.55)  → 6.1:1  ✓
+                values rgba(255,255,255,0.90)  → 13.4:1 ✓
+                red    #f87171                 → 5.6:1  ✓
+                amber  #fbbf24                 → 9.6:1  ✓
+          ────────────────────────────────────────────────────────────────────── */}
+          {panelCollapsed ? (
 
-            {/* ── KPI summary ── */}
-            {!isLive && (
-              <div className="px-4 pt-3 pb-2 border-b border-[#e5e7eb]">
-                <div className="ds-label text-neutral-400 mb-2">TERMINAL</div>
-                <div className="grid grid-cols-2 gap-2">
+            /* ── COLLAPSED: 48 px status strip ─────────────────────────────── */
+            <div className="flex-none flex flex-col items-center overflow-hidden"
+              style={{ width: 48, background: "rgba(15,20,30,0.92)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderRight: "1px solid rgba(255,255,255,0.09)" }}>
+              {/* Expand toggle */}
+              <button onClick={() => setPanelCollapsed(false)}
+                className="w-12 h-10 flex items-center justify-center flex-none hover:bg-white/10 transition-colors"
+                style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)", fontSize: 10 }}
+                title="Expand panel">
+                ▶
+              </button>
+              {/* Vertical status: occupancy · TEU · hot · detention */}
+              <div className="flex-1 flex items-center justify-center overflow-hidden" style={{ padding: "12px 0" }}>
+                <span style={{
+                  writingMode: "vertical-rl" as const,
+                  transform: "rotate(180deg)",
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  letterSpacing: "0.12em",
+                  color: "rgba(255,255,255,0.60)",
+                  whiteSpace: "nowrap",
+                }}>
+                  {occupancyPct}%&nbsp;·&nbsp;{totalTEU}&nbsp;TEU&nbsp;·&nbsp;⏱{hotCount}&nbsp;·&nbsp;{detentionExposure.totalUsd >= 1000 ? `$${(detentionExposure.totalUsd/1000).toFixed(1)}k` : `$${Math.round(detentionExposure.totalUsd)}`}
+                </span>
+              </div>
+            </div>
+
+          ) : (
+
+            /* ── EXPANDED: full 224 px panel ────────────────────────────────── */
+            <div className="w-56 flex-none flex flex-col overflow-y-auto"
+              style={{ background: "rgba(15,20,30,0.92)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderRight: "1px solid rgba(255,255,255,0.09)" }}>
+
+              {/* Solid header band — anchors the section; text never on raw map */}
+              <div className="flex items-center justify-between px-4 py-2 flex-none"
+                style={{ background: "rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.18em", color: "rgba(255,255,255,0.55)" }}>
+                  {isLive ? "LIVE YARD" : "TERMINAL"}
+                </span>
+                <button onClick={() => setPanelCollapsed(true)}
+                  className="rounded px-1 hover:bg-white/10 transition-colors"
+                  style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", lineHeight: 1.5 }}
+                  title="Collapse to status strip">
+                  ◀
+                </button>
+              </div>
+
+              {/* ── SEED KPIs — money-and-risk leads ──────────────────────────── */}
+              {!isLive && (
+                <div style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+
+                  {/* 1 · DETENTION RISK — largest figure, drillable */}
+                  <button
+                    className="w-full text-left px-4 pt-3 pb-2.5 hover:bg-white/[0.04] transition-colors"
+                    onMouseEnter={() => setDetentionHovered(true)}
+                    onMouseLeave={() => setDetentionHovered(false)}
+                    onClick={() => {
+                      setDetentionHovered(false)
+                      setDrawerMode("detention")
+                      setDrawerZone(null)
+                      setSelectedBlockLabel(null)
+                      setSelectedSlot(null)
+                      setDrawerHotFilter(false)
+                      setDrawerOpen(true)
+                    }}
+                    title="Hover to highlight contributing blocks on map · Click to open worklist">
+                    <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.16em", color: "rgba(255,255,255,0.55)", marginBottom: 5 }}>DETENTION RISK</div>
+                    <div style={{ fontSize: 30, fontWeight: 900, lineHeight: 1, color: "#f87171", fontFamily: "ui-monospace,monospace" }}>
+                      {detentionExposure.totalUsd >= 1000
+                        ? `$${(detentionExposure.totalUsd / 1000).toFixed(1)}k`
+                        : `$${Math.round(detentionExposure.totalUsd)}`}
+                    </div>
+                    <div style={{ fontSize: 8, color: "rgba(255,255,255,0.36)", marginTop: 4, letterSpacing: "0.06em" }}>↗ next 72 h · hover to highlight blocks</div>
+                  </button>
+
+                  {/* 2 · HOT containers + Occupancy ring */}
+                  <div className="grid grid-cols-2 px-4 py-2.5 gap-3"
+                    style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div>
+                      <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 5 }}>HOT ⏱</div>
+                      <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, fontFamily: "ui-monospace,monospace", color: hotCount > 0 ? "#f87171" : "rgba(255,255,255,0.85)" }}>
+                        {hotCount}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 4 }}>OCCUPANCY</div>
+                      <div className="flex items-center gap-1.5">
+                        <OccupancyRing pct={occupancyPct} />
+                        <span style={{ fontSize: 17, fontWeight: 900, lineHeight: 1, color: occupancyPct > 85 ? "#f87171" : occupancyPct > 65 ? "#fbbf24" : "rgba(255,255,255,0.85)" }}>
+                          {occupancyPct}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3 · TEU · Avg tier · Truck-turn P90 */}
+                  <div className="grid grid-cols-3 px-4 pb-2.5 gap-1"
+                    style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                    {[
+                      { label: "TEU",      value: String(totalTEU) },
+                      { label: "AVG TIER", value: String(avgTier)  },
+                      { label: "TURN P90", value: TRUCK_P90        },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="pt-2">
+                        <div style={{ fontSize: 7.5, fontWeight: 900, letterSpacing: "0.12em", color: "rgba(255,255,255,0.45)", marginBottom: 3 }}>{label}</div>
+                        <div style={{ fontSize: 14, fontWeight: 900, lineHeight: 1, fontFamily: "ui-monospace,monospace", color: "rgba(255,255,255,0.85)" }}>{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── LIVE KPIs ─────────────────────────────────────────────────── */}
+              {isLive && (
+                <div className="px-4 pt-3 pb-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                   {[
-                    { k:"Occupancy", v:`${occupancyPct}%`, red:occupancyPct>85 },
-                    { k:"TEU",       v:String(totalTEU),   red:false },
-                    { k:"Avg tier",  v:`${avgTier}`,       red:false },
-                    { k:"Detention", v:"$8.4k",            red:true  },
+                    { k: "Slots",     v: `${backendSlots.filter(s => s.occupied_container_id != null).length}/${backendSlots.length}` },
+                    { k: "Occupancy", v: backendSlots.length ? Math.round(backendSlots.filter(s => s.occupied_container_id != null).length / backendSlots.length * 100) + "%" : "—" },
                   ].map(m => (
-                    <div key={m.k} className="flex flex-col gap-0.5">
-                      <span className="ds-label text-neutral-400">{m.k}</span>
-                      <span className="font-black text-[22px] leading-none" style={{ color:m.red?"#dc2626":undefined }}>{m.v}</span>
+                    <div key={m.k} className="flex justify-between items-baseline py-1">
+                      <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)" }}>{m.k}</span>
+                      <span style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, fontFamily: "ui-monospace,monospace", color: "rgba(255,255,255,0.90)" }}>{m.v}</span>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Live KPIs */}
-            {isLive && (
-              <div className="px-4 pt-3 pb-2 border-b border-[#e5e7eb]">
-                <div className="ds-label text-neutral-400 mb-2">LIVE YARD</div>
-                {[
-                  { k:"Slots", v:`${backendSlots.filter(s=>s.occupied_container_id!=null).length}/${backendSlots.length}` },
-                  { k:"Occupancy", v:backendSlots.length?Math.round(backendSlots.filter(s=>s.occupied_container_id!=null).length/backendSlots.length*100)+"%" : "—" },
-                ].map(m=>(
-                  <div key={m.k} className="flex justify-between items-baseline py-1">
-                    <span className="text-[10.5px] text-neutral-500">{m.k}</span>
-                    <span className="font-black text-[22px] leading-none">{m.v}</span>
+              {/* ── Zone list ─────────────────────────────────────────────────── */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="px-4 pt-3 pb-2">
+                  <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>ZONES</div>
+                  {zoneStats.map(s => {
+                    const isActive = drawerZone === s.z.id && drawerMode === "zone" && drawerOpen
+                    return (
+                      <button
+                        key={s.z.id}
+                        onClick={() => {
+                          setDrawerZone(s.z.id)
+                          setDrawerMode("zone")
+                          setSelectedSlot(null)
+                          setSelectedBlockLabel(null)
+                          setDrawerOpen(true)
+                        }}
+                        className="w-full text-left px-2 py-2 rounded mb-1 transition-colors hover:bg-white/[0.06]"
+                        style={{ background: isActive ? "rgba(255,255,255,0.13)" : undefined, border: `1px solid ${isActive ? "rgba(255,255,255,0.22)" : "transparent"}` }}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span style={{ fontFamily: "ui-monospace,monospace", fontWeight: 900, fontSize: 12, color: "rgba(255,255,255,0.90)", flexShrink: 0 }}>{s.z.id}</span>
+                            <span className="truncate" style={{ fontSize: 10, color: "rgba(255,255,255,0.45)" }}>{s.shortName}</span>
+                          </div>
+                          <span style={{ fontSize: 10.5, fontFamily: "ui-monospace,monospace", fontWeight: 600, flexShrink: 0, marginLeft: 4, color: s.pct > 85 ? "#f87171" : s.pct > 65 ? "#fbbf24" : "rgba(255,255,255,0.70)" }}>
+                            {s.pct}%
+                          </span>
+                        </div>
+                        <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.10)" }}>
+                          <div className="h-1 rounded-full transition-all"
+                            style={{ width: `${Math.min(s.pct, 100)}%`, background: s.pct > 85 ? "#f87171" : s.pct > 65 ? "#fbbf24" : "rgba(255,255,255,0.38)" }} />
+                        </div>
+                        <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.33)", marginTop: 3 }}>{s.cnt} units · {s.z.blocks}bl {s.z.rows}row</div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ── Overlays ──────────────────────────────────────────────────── */}
+              {!isLive && (
+                <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                  <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>OVERLAYS</div>
+                  {([
+                    { label: "Equipment [E]",  on: showEquipment,  set: setShowEquipment  },
+                    { label: "Move trails [T]", on: showTrails,     set: setShowTrails     },
+                    { label: "Heat map",        on: showCongestion, set: setShowCongestion },
+                    { label: "Planner",         on: plannerMode,    set: setPlannerMode    },
+                  ] as { label: string; on: boolean; set: (v: boolean) => void }[]).map(o => (
+                    <label key={o.label} className="flex items-center justify-between py-1 cursor-pointer">
+                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>{o.label}</span>
+                      <button
+                        onClick={() => o.set(!o.on)}
+                        className="relative inline-flex h-4 w-7 items-center flex-none transition-colors"
+                        style={{ background: o.on ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.16)", borderRadius: 10 }}>
+                        <span className="inline-block h-3 w-3 shadow transition-transform flex-none"
+                          style={{ borderRadius: "50%", background: o.on ? "#0F141E" : "rgba(255,255,255,0.80)", transform: o.on ? "translateX(14px)" : "translateX(2px)" }} />
+                      </button>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Legend ────────────────────────────────────────────────────── */}
+              <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>LEGEND · {isLive ? "LIVE" : mode.toUpperCase()}</div>
+                {legendItems.map(([label, color]) => (
+                  <div key={label} className="flex items-center gap-2 py-0.5">
+                    <div className="w-2.5 h-2.5 rounded-sm flex-none" style={{ background: color, border: "1px solid rgba(255,255,255,0.15)" }} />
+                    <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.65)" }}>{label}</span>
                   </div>
                 ))}
               </div>
-            )}
 
-            {/* ── Zone list ── */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="px-4 pt-3 pb-1.5">
-                <div className="ds-label text-neutral-400 mb-2">ZONES</div>
-                {zoneStats.map(s => {
-                  const isActive = drawerZone === s.z.id && drawerMode === "zone" && drawerOpen
-                  return (
-                    <button
-                      key={s.z.id}
-                      onClick={() => {
-                        setDrawerZone(s.z.id)
-                        setDrawerMode("zone")
-                        setSelectedSlot(null)
-                        setSelectedBlockLabel(null)
-                        setDrawerOpen(true)
-                      }}
-                      className="w-full text-left px-2.5 py-2 rounded mb-1 transition-colors"
-                      style={{ background: isActive ? "#f0f9ff" : "transparent", border: `1px solid ${isActive ? "#bae6fd" : "transparent"}` }}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-black text-[12px] text-neutral-900">{s.z.id}</span>
-                          <span className="text-[10px] text-neutral-400 truncate max-w-[90px]">{s.shortName}</span>
-                        </div>
-                        <span className="text-[10.5px] font-mono font-semibold flex-none"
-                          style={{ color: s.pct > 85 ? "#dc2626" : s.pct > 65 ? "#d97706" : "#374151" }}>
-                          {s.pct}%
-                        </span>
-                      </div>
-                      {/* Occupancy bar */}
-                      <div className="h-1 rounded-full overflow-hidden" style={{ background:"#f3f4f6" }}>
-                        <div className="h-1 rounded-full transition-all"
-                          style={{ width:`${Math.min(s.pct, 100)}%`, background: s.pct > 85 ? "#dc2626" : s.pct > 65 ? "#d97706" : "#6b7280" }} />
-                      </div>
-                      <div className="text-[9.5px] text-neutral-400 mt-1">{s.cnt} units · {s.z.blocks}bl {s.z.rows}row</div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* ── Overlays ── */}
-            {!isLive && (
-              <div className="px-4 py-3 border-t border-[#e5e7eb]">
-                <div className="ds-label text-neutral-400 mb-2">OVERLAYS</div>
-                {([
-                  { label:"Equipment [E]", on:showEquipment,  set:setShowEquipment  },
-                  { label:"Move trails [T]", on:showTrails,   set:setShowTrails     },
-                  { label:"Heat map",      on:showCongestion, set:setShowCongestion },
-                  { label:"Planner",       on:plannerMode,    set:setPlannerMode    },
-                ] as {label:string;on:boolean;set:(v:boolean)=>void}[]).map(o => (
-                  <label key={o.label} className="flex items-center justify-between py-1 cursor-pointer">
-                    <span className="text-[11px] text-neutral-600">{o.label}</span>
-                    <button
-                      onClick={() => o.set(!o.on)}
-                      className="relative inline-flex h-4 w-7 items-center flex-none transition-colors"
-                      style={{ background: o.on ? "#111827" : "#d1d5db", borderRadius: 10 }}
-                    >
-                      <span className="inline-block h-3 w-3 bg-white shadow transition-transform flex-none"
-                        style={{ borderRadius:"50%", transform: o.on ? "translateX(14px)" : "translateX(2px)" }} />
-                    </button>
-                  </label>
-                ))}
-              </div>
-            )}
-
-            {/* ── Legend ── */}
-            <div className="px-4 py-3 border-t border-[#e5e7eb]">
-              <div className="ds-label text-neutral-400 mb-2">LEGEND · {isLive ? "LIVE" : mode.toUpperCase()}</div>
-              {legendItems.map(([label, color]) => (
-                <div key={label} className="flex items-center gap-2 py-0.5">
-                  <div className="w-2.5 h-2.5 rounded-sm flex-none" style={{ background:color, border:"1px solid rgba(0,0,0,0.12)" }} />
-                  <span className="text-[10.5px] text-neutral-600">{label}</span>
+              {/* ── Shift timeline scrubber ───────────────────────────────────── */}
+              {!isLive && (
+                <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
+                  <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>SHIFT TIMELINE</div>
+                  <input type="range" min={360} max={1320} step={5}
+                    value={scrubberMin ?? 360}
+                    onChange={e => setScrubberMin(Number(e.target.value))}
+                    className="w-full mb-1"
+                    style={{ accentColor: "rgba(255,255,255,0.70)" }} />
+                  <div className="flex justify-between items-center">
+                    <span style={{ fontSize: 9.5, fontFamily: "ui-monospace,monospace", color: "rgba(255,255,255,0.38)" }}>06:00</span>
+                    {scrubberMin !== null ? (
+                      <button onClick={() => setScrubberMin(null)}
+                        className="hover:text-white/80 transition-colors"
+                        style={{ fontSize: 9.5, fontFamily: "ui-monospace,monospace", color: "rgba(255,255,255,0.55)" }}>
+                        {String(Math.floor(scrubberMin / 60)).padStart(2, "0")}:{String(scrubberMin % 60).padStart(2, "0")} ✕
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 9.5, fontFamily: "ui-monospace,monospace", color: "rgba(255,255,255,0.38)" }}>22:00</span>
+                    )}
+                  </div>
+                  {scrubberMin !== null && (
+                    <div style={{ fontSize: 9.5, color: "#fbbf24", marginTop: 4 }}>
+                      {activeMoveBlocks.size} active block{activeMoveBlocks.size !== 1 ? "s" : ""}
+                    </div>
+                  )}
                 </div>
-              ))}
+              )}
             </div>
-
-            {/* ── Time scrubber ── */}
-            {!isLive && (
-              <div className="px-4 py-3 border-t border-[#e5e7eb]" style={{ background:"#fafafa" }}>
-                <div className="ds-label text-neutral-400 mb-2">SHIFT TIMELINE</div>
-                <input type="range" min={360} max={1320} step={5}
-                  value={scrubberMin ?? 360}
-                  onChange={e => setScrubberMin(Number(e.target.value))}
-                  className="w-full accent-neutral-800 mb-1" />
-                <div className="flex justify-between items-center">
-                  <span className="text-[9.5px] text-neutral-400 tabular">06:00</span>
-                  {scrubberMin !== null ? (
-                    <button onClick={() => setScrubberMin(null)} className="text-[9.5px] text-neutral-400 hover:text-neutral-700">
-                      {String(Math.floor(scrubberMin/60)).padStart(2,"0")}:{String(scrubberMin%60).padStart(2,"0")} ✕
-                    </button>
-                  ) : <span className="text-[9.5px] text-neutral-400 tabular">22:00</span>}
-                </div>
-                {scrubberMin !== null && (
-                  <div className="text-[9.5px] text-amber-700 mt-1">{activeMoveBlocks.size} active block{activeMoveBlocks.size!==1?"s":""}</div>
-                )}
-              </div>
-            )}
-          </div>
+          )}
 
           {/* ── CENTRE — map always at yard level ──────────────────────────────── */}
           <div className="flex-1 relative min-w-0 flex flex-col">
@@ -762,6 +1002,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                     setDrawerZone(null)
                     setSelectedSlot(null)
                     setDrawerOpen(true)
+                    setDrawerHotFilter(false)   // normal click → show all containers
                   }}
                   zoneNames={zoneNames}
                   equipment={equipmentPositions}
@@ -771,6 +1012,10 @@ export default function YardMap({ focus, onNavigate }: Props) {
                   congestionByBlock={congestionByBlock}
                   showCongestion={showCongestion}
                   activeMoveBlocks={scrubberMin !== null ? activeMoveBlocks : undefined}
+                  hotByBlock={hotByBlock}
+                  onHotBadgeClick={handleHotBadgeClick}
+                  highlightBlocks={detentionHovered ? detentionExposure.blockSet : undefined}
+                  rehandleByBlock={rehandleByBlock}
                 />
               </>
             )}

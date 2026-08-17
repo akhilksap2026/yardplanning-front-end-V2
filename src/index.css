@@ -2,6 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Yard map: equipment icon motion guard ────────────────────────────────────
+   Equipment icons slide between block coordinates via CSS transitions.
+   Users who prefer reduced motion get instant positioning instead.            */
+.yard-equipment-icon {
+  transition: left 1000ms linear, top 1000ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .yard-equipment-icon {
+    transition: none !important;
+  }
+}
+
+/* ── Detention exposure block highlight ──────────────────────────────────────
+   Triggered by hovering the Detention KPI on the left panel.
+   Marks every block contributing to the current $X exposure (breached + ≤24 h).
+   prefers-reduced-motion: static ring instead of pulse.                      */
+@keyframes detention-highlight-pulse {
+  0%, 100% { box-shadow: 0 0 0 2.5px #f59e0b, 0 0 0 5px rgba(245,158,11,0.30); }
+     50%   { box-shadow: 0 0 0 3.5px #f59e0b, 0 0 0 9px rgba(245,158,11,0.12); }
+}
+.yard-detention-highlight {
+  animation: detention-highlight-pulse 1.8s ease-in-out infinite;
+  border: 2.5px solid #f59e0b;
+  border-radius: 7px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .yard-detention-highlight {
+    animation: none !important;
+    border: 3px solid #f59e0b !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ── Yard map: hot-container badge ───────────────────────────────────────────
+   Pulsing ring conveys active urgency (imminent LFD breach).
+   prefers-reduced-motion: solid ring — same information, no animation.
+   Triple redundancy: ⏱ icon + count number + red color.                      */
+@keyframes hot-badge-pulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(220,38,38,0.55), 0 0 0 0   rgba(220,38,38,0.60); }
+     50%   { box-shadow: 0 2px 8px rgba(220,38,38,0.25), 0 0 0 8px rgba(220,38,38,0);    }
+}
+.yard-hot-badge {
+  animation: hot-badge-pulse 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .yard-hot-badge {
+    animation: none !important;
+    /* static ring replaces pulse — equally salient, zero motion */
+    box-shadow: 0 2px 8px rgba(220,38,38,0.55), 0 0 0 3px rgba(220,38,38,0.75) !important;
+  }
+}
+
 /* ── Shadcn/ui HSL compatibility layer ────────────────────────────── */
 @layer base {
   :root {

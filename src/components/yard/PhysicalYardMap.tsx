@@ -1,6 +1,10 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from "react"
-import type { BlockLayout, EquipmentPosition, MoveTrail } from "@/lib/yard-layout"
-import { getYardDimensions, BERTH_HEIGHT, GATE_HEIGHT, computeRoadCorridors } from "@/lib/yard-layout"
+import type { BlockLayout, EquipmentPosition, MoveTrail, Facility } from "@/lib/yard-layout"
+import {
+  getYardDimensions,
+  BERTH_HEIGHT, GATE_HEIGHT,
+  CIRCULATION, FACILITIES,
+} from "@/lib/yard-layout"
 import BlockTooltip from "./BlockTooltip"
 
 interface Props {
@@ -16,6 +20,13 @@ interface Props {
   congestionByBlock?: Map<string, number>
   showCongestion?:    boolean
   activeMoveBlocks?:  Set<string>
+  // Phase 2 — hot container signals
+  hotByBlock?:        Map<string, number>
+  onHotBadgeClick?:  (blockLabel: string) => void
+  // Phase 2.3 — detention exposure highlight (hover-triggered from KPI panel)
+  highlightBlocks?:   Set<string>
+  // Phase 2.4 — rehandle debt glyph
+  rehandleByBlock?:   Map<string, number>
 }
 
 // ── Zone visual identity ──────────────────────────────────────────────────────
@@ -30,7 +41,6 @@ const ZONE_PANEL: Record<string, {
   E: { bg: "#f0fdf4", border: "#bbf7d0", headerBg: "#4d7c0f", headerText: "#fff", blockBg: "#dcfce7", blockBorder: "#bbf7d0" },
   S: { bg: "#fefce8", border: "#fde047", headerBg: "#92400e", headerText: "#fff", blockBg: "#fef9c3", blockBorder: "#fde047" },
   R: { bg: "#f8fafc", border: "#cbd5e1", headerBg: "#475569", headerText: "#fff", blockBg: "#f1f5f9", blockBorder: "#cbd5e1" },
-  // F and Q were missing from the original — added here
   F: { bg: "#fffbeb", border: "#fcd34d", headerBg: "#b45309", headerText: "#fff", blockBg: "#fef3c7", blockBorder: "#fcd34d" },
   Q: { bg: "#f0fdf4", border: "#6ee7b7", headerBg: "#065f46", headerText: "#fff", blockBg: "#d1fae5", blockBorder: "#6ee7b7" },
 }
@@ -39,6 +49,14 @@ const ZONE_SUBTITLES: Record<string, string> = {
   A: "Dry / general (loaded) · Zone A", B: "Dry / general (loaded) · Zone B", C: "Customs hold",
   D: "Hazmat / IMDG", E: "Empty depot", S: "Staging (drop & hook)", R: "Gate-in / receiving",
   F: "Reefer / food-grade", Q: "Quarantine / M&R",
+}
+
+// Compact signpost labels — shown on the rotated badge at each zone's top-left.
+// Single-line, max ~12 chars so the badge stays narrow.
+const ZONE_SHORT: Record<string, string> = {
+  A: "DRY / GEN",  B: "DRY / GEN",  C: "CUSTOMS",
+  D: "HAZMAT ⚠",  E: "EMPTIES",    F: "REEFER ⚡",
+  Q: "QUARANTINE", R: "RECEIVING",  S: "STAGING",
 }
 
 const EQ_STATUS_COLOR: Record<string, string> = {
@@ -51,22 +69,40 @@ const PANEL_PAD_X  = 16
 const PANEL_PAD_TOP = 36
 const PANEL_PAD_BOT = 12
 
-// ── z0 ground texture ─────────────────────────────────────────────────────────
-// Concrete slab grid: 80 px cells with 1.5 px shadow-joints.
-// At the typical fit-view scale (~0.5) each cell appears ~40 px — clearly legible
-// without dominating the block colours at z4.
-const CONCRETE_BASE  = "#d1d5db"
-const CONCRETE_STYLE: React.CSSProperties = {
-  background: CONCRETE_BASE,
-  backgroundImage: [
-    "repeating-linear-gradient(0deg,   rgba(0,0,0,0.042) 0px, rgba(0,0,0,0.042) 1.5px, transparent 1.5px, transparent 80px)",
-    "repeating-linear-gradient(90deg,  rgba(0,0,0,0.042) 0px, rgba(0,0,0,0.042) 1.5px, transparent 1.5px, transparent 80px)",
-  ].join(", "),
-}
+// ── Surface palette ────────────────────────────────────────────────────────────
+const CONCRETE = "#D5D0C8"
+const ASPHALT  = "#4A4A4A"
+const GRASS    = "#6B8F5E"
 
-// ── z1 road surface ───────────────────────────────────────────────────────────
-// Asphalt corridors sit 6 % darker than the concrete base.
-const ASPHALT_BASE = "#b8bec5"
+const DASH_YELLOW  = "rgba(245,197,24,0.28)"
+const EDGE_WHITE   = "rgba(255,255,255,0.17)"
+
+// ── Label contrast tokens (WCAG AA) ───────────────────────────────────────────
+const SURFACE_TEXT = "rgba(255,255,255,0.55)"
+const BERTH_TEXT   = "rgba(255,255,255,0.87)"
+const GATE_TEXT    = "rgba(255,255,255,0.87)"
+
+// Physical scale: 1 slot = 36 px = 6.1 m (20-ft container bay)
+const PX_PER_M = 36 / 6.1
+
+// ── Progressive-disclosure zoom thresholds ─────────────────────────────────
+// Overview  < 0.4 : zone fills + zone-level signals only (exec bird's-eye)
+// Working 0.4–0.8 : block labels, occupancy bars, signals; no IDs
+// Detail    ≥ 0.8 : slot grid, rehandle glyphs, container IDs
+const OVERVIEW_SCALE = 0.4
+const DETAIL_SCALE   = 0.8
+
+/** Fire-suppression sprinkler head — 12 × 12 px red cross-circle.
+ *  Placed in the four corners of the Zone D (IMDG) panel at z3. */
+function FireSuppressionMarker({ style }: { style?: React.CSSProperties }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" style={style} aria-hidden="true">
+      <circle cx="6" cy="6" r="5.2" fill="#b91c1c" stroke="#7f1d1d" strokeWidth="0.8"/>
+      <line x1="6" y1="2" x2="6" y2="10" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
+      <line x1="2" y1="6" x2="10" y2="6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  )
+}
 
 export default function PhysicalYardMap({
   layouts, selectedBlock, onSelectBlock, zoneNames = {}, children,
@@ -74,21 +110,30 @@ export default function PhysicalYardMap({
   moveTrails = [], showTrails = false,
   congestionByBlock, showCongestion = false,
   activeMoveBlocks,
+  hotByBlock, onHotBadgeClick,
+  highlightBlocks,
+  rehandleByBlock,
 }: Props) {
   const containerRef  = useRef<HTMLDivElement>(null)
   const dragging      = useRef(false)
   const didDrag       = useRef(false)
   const lastPos       = useRef({ x: 0, y: 0 })
 
-  const [tf,              setTf]            = useState({ x: 16, y: 16, scale: 1 })
-  const [hoveredLayout,   setHoveredLayout] = useState<BlockLayout | null>(null)
-  const [tooltipPos,      setTooltipPos]    = useState<{ x: number; y: number } | null>(null)
-  const [hoveredEquip,    setHoveredEquip]  = useState<EquipmentPosition | null>(null)
-  const [equipTooltipPos, setEquipTooltipPos] = useState<{ x: number; y: number } | null>(null)
+  const [tf,               setTf]              = useState({ x: 16, y: 16, scale: 1 })
+  const [hoveredLayout,    setHoveredLayout]   = useState<BlockLayout | null>(null)
+  const [tooltipPos,       setTooltipPos]      = useState<{ x: number; y: number } | null>(null)
+  const [hoveredEquip,     setHoveredEquip]    = useState<EquipmentPosition | null>(null)
+  const [equipTooltipPos,  setEquipTooltipPos] = useState<{ x: number; y: number } | null>(null)
+  const [hoveredFacility,  setHoveredFacility] = useState<Facility | null>(null)
+  const [facTooltipPos,    setFacTooltipPos]   = useState<{ x: number; y: number } | null>(null)
 
   const dims = getYardDimensions(layouts)
 
-  // ── Zone bounding boxes — shared by z3 (panels) and z6 (minimap) ─────────
+  // Zoom-tier booleans — drive every progressive-disclosure gate below
+  const isOverview = tf.scale < OVERVIEW_SCALE
+  const isDetail   = tf.scale >= DETAIL_SCALE
+
+  // ── Zone bounding boxes ────────────────────────────────────────────────────
   const zoneBounds = useMemo(() => {
     const map = new Map<string, { x1: number; y1: number; x2: number; y2: number }>()
     for (const l of layouts) {
@@ -102,14 +147,33 @@ export default function PhysicalYardMap({
     return map
   }, [layouts])
 
-  // ── Road corridor geometry — consumed by z1 ───────────────────────────────
-  const roadCorridors = useMemo(
-    () => computeRoadCorridors(dims),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [dims.width, dims.height],
-  )
+  // Average occupancy per zone — drives the overview fill height
+  const zoneAvgOcc = useMemo(() => {
+    const acc = new Map<string, { sum: number; n: number }>()
+    for (const l of layouts) {
+      const e = acc.get(l.zone) ?? { sum: 0, n: 0 }
+      e.sum += l.occupancyPct; e.n += 1
+      acc.set(l.zone, e)
+    }
+    const out = new Map<string, number>()
+    for (const [z, { sum, n }] of acc) out.set(z, n > 0 ? Math.round(sum / n) : 0)
+    return out
+  }, [layouts])
 
-  // ── Fit-to-view ───────────────────────────────────────────────────────────
+  // Zones that contain ≥ 1 hot block — zone-level ⏱ indicator in overview
+  const zoneHasHot = useMemo(() => {
+    const set = new Set<string>()
+    if (!hotByBlock) return set
+    for (const [label, count] of hotByBlock) {
+      if (count > 0) {
+        const l = layouts.find(x => x.label === label)
+        if (l) set.add(l.zone)
+      }
+    }
+    return set
+  }, [hotByBlock, layouts])
+
+  // ── Fit to view ────────────────────────────────────────────────────────────
   const fitView = useCallback(() => {
     if (!containerRef.current || layouts.length === 0) return
     const { width: cw, height: ch } = containerRef.current.getBoundingClientRect()
@@ -119,7 +183,7 @@ export default function PhysicalYardMap({
 
   useEffect(() => { fitView() }, [layouts.length]) // eslint-disable-line
 
-  // ── Zoom at a point ───────────────────────────────────────────────────────
+  // ── Zoom at a point ────────────────────────────────────────────────────────
   const zoomAt = useCallback((cx: number, cy: number, factor: number) => {
     setTf(t => {
       const newScale = Math.max(0.10, Math.min(5, t.scale * factor))
@@ -128,7 +192,7 @@ export default function PhysicalYardMap({
     })
   }, [])
 
-  // ── Wheel zoom ────────────────────────────────────────────────────────────
+  // ── Wheel zoom ─────────────────────────────────────────────────────────────
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -141,7 +205,7 @@ export default function PhysicalYardMap({
     return () => el.removeEventListener("wheel", onWheel)
   }, [zoomAt])
 
-  // ── Drag-to-pan ───────────────────────────────────────────────────────────
+  // ── Drag to pan ────────────────────────────────────────────────────────────
   const onMouseDown = (e: React.MouseEvent) => {
     dragging.current = true; didDrag.current = false
     lastPos.current  = { x: e.clientX, y: e.clientY }
@@ -156,7 +220,7 @@ export default function PhysicalYardMap({
   }
   const onMouseUp = () => { dragging.current = false }
 
-  // ── Block tooltip helpers ─────────────────────────────────────────────────
+  // ── Block tooltip ──────────────────────────────────────────────────────────
   function handleBlockEnter(layout: BlockLayout, e: React.MouseEvent) {
     setHoveredLayout(layout)
     const rect = containerRef.current!.getBoundingClientRect()
@@ -169,7 +233,7 @@ export default function PhysicalYardMap({
   }
   function handleBlockLeave() { setHoveredLayout(null); setTooltipPos(null) }
 
-  // ── Equipment tooltip helpers ─────────────────────────────────────────────
+  // ── Equipment tooltip ──────────────────────────────────────────────────────
   function handleEquipEnter(eq: EquipmentPosition, e: React.MouseEvent) {
     e.stopPropagation()
     setHoveredEquip(eq)
@@ -180,8 +244,15 @@ export default function PhysicalYardMap({
     e.stopPropagation(); setHoveredEquip(null); setEquipTooltipPos(null)
   }
 
-  // ── Bollard count along quay wall ─────────────────────────────────────────
+  // ── Derived geometry ───────────────────────────────────────────────────────
   const bollardCount = Math.max(0, Math.floor(dims.width / 120))
+  const { x: tqX, y: tqY, bays, exitLaneW } = CIRCULATION.truckQueue
+  const tqH  = Math.max(0, dims.height - GATE_HEIGHT - tqY)
+  const bayH = tqH > 0 ? tqH / bays : 0
+
+  const gateExitW  = Math.round(dims.width * 0.32)
+  const gateMedian = 12
+  const gateEntryX = gateExitW + gateMedian
 
   return (
     <div
@@ -189,9 +260,7 @@ export default function PhysicalYardMap({
       className="relative overflow-hidden"
       style={{
         flex: 1, minHeight: 0,
-        // Outer container background = concrete base so the area outside the
-        // canvas (when panned or at small scale) matches the z0 ground colour.
-        background: CONCRETE_BASE,
+        background: CONCRETE,
         cursor: dragging.current ? "grabbing" : "grab",
         touchAction: "none", userSelect: "none",
       }}
@@ -202,10 +271,7 @@ export default function PhysicalYardMap({
     >
 
       {/* ════════════════════════════════════════════════════════════════════
-          ZOOMABLE CANVAS
-          All z0–z5 layers share this CSS transform (pan + zoom).
-          Layer contract: z0–z3 MUST NOT reduce legibility of z4–z5.
-          z5 signals are designed to overlay z4 blocks transparently.
+          ZOOMABLE CANVAS  ·  layers z0–z5 share this CSS transform
       ════════════════════════════════════════════════════════════════════ */}
       <div
         className="absolute"
@@ -216,129 +282,162 @@ export default function PhysicalYardMap({
         }}
       >
 
-        {/* ── z0 · Ground base ──────────────────────────────────────────────
-            Concrete slab texture across the entire yard canvas.
-            Renders beneath every other layer. Provides the "paved yard"
-            baseline that contextualises zone panels and blocks above it.
+        {/* ── z0 · Ground ───────────────────────────────────────────────────
+            #D5D0C8 concrete + feTurbulence noise + grass perimeter strips.
         ──────────────────────────────────────────────────────────────── */}
-        <div
-          className="absolute inset-0"
-          style={{ zIndex: 0, ...CONCRETE_STYLE }}
-        />
+        <div className="absolute inset-0" style={{ zIndex: 0 }}>
+          <div className="absolute inset-0" style={{ background: CONCRETE }} />
+          <svg
+            className="absolute pointer-events-none"
+            style={{ left: 0, top: 0, width: dims.width, height: dims.height, opacity: 0.07, mixBlendMode: "multiply" }}
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <filter id="phy-yard-noise" x="0%" y="0%" width="100%" height="100%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" stitchTiles="stitch" result="n"/>
+                <feColorMatrix type="saturate" values="0" in="n"/>
+              </filter>
+            </defs>
+            <rect width={dims.width} height={dims.height} filter="url(#phy-yard-noise)" fill="#555"/>
+          </svg>
+          <div className="absolute" style={{ left: 0, top: BERTH_HEIGHT, width: CIRCULATION.perimeter.inset, height: dims.height - BERTH_HEIGHT - GATE_HEIGHT, background: GRASS }} />
+          <div className="absolute" style={{ right: 0, top: BERTH_HEIGHT, width: CIRCULATION.perimeter.inset, height: dims.height - BERTH_HEIGHT - GATE_HEIGHT, background: GRASS }} />
+        </div>
 
-        {/* ── z1 · Circulation ──────────────────────────────────────────────
-            Roads, aisles, lane markings, berth / water, gate, perimeter.
-            Rendered pointer-events:none so z4 blocks remain fully clickable.
-            Render order within z1 (DOM paint order, later = on top):
-              1. Road corridor fills (asphalt)
-              2. Water basin gradient (covers road at top)
-              3. Quay wall + bollards
-              4. Berth label
-              5. Gate approach + label
-              6. Perimeter boundary line
+        {/* ── z1 · Circulation + Structures ─────────────────────────────────
+            Service roads → transversals → cross-roads → aisles
+            → truck queue → berth → gate → perimeter fence + cameras.
         ──────────────────────────────────────────────────────────────── */}
         <div className="absolute inset-0" style={{ zIndex: 1, pointerEvents: "none" }}>
 
-          {/* 1 — Road / aisle corridors */}
-          {roadCorridors.map((road, i) => (
-            <div
-              key={i}
-              className="absolute"
-              style={{
-                left: road.x, top: road.y, width: road.w, height: road.h,
-                background: ASPHALT_BASE,
-                // Centre-line dashes: orientation follows corridor shape
-                backgroundImage: road.w >= road.h
-                  ? "repeating-linear-gradient(90deg, rgba(255,255,255,0.17) 0 3px, transparent 3px 26px)"
-                  : "repeating-linear-gradient(0deg,  rgba(255,255,255,0.17) 0 3px, transparent 3px 26px)",
-              }}
-            />
+          {/* Perimeter service roads */}
+          <div className="absolute" style={{ left: CIRCULATION.perimeter.inset, top: 0, bottom: 0, width: CIRCULATION.perimeter.width, background: ASPHALT }} />
+          <div className="absolute" style={{ right: CIRCULATION.perimeter.inset, top: 0, bottom: 0, width: CIRCULATION.perimeter.width, background: ASPHALT }} />
+
+          {/* Bottom transversal */}
+          <div className="absolute left-0 right-0" style={{ top: CIRCULATION.bottomTransversal.y, height: CIRCULATION.bottomTransversal.width, background: ASPHALT }}>
+            <div className="absolute top-0 left-0 right-0" style={{ height: 1, background: EDGE_WHITE }} />
+            <div className="absolute bottom-0 left-0 right-0" style={{ height: 1, background: EDGE_WHITE }} />
+            <div className="absolute" style={{ top: CIRCULATION.bottomTransversal.width / 2 - 1, left: 0, right: 0, height: 2, backgroundImage: `repeating-linear-gradient(90deg, ${DASH_YELLOW} 0 16px, transparent 16px 30px)` }} />
+          </div>
+
+          {/* Main boulevard */}
+          <div className="absolute left-0 right-0" style={{ top: CIRCULATION.mainBoulevard.y, height: CIRCULATION.mainBoulevard.width, background: ASPHALT }}>
+            <div className="absolute top-0 left-0 right-0" style={{ height: 1, background: EDGE_WHITE }} />
+            <div className="absolute bottom-0 left-0 right-0" style={{ height: 1, background: EDGE_WHITE }} />
+            <div className="absolute" style={{ top: CIRCULATION.mainBoulevard.width / 2 - 1, left: 0, right: 0, height: 2, backgroundImage: `repeating-linear-gradient(90deg, ${DASH_YELLOW} 0 20px, transparent 20px 36px)` }} />
+            <div className="absolute font-mono pointer-events-none" style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)", fontSize: 9, color: SURFACE_TEXT, letterSpacing: "0.38em", whiteSpace: "nowrap" }}>
+              {CIRCULATION.mainBoulevard.label}
+            </div>
+          </div>
+
+          {/* N–S cross-roads */}
+          {CIRCULATION.crossRoads.map((cr, i) => (
+            <div key={`cr-${i}`} className="absolute" style={{ left: cr.x, width: cr.w, top: BERTH_HEIGHT, bottom: GATE_HEIGHT, background: ASPHALT }}>
+              <div className="absolute top-0 bottom-0 left-0" style={{ width: 1, background: EDGE_WHITE }} />
+              <div className="absolute top-0 bottom-0 right-0" style={{ width: 1, background: EDGE_WHITE }} />
+              <div className="absolute top-0 bottom-0" style={{ left: Math.round(cr.w / 2) - 1, width: 2, backgroundImage: `repeating-linear-gradient(0deg, ${DASH_YELLOW} 0 14px, transparent 14px 28px)` }} />
+            </div>
           ))}
 
-          {/* 2 — Water basin (covers road gradient at top of canvas) */}
-          <div
-            className="absolute left-0 right-0"
-            style={{
-              top: 0, height: 60,
-              background: "linear-gradient(to bottom, #1a4870 0%, #22648a 45%, #2c7fa8 78%, #3898c4 100%)",
-            }}
-          />
+          {/* Zone working aisles */}
+          {CIRCULATION.aisles.map((aisle, i) => (
+            <div key={`aisle-${i}`} className="absolute" style={{ left: aisle.x, top: aisle.y, width: aisle.w, height: aisle.h, background: ASPHALT, backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.035) 0 2px, transparent 2px 14px)" }}>
+              <div className="absolute top-0 left-0 right-0" style={{ height: 1, background: EDGE_WHITE }} />
+              <div className="absolute bottom-0 left-0 right-0" style={{ height: 1, background: EDGE_WHITE }} />
+              <DirectionalArrow direction={aisle.direction} width={aisle.w} height={aisle.h} />
+              <span className="absolute font-mono" style={{ right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 8, color: SURFACE_TEXT, letterSpacing: "0.18em" }}>
+                {aisle.zoneId}
+              </span>
+            </div>
+          ))}
 
-          {/* 3 — Quay wall — concrete lip at water / yard boundary */}
-          <div
-            className="absolute left-0 right-0"
-            style={{
-              top: 50, height: 10,
-              background: "#2d3748",
-              boxShadow: "0 3px 8px rgba(0,0,0,0.40)",
-            }}
-          />
+          {/* Truck queue */}
+          {tqH > 10 && (
+            <>
+              <div className="absolute" style={{ left: tqX, top: tqY, width: exitLaneW, height: tqH, background: ASPHALT }}>
+                {Array.from({ length: bays }, (_, i) => (
+                  <div key={i} className="absolute flex items-center justify-center font-mono" style={{ left: 0, width: "100%", top: (bays - 1 - i) * bayH, height: bayH, borderBottom: i < bays - 1 ? `1px dashed ${EDGE_WHITE}` : "none", fontSize: 9, color: SURFACE_TEXT }}>
+                    {i + 1}
+                  </div>
+                ))}
+                <span className="absolute font-mono" style={{ bottom: 3, left: "50%", transform: "translateX(-50%)", fontSize: 7, color: SURFACE_TEXT, letterSpacing: "0.14em" }}>IN</span>
+              </div>
+              <div className="absolute flex items-center justify-center font-mono" style={{ left: tqX + exitLaneW + 4, top: tqY, width: exitLaneW, height: tqH, background: ASPHALT, fontSize: 8, color: SURFACE_TEXT, letterSpacing: "0.15em", writingMode: "vertical-rl" as React.CSSProperties["writingMode"] }}>
+                EXIT
+              </div>
+            </>
+          )}
 
-          {/* 3 — Bollards along the quay */}
+          {/* Berth / water basin */}
+          <div className="absolute left-0 right-0" style={{ top: 0, height: 60, background: "linear-gradient(to bottom, #3B6E8F 0%, #4788AB 50%, #5A9EC4 100%)" }} />
+          <div className="absolute left-0 right-0" style={{ top: 50, height: 10, background: "#2C2C2C", boxShadow: "0 3px 8px rgba(0,0,0,0.50)" }} />
+          <div className="absolute left-0 right-0" style={{ top: 51, height: 2.5, background: "linear-gradient(to bottom, #C8C8C8, #A0A0A0)", opacity: 0.85 }} />
+          <div className="absolute left-0 right-0" style={{ top: 56, height: 2.5, background: "linear-gradient(to bottom, #C8C8C8, #A0A0A0)", opacity: 0.85 }} />
           {Array.from({ length: bollardCount }, (_, i) => (
-            <div
-              key={`bollard-${i}`}
-              className="absolute"
-              style={{
-                top: 46, left: i * 120 + 58,
-                width: 8, height: 8,
-                background: "#f59e0b",
-                borderRadius: "50%",
-                border: "1.5px solid #92400e",
-              }}
-            />
+            <div key={`bollard-${i}`} className="absolute" style={{ top: 46, left: i * 120 + 58, width: 8, height: 8, background: "#f59e0b", borderRadius: "50%", border: "1.5px solid #92400e" }} />
           ))}
-
-          {/* 4 — Berth label centred on the water strip */}
-          <div
-            className="absolute left-0 right-0 flex items-center justify-center font-black tracking-widest"
-            style={{
-              top: 0, height: 50,
-              fontSize: 11, letterSpacing: "0.2em",
-              color: "#93c5fd",
-            }}
-          >
-            TERMINAL · BERTH SIDE
+          <div className="absolute left-0 right-0 flex items-center justify-center font-black tracking-widest" style={{ top: 0, height: 50, fontSize: 11, letterSpacing: "0.2em", color: BERTH_TEXT }}>
+            BERTH SIDE — QUAY WALL
           </div>
 
-          {/* 5 — Gate approach (covers road gradient at bottom of canvas) */}
-          <div
-            className="absolute left-0 right-0"
-            style={{
-              bottom: 0, height: GATE_HEIGHT + 6,
-              background: "#14532d",
-            }}
-          />
-          <div
-            className="absolute left-0 right-0 flex items-center justify-center font-black tracking-widest"
-            style={{
-              bottom: 0, height: GATE_HEIGHT,
-              fontSize: 11, letterSpacing: "0.2em",
-              color: "#86efac",
-              background: "#14532d",
-            }}
-          >
-            GATE · TRUCK ENTRY
+          {/* Gate */}
+          <div className="absolute left-0 right-0" style={{ bottom: 0, height: GATE_HEIGHT }}>
+            <div className="absolute" style={{ left: 0, top: 0, width: gateExitW, height: GATE_HEIGHT, background: "#3B1C1C" }}>
+              <div className="absolute" style={{ top: 3, left: 0, right: 10, height: 4, background: "repeating-linear-gradient(90deg, #f59e0b 0 10px, #111 10px 18px)", borderRadius: 2 }} />
+              <div className="absolute" style={{ top: 1, right: 5, width: 5, height: 13, background: "#6b7280", borderRadius: 2 }} />
+              <div className="absolute flex items-center gap-1.5 font-black" style={{ bottom: 5, left: 10, fontSize: 13, color: GATE_TEXT, letterSpacing: "0.06em" }}>
+                <span style={{ fontSize: 16 }}>←</span><span>OUT</span>
+              </div>
+            </div>
+            <div className="absolute" style={{ left: gateExitW, top: 0, width: gateMedian, height: GATE_HEIGHT, background: "#555" }} />
+            <div className="absolute" style={{ left: gateEntryX, top: 0, right: 0, height: GATE_HEIGHT, background: "#1C3B1C" }}>
+              <div className="absolute" style={{ top: 1, left: 5, width: 5, height: 13, background: "#6b7280", borderRadius: 2 }} />
+              <div className="absolute" style={{ top: 3, left: 10, right: 0, height: 4, background: "repeating-linear-gradient(90deg, #f59e0b 0 10px, #111 10px 18px)", borderRadius: 2 }} />
+              <div className="absolute flex items-center gap-1.5 font-black" style={{ bottom: 5, right: 10, fontSize: 13, color: GATE_TEXT, letterSpacing: "0.06em" }}>
+                <span>IN</span><span style={{ fontSize: 16 }}>→</span>
+              </div>
+            </div>
           </div>
 
-          {/* 6 — Perimeter boundary — thin dark outline around whole canvas */}
-          <div
-            className="absolute inset-0"
-            style={{ border: "2.5px solid rgba(0,0,0,0.20)", pointerEvents: "none" }}
-          />
+          {/* Perimeter fence + CCTV */}
+          <div className="absolute inset-0" style={{ border: "2px dashed #8B8B8B", pointerEvents: "none" }} />
+          <CameraIcon style={{ position: "absolute", top: 2,                left: 2 }} />
+          <CameraIcon style={{ position: "absolute", top: 2,                left: dims.width - 16 }} />
+          <CameraIcon style={{ position: "absolute", top: dims.height - 13, left: 2 }} />
+          <CameraIcon style={{ position: "absolute", top: dims.height - 13, left: dims.width - 16 }} />
+          <CameraIcon style={{ position: "absolute", top: dims.height - GATE_HEIGHT - 14, left: Math.round(dims.width / 2) - 7 }} />
         </div>
 
-        {/* ── z2 · Structures ───────────────────────────────────────────────
-            Facility buildings, equipment parking bays, weigh station,
-            gatehouse, M&R workshop.
-            Intentionally empty — populated in Phase 2.
+        {/* ── z2 · Facilities ─────────────────────────────────────────────────
+            11 muted #8B8B8B building footprints — hover-informational only.
+            z2 > z1 (visible on road surface); z2 < z3 (zone panels above).
+            Positions validated to be outside all zone panel bounding boxes.
         ──────────────────────────────────────────────────────────────── */}
+        <div className="absolute inset-0" style={{ zIndex: 2 }}>
+          {FACILITIES.map(f => (
+            <div
+              key={f.id}
+              className="absolute"
+              style={{ left: f.x, top: f.y, width: f.w, height: f.h, background: "#8B8B8B", boxShadow: "3px 3px 6px rgba(0,0,0,0.15)", borderRadius: 2, cursor: "default", pointerEvents: "auto" }}
+              onMouseEnter={e => {
+                setHoveredFacility(f)
+                const rect = containerRef.current!.getBoundingClientRect()
+                setFacTooltipPos({ x: e.clientX - rect.left + 10, y: e.clientY - rect.top - 36 })
+              }}
+              onMouseMove={e => {
+                const rect = containerRef.current!.getBoundingClientRect()
+                setFacTooltipPos({ x: e.clientX - rect.left + 10, y: e.clientY - rect.top - 36 })
+              }}
+              onMouseLeave={() => { setHoveredFacility(null); setFacTooltipPos(null) }}
+            >
+              <div className="absolute pointer-events-none" style={{ top: 3, left: 4, fontSize: 10, lineHeight: 1, color: "rgba(255,255,255,0.78)" }}>{f.icon}</div>
+              <div className="absolute pointer-events-none font-mono font-black" style={{ bottom: 3, left: 3, right: 3, fontSize: 7, color: "rgba(255,255,255,0.82)", letterSpacing: "0.14em", whiteSpace: "nowrap", textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}>{f.label}</div>
+            </div>
+          ))}
+        </div>
 
-        {/* ── z3 · Zone areas ───────────────────────────────────────────────
-            Zone panel backgrounds and signpost headers.
-            Panels are sized to their block bounding box + padding and sit
-            BEHIND z4 blocks — they must not obscure any block content.
-        ──────────────────────────────────────────────────────────────── */}
+        {/* ── z3 · Zone panel backgrounds + headers ─────────────────────────── */}
         <div className="absolute inset-0" style={{ zIndex: 3, pointerEvents: "none" }}>
           {Array.from(zoneBounds.entries()).map(([zoneId, b]) => {
             const panel = ZONE_PANEL[zoneId]
@@ -349,160 +448,203 @@ export default function PhysicalYardMap({
             const ph = (b.y2 - b.y1) + PANEL_PAD_TOP + PANEL_PAD_BOT
             const name = zoneNames[zoneId]?.split(" — ")[0] ?? `Zone ${zoneId}`
             const sub  = ZONE_SUBTITLES[zoneId] ?? ""
-
+            // Overview fill — zone avg occupancy → fill height inside panel content area
+            const zonePct     = zoneAvgOcc.get(zoneId) ?? 0
+            const ovFillH     = Math.round((ph - PANEL_PAD_TOP - PANEL_PAD_BOT) * Math.min(zonePct, 100) / 100)
+            const ovFillColor = zonePct > 85 ? "rgba(220,38,38,0.18)" : zonePct > 65 ? "rgba(245,158,11,0.14)" : "rgba(99,102,241,0.09)"
             return (
-              <div
-                key={`panel-${zoneId}`}
-                className="absolute"
-                style={{
-                  left: px, top: py, width: pw, height: ph,
-                  background: panel.bg,
-                  border: `1.5px solid ${panel.border}`,
-                  borderRadius: 8,
-                }}
-              >
-                <div
-                  className="absolute top-0 left-0 flex items-center gap-3 px-4"
-                  style={{
-                    height: PANEL_PAD_TOP - 4,
-                    background: panel.headerBg,
-                    color: panel.headerText,
-                    borderRadius: "6px 6px 0 0",
-                    width: "100%",
-                  }}
-                >
-                  <span className="font-black tracking-wider" style={{ fontSize: 16 }}>{name}</span>
-                  <span className="opacity-70 font-semibold tracking-wide" style={{ fontSize: 12 }}>{sub}</span>
+              <div key={`panel-${zoneId}`} className="absolute" style={{
+                left: px, top: py, width: pw, height: ph,
+                background: panel.bg,
+                // Zone Q uses a dashed frame — communicates restricted/hold status
+                border: zoneId === "Q"
+                  ? `2px dashed ${panel.border}`
+                  : `1.5px solid ${panel.border}`,
+                borderRadius: 8,
+              }}>
+
+                {/* ── OVERVIEW tier: zone identity + occupancy fill + hot indicator ────
+                    At tf.scale < 0.4 the panel is too small for per-block detail.
+                    Show a zone letter, a fill proportional to avg occupancy, and a
+                    ⏱ dot if any block in the zone has hot containers.
+                ────────────────────────────────────────────────────────────────── */}
+                {isOverview && (<>
+                  {/* Zone letter — legible at bird's-eye view */}
+                  <div className="absolute font-mono font-black pointer-events-none"
+                    style={{ left: 8, top: 8, fontSize: 13, lineHeight: 1, color: panel.headerBg, opacity: 0.92, letterSpacing: "0.06em" }}>
+                    {zoneId}
+                  </div>
+                  {/* Occupancy fill — rises from panel bottom proportional to zone avg */}
+                  {ovFillH > 0 && (
+                    <div className="absolute pointer-events-none" style={{
+                      left: PANEL_PAD_X + 2, right: PANEL_PAD_X + 2,
+                      bottom: PANEL_PAD_BOT + 2, height: ovFillH,
+                      background: ovFillColor, borderRadius: 3,
+                    }}/>
+                  )}
+                  {/* Zone-level hot dot — replaces per-block ⏱ badges at overview */}
+                  {zoneHasHot.has(zoneId) && (
+                    <div className="yard-hot-badge absolute flex items-center font-black pointer-events-none"
+                      style={{ top: 6, right: 6, background: "#dc2626", color: "white", fontSize: 8, padding: "2px 4px", borderRadius: 6, lineHeight: 1 }}>
+                      ⏱
+                    </div>
+                  )}
+                </>)}
+
+                {/* ── Signpost badge — compact rotated placard at top-left ─────────────
+                    Hidden at overview zoom (too small); replaced by zone identity above.
+                    Zone identity colour preserved on the badge background.
+                    Slight CCW rotation (-2.5°) gives a physical "sign" feel.
+                ────────────────────────────────────────────────────────────────── */}
+                {!isOverview && (
+                <div className="absolute flex items-center gap-2 pointer-events-none" style={{
+                  top: 10, left: 14,
+                  padding: "4px 11px 4px 8px",
+                  background: panel.headerBg,
+                  color: panel.headerText,
+                  borderRadius: 4,
+                  boxShadow: "1px 2px 8px rgba(0,0,0,0.28)",
+                  transform: "rotate(-2.5deg)",
+                  transformOrigin: "left bottom",
+                  whiteSpace: "nowrap",
+                  maxWidth: pw - 28,
+                }}>
+                  <span className="font-mono font-black" style={{ fontSize: 20, lineHeight: 1, letterSpacing: "0.04em" }}>{zoneId}</span>
+                  <span className="font-semibold" style={{ fontSize: 10, opacity: 0.88, lineHeight: 1, letterSpacing: "0.09em" }}>
+                    {ZONE_SHORT[zoneId] ?? name}
+                  </span>
+                  {zoneId === "Q" && (
+                    <span className="font-black" style={{ fontSize: 8, letterSpacing: "0.20em", background: "rgba(255,255,255,0.22)", padding: "1px 5px", borderRadius: 2, border: "1px solid rgba(255,255,255,0.40)", marginLeft: 4 }}>
+                      HOLD
+                    </span>
+                  )}
                 </div>
+                )}
+
+                {/* ── Zone D · IMDG hazard frame + fire-suppression corner markers ────────
+                    Chevron frame: thin 5 px stripe-only frame using CSS mask exclusion.
+                    Contract: frame is NOT a fill — block bg colours show through fully.
+                ─────────────────────────────────────────────────────────────────────── */}
+                {zoneId === "D" && (<>
+                  {/* Chevron frame always visible — structural IMDG segregation marker */}
+                  <div className="absolute pointer-events-none" style={{
+                    inset: 0, borderRadius: 7, padding: 5,
+                    background: "repeating-linear-gradient(45deg,#FFD700 0 5px,#111 5px 10px)",
+                    WebkitMask: "linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0)",
+                    WebkitMaskComposite: "xor",
+                    maskComposite: "exclude",
+                  } as React.CSSProperties}/>
+                  {/* Fire-suppression icons — working + detail only (too small at overview) */}
+                  {!isOverview && (<>
+                    <FireSuppressionMarker style={{ position:"absolute", top:  6, left:  6 }}/>
+                    <FireSuppressionMarker style={{ position:"absolute", top:  6, right: 6 }}/>
+                    <FireSuppressionMarker style={{ position:"absolute", bottom:6, left:  6 }}/>
+                    <FireSuppressionMarker style={{ position:"absolute", bottom:6, right: 6 }}/>
+                  </>)}
+                </>)}
+
+                {/* ── Zone F · Reefer power rail ────────────────────────────────────────
+                    One ⚡ plug icon per slot column across the zone width.
+                    Strip sits just below the header at the top of the block area.
+                ─────────────────────────────────────────────────────────────────────── */}
+                {/* Reefer power rail — working + detail only; glyphs are illegible at overview */}
+                {zoneId === "F" && !isOverview && (
+                  <div className="absolute left-0 right-0 flex items-center overflow-hidden pointer-events-none"
+                    style={{ top: PANEL_PAD_TOP, height: 15, background: "rgba(14,165,233,0.09)", borderBottom: "1px solid rgba(14,165,233,0.22)" }}>
+                    {Array.from({ length: Math.ceil(pw / 36) }, (_, i) => (
+                      <span key={i} style={{ fontSize: 9, width: 36, textAlign: "center", color: "#0284c7", flexShrink: 0 }}>⚡</span>
+                    ))}
+                  </div>
+                )}
               </div>
             )
           })}
         </div>
 
-        {/* ── z4 · Storage blocks ───────────────────────────────────────────
-            Colour-encoded container blocks. SEMANTIC layer — these cells are
-            the primary decision surface for operators.
-            CONTRACT: nothing at z0–z3 may cover or reduce legibility of any
-            block. z5 signals overlay transparently and are co-designed to
-            remain readable alongside block colours.
-            Note: congestion heat tints are currently rendered as local child
-            overlays inside each block div. They will be promoted to z5 signal
-            overlays in Phase 3 once the signal layer is fully specified.
+        {/* ── z4 · Storage blocks ───────────────────────────────────────────────
+            Block colour = primary decision signal. No flat fill overlays here;
+            congestion visualised at z5 as hatching so this colour is never masked.
         ──────────────────────────────────────────────────────────────── */}
         <div className="absolute inset-0" style={{ zIndex: 4 }}>
           {layouts.map(layout => {
-            const isSelected  = selectedBlock === layout.label
-            const isActive    = activeMoveBlocks?.has(layout.label)
-            const panel       = ZONE_PANEL[layout.zone]
-            const bg          = panel?.blockBg  ?? "#f9fafb"
-            const bdr         = panel?.blockBorder ?? "#9ca3af"
-            const barColor    =
+            const isSelected = selectedBlock === layout.label
+            const isActive   = activeMoveBlocks?.has(layout.label)
+            const panel      = ZONE_PANEL[layout.zone]
+            const bg         = panel?.blockBg  ?? "#f9fafb"
+            const bdr        = panel?.blockBorder ?? "#9ca3af"
+            const barColor   =
               layout.occupancyPct > 85 ? "#dc2626" :
               layout.occupancyPct > 70 ? "#f59e0b" : "#16a34a"
-            const congestion  = congestionByBlock?.get(layout.label) ?? 0
-            const heatTint    =
-              showCongestion && congestion > 0.75 ? "rgba(220,38,38,0.20)"
-              : showCongestion && congestion > 0.50 ? "rgba(249,115,22,0.16)"
-              : showCongestion && congestion > 0.25 ? "rgba(245,158,11,0.12)"
-              : null
+            // congestion % shown as text (the visual hatch is at z5)
+            const congestion = congestionByBlock?.get(layout.label) ?? 0
 
             return (
-              <div
-                key={layout.label}
-                className="absolute"
-                style={{
-                  left: layout.x, top: layout.y, width: layout.w, height: layout.h,
-                  background: bg,
-                  border: `2px solid ${isSelected ? "#dc2626" : isActive ? "#f59e0b" : bdr}`,
-                  outline: isSelected ? "3px solid rgba(220,38,38,0.25)"
-                    : isActive ? "2px solid rgba(245,158,11,0.4)" : "none",
-                  outlineOffset: 2,
-                  borderRadius: 4,
-                  cursor: "pointer",
-                  transition: "border-color 300ms, outline 300ms",
-                }}
+              <div key={layout.label} className="absolute" style={{
+                left: layout.x, top: layout.y, width: layout.w, height: layout.h,
+                background: bg,
+                border: `2px solid ${isSelected ? "#dc2626" : isActive ? "#f59e0b" : bdr}`,
+                outline: isSelected ? "3px solid rgba(220,38,38,0.25)" : isActive ? "2px solid rgba(245,158,11,0.4)" : "none",
+                outlineOffset: 2, borderRadius: 4, cursor: "pointer",
+                // Directional shadow adds physical depth without fighting colour semantics
+                boxShadow: "2px 3px 6px rgba(0,0,0,0.12)",
+                transition: "border-color 300ms, outline 300ms",
+              }}
                 onClick={e => { e.stopPropagation(); if (!didDrag.current) onSelectBlock(layout.label) }}
                 onMouseDown={e => { if (e.button === 0) e.stopPropagation() }}
                 onMouseEnter={e => handleBlockEnter(layout, e)}
                 onMouseMove={e  => handleBlockMove(layout, e)}
                 onMouseLeave={handleBlockLeave}
               >
-                {/* Congestion heat tint — local block overlay (Phase 3: promote to z5) */}
-                {heatTint && (
-                  <div className="absolute inset-0 pointer-events-none rounded"
-                    style={{ background: heatTint }} />
-                )}
-
-                {/* Block label — top-left */}
-                <div className="absolute font-black tracking-wider leading-none"
-                  style={{ top: 7, left: 8, fontSize: 18, color: "#1e293b" }}>
-                  {layout.label}
+                {/* Left-edge occupancy bar — always visible at every zoom tier.
+                    This is the primary status signal: the only z4 element at overview. */}
+                <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l" style={{ background: "rgba(255,255,255,0.4)" }}>
+                  <div className="absolute bottom-0 left-0 right-0 rounded-l" style={{ height: `${layout.occupancyPct}%`, background: barColor }} />
                 </div>
 
-                {/* Congestion % — top-right */}
-                {showCongestion && congestion > 0.25 && (
-                  <div className="absolute leading-none font-bold"
-                    style={{ top: 8, right: 8, fontSize: 14, color: "#dc2626" }}>
-                    {Math.round(congestion * 100)}%
+                {/* Slot grid lines — detail tier only (≥ 0.8): legible slot fidelity */}
+                {isDetail && Array.from({ length: (layout.rows ?? 1) - 1 }, (_, i) => (
+                  <div key={`rl-${i}`} className="absolute left-0 right-0 pointer-events-none"
+                    style={{ top: Math.round((i + 1) * layout.h / (layout.rows ?? 1)), height: 1, background: "rgba(0,0,0,0.06)" }}/>
+                ))}
+
+                {/* Working + Detail: block label, count/occupancy % */}
+                {!isOverview && (<>
+                  <div className="absolute font-mono font-black leading-none" style={{ top: 7, left: 8, fontSize: 16, color: "#1e293b", letterSpacing: "0.08em", textShadow: "0 1px 0 rgba(255,255,255,0.65)" }}>{layout.label}</div>
+                  {showCongestion && congestion > 0.25 && (
+                    <div className="absolute leading-none font-bold" style={{ top: 8, right: 8, fontSize: 14, color: "#dc2626" }}>{Math.round(congestion * 100)}%</div>
+                  )}
+                  <div className="absolute font-bold tabular leading-none" style={{ bottom: 8, left: 10, fontSize: 15, color: "#374151" }}>
+                    {layout.containerCount}<span style={{ fontSize: 12, color: "#9ca3af", marginLeft: 3 }}>/ {layout.capacity}</span>
                   </div>
-                )}
+                  <div className="absolute font-bold leading-none" style={{ bottom: 8, right: 8, fontSize: 15, color: barColor }}>{layout.occupancyPct}%</div>
+                </>)}
 
-                {/* Occupancy fill bar — left-side vertical */}
-                <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l"
-                  style={{ background: "rgba(255,255,255,0.4)" }}>
-                  <div
-                    className="absolute bottom-0 left-0 right-0 rounded-l"
-                    style={{ height: `${layout.occupancyPct}%`, background: barColor }}
-                  />
-                </div>
-
-                {/* Container count — bottom-left */}
-                <div
-                  className="absolute font-bold tabular leading-none"
-                  style={{ bottom: 8, left: 10, fontSize: 15, color: "#374151" }}
-                >
-                  {layout.containerCount}
-                  <span style={{ fontSize: 12, color: "#9ca3af", marginLeft: 3 }}>/ {layout.capacity}</span>
-                </div>
-
-                {/* Occupancy % — bottom-right */}
-                <div className="absolute font-bold leading-none"
-                  style={{ bottom: 8, right: 8, fontSize: 15, color: barColor }}>
-                  {layout.occupancyPct}%
-                </div>
-
-                {/* Top container ID preview — below label */}
-                {layout.topContainerIds.length > 0 && (
-                  <div
-                    className="absolute font-mono truncate leading-none"
-                    style={{ top: 30, left: 8, right: 8, fontSize: 11, color: "#64748b" }}
-                  >
-                    {layout.topContainerIds[0]}
-                  </div>
+                {/* Detail tier only: top container ID — requires close zoom to read */}
+                {isDetail && layout.topContainerIds.length > 0 && (
+                  <div className="absolute font-mono truncate leading-none" style={{ top: 30, left: 8, right: 8, fontSize: 11, color: "#64748b" }}>{layout.topContainerIds[0]}</div>
                 )}
               </div>
             )
           })}
         </div>
 
-        {/* ── z5 · Signals ──────────────────────────────────────────────────
-            Move trails, equipment overlays, hot/LFD markers (Phase 3).
-            This layer sits above z4 blocks. Signals must be semi-transparent
-            or spatially distinct so z4 block colours remain readable.
-            The z5 div is pointer-events:none; individual equipment icons
-            re-enable pointer-events so their hover tooltip still fires.
+        {/* ── z5 · Signals ────────────────────────────────────────────────────
+            ALL dynamic signals that overlay block tiles:
+            — Move trails (SVG lines)
+            — Equipment position icons
+            — Congestion hatching (diagonal pattern + edge ring, colorblind-safe)
+            — Rehandle debt glyph (↻N, bottom-left of block)
+            — Detention exposure highlight (amber ring, hover-triggered from KPI)
+            — HOT badge (⏱N, pulsing red pill, highest priority)
+            CONTRACT: no flat fills that mask z4 block status colour.
         ──────────────────────────────────────────────────────────────── */}
         <div className="absolute inset-0" style={{ zIndex: 5, pointerEvents: "none" }}>
 
-          {/* Move trails — dashed SVG lines between block centres */}
+          {/* Move trails */}
           {showTrails && moveTrails.length > 0 && (
-            <svg
-              className="absolute inset-0 overflow-visible"
-              style={{ left: 0, top: 0, width: dims.width, height: dims.height }}
-            >
+            <svg className="absolute" style={{ left: 0, top: 0, width: dims.width, height: dims.height, overflow: "visible" }}>
               {moveTrails.map((trail, i) => (
-                <line
-                  key={trail.id}
+                <line key={trail.id}
                   x1={trail.fromX} y1={trail.fromY} x2={trail.toX} y2={trail.toY}
                   stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="5 4"
                   opacity={0.2 + 0.2 * (i / moveTrails.length)}
@@ -511,26 +653,23 @@ export default function PhysicalYardMap({
             </svg>
           )}
 
-          {/* Equipment icons — pointer-events re-enabled individually */}
-          {showEquipment && equipment.map(eq => {
-            const color = eq.type === "reach-stacker" ? "#374151"
+          {/* Equipment icons */}
+          {showEquipment && equipment.map((eq, idx) => {
+            const color =
+              eq.type === "reach-stacker" ? "#374151"
               : eq.type === "empty-handler" ? "#9333ea"
               : EQ_STATUS_COLOR[eq.status] ?? "#9ca3af"
             const SZ = 14
-
             return (
-              <div
-                key={eq.id}
-                className="absolute flex items-center justify-center"
+              <div key={`eq-${eq.id}-${idx}`}
+                className="yard-equipment-icon absolute flex items-center justify-center"
                 style={{
                   left: eq.x - SZ / 2, top: eq.y - SZ / 2, width: SZ, height: SZ,
                   background: color,
                   border: "2px solid rgba(255,255,255,0.9)",
                   borderRadius: eq.type === "jockey" ? "50%" : eq.type === "empty-handler" ? 0 : 3,
                   transform: eq.type === "empty-handler" ? "rotate(45deg)" : undefined,
-                  cursor: "pointer",
-                  pointerEvents: "auto",   // re-enable for hover tooltip
-                  transition: "left 1000ms linear, top 1000ms linear",
+                  cursor: "pointer", pointerEvents: "auto",
                   boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
                 }}
                 onMouseEnter={e => handleEquipEnter(eq, e)}
@@ -538,56 +677,160 @@ export default function PhysicalYardMap({
               />
             )
           })}
+
+          {/* ── Congestion hatching — diagonal pattern + edge ring ────────────
+              Two independent cues (pattern shape + colour) = colorblind-safe.
+              Three levels: amber (low) → orange (medium) → red (high).
+              Does NOT use a flat fill, so block status colour shows through.
+          ─────────────────────────────────────────────────────────────── */}
+          {showCongestion && !isOverview && layouts.map(layout => {
+            const cong = congestionByBlock?.get(layout.label) ?? 0
+            if (cong < 0.25) return null
+            const stroke   = cong > 0.75 ? "#dc2626" : cong > 0.50 ? "#f97316" : "#f59e0b"
+            const opacity  = 0.28 + cong * 0.30
+            const edgeW    = 2.5 + cong * 2.5
+            const patId    = `hatch-${layout.label.replace("-", "")}`
+            return (
+              <svg key={`cong-${layout.label}`} className="absolute pointer-events-none"
+                style={{ left: layout.x, top: layout.y, width: layout.w, height: layout.h, overflow: "hidden", borderRadius: 4 }}>
+                <defs>
+                  <pattern id={patId} x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="10" x2="10" y2="0" stroke={stroke} strokeWidth="2.5" strokeOpacity={opacity}/>
+                  </pattern>
+                </defs>
+                {/* Diagonal hatch fills the block without hiding text (opacity < 0.45) */}
+                <rect width={layout.w} height={layout.h} fill={`url(#${patId})`}/>
+                {/* Edge ring — second independent cue */}
+                <rect x={edgeW / 2} y={edgeW / 2} width={layout.w - edgeW} height={layout.h - edgeW}
+                  fill="none" stroke={stroke} strokeWidth={edgeW} rx="3" strokeOpacity={Math.min(1, opacity * 1.8)}/>
+              </svg>
+            )
+          })}
+
+          {/* ── Rehandle debt glyphs — ↻N at block bottom-left ──────────────
+              Counts RESHUFFLE moves originating from this block.
+              Amber ≤ 2; red ≥ 3.  textShadow keeps it legible over any block bg.
+          ─────────────────────────────────────────────────────────────── */}
+          {isDetail && rehandleByBlock && Array.from(rehandleByBlock.entries()).map(([blockLabel, count]) => {
+            if (count === 0) return null
+            const layout = layouts.find(l => l.label === blockLabel)
+            if (!layout) return null
+            const color = count >= 3 ? "#dc2626" : "#d97706"
+            return (
+              <div key={`rh-${blockLabel}`}
+                className="absolute font-black pointer-events-none"
+                style={{ left: layout.x + 5, top: layout.y + layout.h - 18, fontSize: 10, lineHeight: 1, color, textShadow: "0 1px 3px rgba(255,255,255,0.90)" }}>
+                ↻{count}
+              </div>
+            )
+          })}
+
+          {/* ── Detention exposure highlight ─────────────────────────────────
+              Pulsing amber ring on blocks that contribute to detention $ exposure.
+              Triggered when user hovers the Detention KPI on the left panel.
+              Animation lives in .yard-detention-highlight (index.css).
+              prefers-reduced-motion: static border (CSS @media guard).
+          ─────────────────────────────────────────────────────────────── */}
+          {highlightBlocks && Array.from(highlightBlocks).map(blockLabel => {
+            const layout = layouts.find(l => l.label === blockLabel)
+            if (!layout) return null
+            return (
+              <div key={`det-hl-${blockLabel}`}
+                className="absolute pointer-events-none yard-detention-highlight"
+                style={{ left: layout.x - 4, top: layout.y - 4, width: layout.w + 8, height: layout.h + 8 }}
+              />
+            )
+          })}
+
+          {/* ── HOT CONTAINER BADGES — highest-priority signal ──────────────
+              ⏱ icon + count + red + pulse = 4 independent cues.
+              .yard-hot-badge animation in index.css (reduced-motion guarded).
+              Click → deep-links block drawer to hot containers only.
+          ─────────────────────────────────────────────────────────────── */}
+          {/* Block-level ⏱ badges — working + detail only; overview uses zone-level dot */}
+          {!isOverview && hotByBlock && Array.from(hotByBlock.entries()).map(([blockLabel, count]) => {
+            if (count === 0) return null
+            const layout = layouts.find(l => l.label === blockLabel)
+            if (!layout) return null
+            return (
+              <div
+                key={`hot-${blockLabel}`}
+                className="yard-hot-badge absolute flex items-center font-black"
+                style={{ left: layout.x + layout.w - 6, top: layout.y - 12, background: "#dc2626", color: "white", fontSize: 11, padding: "3px 7px 3px 5px", borderRadius: 12, gap: 3, cursor: "pointer", pointerEvents: "auto", whiteSpace: "nowrap", zIndex: 10, lineHeight: 1 }}
+                title={`${count} container${count > 1 ? "s" : ""} breach LFD in ≤ 4 h — click to inspect`}
+                onClick={e => { e.stopPropagation(); onHotBadgeClick?.(blockLabel) }}
+              >
+                <span style={{ fontSize: 10 }}>⏱</span>
+                <span>{count}</span>
+              </div>
+            )
+          })}
         </div>
 
-        {/* Passthrough slot for caller-injected canvas content */}
         {children}
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
-          z6 · Chrome — fixed UI, NOT affected by the pan/zoom transform.
-          Minimap, zoom controls, scale bar (future), north arrow (future),
-          block tooltip, equipment tooltip.
-          zIndex values start at 60 to clear all in-canvas layers (0–5).
+          z6 · Chrome — fixed UI, NOT inside pan/zoom transform.
       ════════════════════════════════════════════════════════════════════ */}
 
-      {/* Zoom controls — bottom-right */}
+      <NorthArrow />
+      <ScaleBar scale={tf.scale} />
+
+      {/* Zoom-tier indicator — makes the audience-switch concept legible */}
+      <div className="absolute pointer-events-none" style={{ bottom: 44, right: 12, zIndex: 60 }}>
+        <span style={{
+          fontSize: 8.5, fontWeight: 700, letterSpacing: "0.14em",
+          color: "rgba(255,255,255,0.88)",
+          background: isOverview ? "rgba(99,102,241,0.72)" : isDetail ? "rgba(22,163,74,0.72)" : "rgba(100,116,139,0.72)",
+          padding: "3px 9px", borderRadius: 20,
+          backdropFilter: "blur(4px)",
+        }}>
+          {isOverview ? "OVERVIEW" : isDetail ? "DETAIL" : "WORKING"}
+        </span>
+      </div>
+
+      {/* Zoom controls */}
       <div className="absolute bottom-3 right-3 flex gap-1" style={{ zIndex: 60 }}>
         <button
           onMouseDown={e => e.stopPropagation()}
-          onClick={() => {
-            const r = containerRef.current!.getBoundingClientRect()
-            zoomAt(r.width / 2, r.height / 2, 1.25)
-          }}
+          onClick={() => { const r = containerRef.current!.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1.25) }}
           className="w-8 h-8 bg-white border border-slate-300 text-slate-600 text-sm font-bold hover:bg-slate-50 flex items-center justify-center shadow-sm"
           style={{ borderRadius: 5 }}
         >+</button>
         <button
           onMouseDown={e => e.stopPropagation()}
-          onClick={() => {
-            const r = containerRef.current!.getBoundingClientRect()
-            zoomAt(r.width / 2, r.height / 2, 0.8)
-          }}
+          onClick={() => { const r = containerRef.current!.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 0.8) }}
           className="w-8 h-8 bg-white border border-slate-300 text-slate-600 text-sm font-bold hover:bg-slate-50 flex items-center justify-center shadow-sm"
           style={{ borderRadius: 5 }}
         >−</button>
         <button
-          onMouseDown={e => e.stopPropagation()}
-          onClick={fitView}
+          onMouseDown={e => e.stopPropagation()} onClick={fitView}
           className="px-2.5 h-8 bg-white border border-slate-300 text-slate-500 text-[10px] font-semibold hover:bg-slate-50 shadow-sm"
           style={{ borderRadius: 5 }}
         >fit</button>
       </div>
 
-      {/* Minimap — bottom-left */}
       {layouts.length > 0 && (
-        <MiniMap
-          layouts={layouts} tf={tf} dims={dims}
-          containerRef={containerRef} zoneBounds={zoneBounds}
+        <MiniMap layouts={layouts} tf={tf} dims={dims} containerRef={containerRef} zoneBounds={zoneBounds}
+          hotByBlock={hotByBlock}
+          onFacilityEnter={(f, cx, cy) => {
+            setHoveredFacility(f)
+            const rect = containerRef.current?.getBoundingClientRect()
+            if (rect) setFacTooltipPos({ x: cx - rect.left + 10, y: cy - rect.top - 36 })
+          }}
+          onFacilityLeave={() => { setHoveredFacility(null); setFacTooltipPos(null) }}
         />
       )}
 
-      {/* Block tooltip — follows cursor, suppressed when equipment tooltip is showing */}
+      {/* Facility tooltip */}
+      {hoveredFacility && facTooltipPos && (
+        <div className="absolute pointer-events-none bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 shadow-sm" style={{ left: facTooltipPos.x, top: facTooltipPos.y, padding: "4px 9px", borderRadius: 4, zIndex: 200, whiteSpace: "nowrap" }}>
+          {hoveredFacility.tooltip}
+        </div>
+      )}
+
+      {/* Block tooltip */}
       {hoveredLayout && tooltipPos && !hoveredEquip && (
         <BlockTooltip
           layout={hoveredLayout}
@@ -598,26 +841,16 @@ export default function PhysicalYardMap({
 
       {/* Equipment tooltip */}
       {hoveredEquip && equipTooltipPos && (
-        <div
-          className="absolute pointer-events-none bg-white border border-slate-200 text-[11px] leading-relaxed"
-          style={{
-            left: equipTooltipPos.x, top: equipTooltipPos.y,
-            padding: "6px 10px", borderRadius: 5,
-            zIndex: 200, boxShadow: "0 2px 8px rgba(0,0,0,0.12)", maxWidth: 200,
-          }}
-        >
+        <div className="absolute pointer-events-none bg-white border border-slate-200 text-[11px] leading-relaxed" style={{ left: equipTooltipPos.x, top: equipTooltipPos.y, padding: "6px 10px", borderRadius: 5, zIndex: 200, boxShadow: "0 2px 8px rgba(0,0,0,0.12)", maxWidth: 200 }}>
           <div className="font-bold text-[12px]">{hoveredEquip.id}</div>
           <div className="text-slate-500">{hoveredEquip.operatorName}</div>
           <div className="mt-1 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-sm inline-block"
-              style={{ background: EQ_STATUS_COLOR[hoveredEquip.status] ?? "#9ca3af" }} />
+            <span className="w-2 h-2 rounded-sm inline-block" style={{ background: EQ_STATUS_COLOR[hoveredEquip.status] ?? "#9ca3af" }} />
             <span className="capitalize">{hoveredEquip.status}</span>
           </div>
           <div className="text-slate-600 mt-0.5">Block: {hoveredEquip.currentBlock}</div>
           {hoveredEquip.destinationBlock && (
-            <div className="text-slate-600">
-              → {hoveredEquip.destinationBlock} ({Math.round(hoveredEquip.progress * 100)}%)
-            </div>
+            <div className="text-slate-600">→ {hoveredEquip.destinationBlock} ({Math.round(hoveredEquip.progress * 100)}%)</div>
           )}
         </div>
       )}
@@ -625,23 +858,99 @@ export default function PhysicalYardMap({
   )
 }
 
-// ── z6 · Minimap ──────────────────────────────────────────────────────────────
-// Chrome component — renders at a fixed position, unaffected by pan/zoom.
-// Shows zone patches, road-colour ground, and a red viewport indicator rect.
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function CameraIcon({ style }: { style?: React.CSSProperties }) {
+  return (
+    <div className="pointer-events-none" style={style}>
+      <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0.5" y="2.5" width="13" height="8" rx="1.5" fill="#484848" stroke="#8B8B8B" strokeWidth="0.7"/>
+        <circle cx="7" cy="6.5" r="2.8" fill="#1a1a1a" stroke="#8B8B8B" strokeWidth="0.8"/>
+        <circle cx="7" cy="6.5" r="1.4" fill="#2a2a2a"/>
+        <rect x="4" y="0.5" width="6" height="2.5" rx="1" fill="#484848" stroke="#8B8B8B" strokeWidth="0.7"/>
+        <circle cx="11.5" cy="4" r="0.8" fill="#dc2626" opacity="0.65"/>
+      </svg>
+    </div>
+  )
+}
+
+function DirectionalArrow({ direction, width, height }: { direction: "E" | "W"; width: number; height: number }) {
+  const count = Math.max(1, Math.min(6, Math.floor(width / 220)))
+  const segW  = width / count
+  const s     = Math.min(height * 0.28, 9)
+  const dir   = direction === "E" ? 1 : -1
+  return (
+    <svg className="absolute pointer-events-none" style={{ left: 0, top: 0, overflow: "visible" }} width={width} height={height}>
+      {Array.from({ length: count }, (_, i) => {
+        const cx  = (i + 0.5) * segW
+        const cy  = height / 2
+        const tip = cx + dir * s
+        const bx  = cx - dir * s * 0.5
+        return (
+          <g key={i}>
+            <line x1={cx - dir * s * 1.8} y1={cy} x2={bx} y2={cy} stroke="rgba(255,255,255,0.50)" strokeWidth="1.5" strokeLinecap="round"/>
+            <polygon points={`${tip},${cy} ${bx},${cy - s} ${bx},${cy + s}`} fill="rgba(255,255,255,0.50)"/>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+function NorthArrow() {
+  return (
+    <div className="absolute pointer-events-none flex flex-col items-center"
+      style={{ top: 12, right: 12, zIndex: 60, background: "rgba(255,255,255,0.92)", border: "1px solid #cbd5e1", borderRadius: 6, padding: "6px 7px", boxShadow: "0 1px 4px rgba(0,0,0,0.12)" }}>
+      <svg width="26" height="32" viewBox="0 0 26 32" fill="none" aria-label="North arrow">
+        <path d="M13 2 L20 21 L13 17 L6 21 Z" fill="#1e293b"/>
+        <path d="M13 30 L20 21 L13 17 L6 21 Z" fill="#cbd5e1"/>
+        <circle cx="13" cy="17" r="2.8" fill="white" stroke="#1e293b" strokeWidth="1.2"/>
+      </svg>
+      <span className="font-black text-slate-800 leading-none" style={{ fontSize: 11, marginTop: 2 }}>N</span>
+    </div>
+  )
+}
+
+function ScaleBar({ scale }: { scale: number }) {
+  const NICE = [5, 10, 25, 50, 100, 200]
+  const rawM  = 80 / (PX_PER_M * scale)
+  const niceM = NICE.reduce((a, b) => Math.abs(a - rawM) <= Math.abs(b - rawM) ? a : b)
+  const barPx = Math.round(niceM * PX_PER_M * scale)
+  const label = niceM >= 1000 ? `${niceM / 1000} km` : `${niceM} m`
+  return (
+    <div className="absolute pointer-events-none flex flex-col items-end" style={{ bottom: 44, right: 12, zIndex: 60 }}>
+      <div className="font-mono text-slate-600" style={{ fontSize: 9, marginBottom: 2 }}>{label}</div>
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={{ width: 1.5, height: 7, background: "#475569" }} />
+        <div style={{ width: barPx, height: 3, background: "#475569" }} />
+        <div style={{ width: 1.5, height: 7, background: "#475569" }} />
+      </div>
+      <div className="font-mono text-slate-500" style={{ fontSize: 8, alignSelf: "flex-start", marginTop: 1 }}>0</div>
+    </div>
+  )
+}
+
+const ZONE_MINI_COLOR: Record<string, string> = {
+  A: "#93c5fd", B: "#86efac", C: "#d8b4fe", D: "#fdba74",
+  E: "#bbf7d0", S: "#fde047", R: "#cbd5e1", F: "#fcd34d", Q: "#6ee7b7",
+}
 
 function MiniMap({
   layouts, tf, dims, containerRef, zoneBounds,
+  hotByBlock, onFacilityEnter, onFacilityLeave,
 }: {
   layouts:      BlockLayout[]
   tf:           { x: number; y: number; scale: number }
   dims:         { width: number; height: number }
   containerRef: React.RefObject<HTMLDivElement>
   zoneBounds:   Map<string, { x1: number; y1: number; x2: number; y2: number }>
+  hotByBlock?:         Map<string, number>
+  onFacilityEnter?:    (f: Facility, clientX: number, clientY: number) => void
+  onFacilityLeave?:    () => void
 }) {
-  const scaleX = (MINIMAP_W - 4) / dims.width
-  const scaleY = (MINIMAP_H - 20) / dims.height
-  const scale  = Math.min(scaleX, scaleY)
-
+  const scaleX  = (MINIMAP_W - 4) / dims.width
+  const scaleY  = (MINIMAP_H - 20) / dims.height
+  const scale   = Math.min(scaleX, scaleY)
   const el = containerRef.current
   const cw = el ? el.getBoundingClientRect().width  : 0
   const ch = el ? el.getBoundingClientRect().height : 0
@@ -650,60 +959,57 @@ function MiniMap({
   const vpW =  cw / tf.scale
   const vpH =  ch / tf.scale
 
-  // Zone patch colours match ZONE_PANEL.blockBg at reduced opacity
-  const ZONE_MINI_COLOR: Record<string, string> = {
-    A: "#93c5fd", B: "#86efac", C: "#d8b4fe", D: "#fdba74",
-    E: "#bbf7d0", S: "#fde047", R: "#cbd5e1",
-    F: "#fcd34d", Q: "#6ee7b7",
-  }
+  // Convert yard coordinates → minimap pixel space
+  const mx = (yx: number) => 2 + yx * scale
+  const my = (yy: number) => yy * scale
+  const contentH = MINIMAP_H - 18
 
   return (
-    <div
-      className="absolute bottom-3 left-3 bg-white border border-slate-300 overflow-hidden shadow-sm"
-      style={{ width: MINIMAP_W, height: MINIMAP_H, borderRadius: 5, zIndex: 60 }}
-    >
-      <div
-        className="font-bold tracking-wider text-slate-400 border-b border-slate-200"
-        style={{ fontSize: 8, padding: "2px 6px" }}
-      >MINIMAP</div>
+    <div className="absolute bottom-3 left-3 bg-white border border-slate-300 overflow-hidden shadow-sm" style={{ width: MINIMAP_W, height: MINIMAP_H, borderRadius: 5, zIndex: 60 }}>
+      <div className="font-bold tracking-wider text-slate-400 border-b border-slate-200" style={{ fontSize: 8, padding: "2px 6px" }}>MINIMAP</div>
+      <div className="relative" style={{ width: MINIMAP_W, height: contentH, overflow: "hidden", background: CONCRETE }}>
 
-      <div
-        className="relative"
-        style={{
-          width: MINIMAP_W, height: MINIMAP_H - 18,
-          overflow: "hidden",
-          // Minimap ground matches z0 concrete base colour
-          background: CONCRETE_BASE,
-        }}
-      >
-        {/* Zone patches */}
+        {/* Zone blobs */}
         {Array.from(zoneBounds.entries()).map(([zoneId, b]) => (
-          <div
-            key={`mini-zone-${zoneId}`}
-            className="absolute"
-            style={{
-              left:   2 + b.x1 * scale,
-              top:    b.y1 * scale,
-              width:  Math.max(3, (b.x2 - b.x1) * scale),
-              height: Math.max(3, (b.y2 - b.y1) * scale),
-              background: ZONE_MINI_COLOR[zoneId] ?? "#e5e7eb",
-              borderRadius: 1,
-              opacity: 0.7,
-            }}
-          />
+          <div key={`mz-${zoneId}`} className="absolute" style={{ left: mx(b.x1), top: my(b.y1), width: Math.max(3, (b.x2 - b.x1) * scale), height: Math.max(3, (b.y2 - b.y1) * scale), background: ZONE_MINI_COLOR[zoneId] ?? "#e5e7eb", borderRadius: 1, opacity: 0.7 }} />
         ))}
 
-        {/* Viewport indicator rect */}
-        <div
-          className="absolute border border-red-500 pointer-events-none"
-          style={{
-            background: "rgba(220,38,38,0.08)",
-            left:   Math.max(0, 2 + vpX * scale),
-            top:    Math.max(0, vpY * scale),
-            width:  Math.min(MINIMAP_W - 4, vpW * scale),
-            height: Math.min(MINIMAP_H - 22, vpH * scale),
-          }}
-        />
+        {/* ── SVG overlay: roads · facility dots · hot-block dots ────────────── */}
+        <svg style={{ position: "absolute", left: 0, top: 0, width: MINIMAP_W, height: contentH, overflow: "visible" }}>
+          {/* Main boulevard (horizontal) */}
+          <line x1={0} y1={my(CIRCULATION.mainBoulevard.y)} x2={MINIMAP_W} y2={my(CIRCULATION.mainBoulevard.y)} stroke="rgba(0,0,0,0.30)" strokeWidth="1"/>
+          {/* Bottom transversal */}
+          <line x1={0} y1={my(CIRCULATION.bottomTransversal.y)} x2={MINIMAP_W} y2={my(CIRCULATION.bottomTransversal.y)} stroke="rgba(0,0,0,0.22)" strokeWidth="0.8"/>
+          {/* N–S cross-roads */}
+          {CIRCULATION.crossRoads.map((cr, i) => (
+            <line key={`mcr-${i}`} x1={mx(cr.x)} y1={0} x2={mx(cr.x)} y2={contentH} stroke="rgba(0,0,0,0.22)" strokeWidth="0.8"/>
+          ))}
+
+          {/* Facility dots — grey circles matching the z2 colour */}
+          {FACILITIES.map(f => (
+            <circle key={`mf-${f.id}`}
+              cx={mx(f.x + f.w / 2)} cy={my(f.y + f.h / 2)}
+              r={2.5} fill="#8B8B8B" opacity={0.80}
+              style={{ cursor: "default" }}
+              onMouseEnter={e => onFacilityEnter?.(f, e.clientX, e.clientY)}
+              onMouseLeave={() => onFacilityLeave?.()}
+            />
+          ))}
+
+          {/* Hot-block red dots — "where the fires are" in the overview */}
+          {hotByBlock && layouts
+            .filter(l => (hotByBlock.get(l.label) ?? 0) > 0)
+            .map(l => (
+              <circle key={`mh-${l.label}`}
+                cx={mx(l.x + l.w / 2)} cy={my(l.y + l.h / 2)}
+                r={3.2} fill="#dc2626" opacity={0.88}
+                style={{ pointerEvents: "none" }}/>
+            ))
+          }
+        </svg>
+
+        {/* Viewport rectangle */}
+        <div className="absolute border border-red-500 pointer-events-none" style={{ background: "rgba(220,38,38,0.08)", left: Math.max(0, mx(vpX)), top: Math.max(0, my(vpY)), width: Math.min(MINIMAP_W - 4, vpW * scale), height: Math.min(contentH, vpH * scale) }} />
       </div>
     </div>
   )

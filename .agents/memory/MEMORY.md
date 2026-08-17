@@ -3,3 +3,6 @@
 - [Design system applied](design-system.md) — full DS applied to all 6 screens + CommandPalette; key tokens and gotchas documented
 - [i18n architecture](i18n-architecture.md) — lightweight LangContext + useLang() hook; EN/ES; persisted to settings table in DB
 - [Story seed type shapes](story-seed-types.md) — StoryPlan/ContextPlan use `title` not `label`, `startTime`/`endTime` not `window`; StoryShiftSummary has no KPI shorthands
+- [Yard map z-layer contract](yard-zindex.md) — z0 ground, z1 circulation, z2 facilities, z3 zone panels, z4 blocks, z5 signals, z6 chrome; facility positions must be outside zone panel bboxes (z3 opaque bg covers z2)
+- [Yard map phase 2.3–2.4](yard-phase2-signals.md) — detention KPI is live/interactive; congestion moved to z5 hatching (not flat fill); rehandle glyph at block bottom-left
+- [Yard map dark-glass panel](panel-dark-glass.md) — Phase 3.1 dark panel tokens (WCAG-verified), collapse pattern, section order, #f87171 not #dc2626 on dark bg

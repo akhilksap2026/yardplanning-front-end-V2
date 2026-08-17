@@ -12,6 +12,10 @@ export interface BlockLayout {
   containerCount: number
   capacity: number
   topContainerIds: string[]
+  /** Physical row count — drives slot-grid line rendering in PhysicalYardMap */
+  rows: number
+  /** Physical slot count per row — matches SLOT_WIDTH_PX geometry */
+  slots: number
 }
 
 // ── Layout constants ──────────────────────────────────────────────────────────
@@ -38,19 +42,26 @@ const YARD_WIDTH      = 2400 // used only for live layout
  *
  *  [GATE ══════════════════════════════════════════════════════════]
  */
-// Zone E (empties) at x=50, cols=2, blockW=360 → right edge ≈ 50+2*(360+14)−14 = 784px
-// Zone A/B must start at x ≥ 784 + 80 = 864 to avoid overlap.
-// Zone D must start beyond Zone A's right edge: 864+3*(360+14)−14 = 1972 → 1980+.
+// Horizontal cluster breaks:
+//   Top cluster    (C/A/D)  — y = 80  … 462  (A drives bottom: 80+165+52+165 = 462)
+//   Main boulevard           — y = 462 … 522  (60 px "TERMINAL DRIVE")
+//   Middle cluster (E/B/F)  — y = 522 … 904  (E/B drive bottom: 522+165+52+165 = 904)
+//   Bottom x-road            — y = 904 … 944  (40 px transversal)
+//   Bottom cluster (Q/S/R)  — y = 944 … 999  (blockH=55 → one row)
+//
+// Vertical column gaps (cross-roads):
+//   Left→Center: E right (784) … A left (880) — 96 px gap
+//   Center→Right: A/B right (1988) … D/F/Q left (2028) — 40 px gap (exact road width)
 const ZONE_LAYOUT: Record<string, { x: number; y: number; cols: number }> = {
-  C: { x: 50,   y: 80,   cols: 2 },   // Customs hold    — upper left
-  A: { x: 880,  y: 80,   cols: 3 },   // Dry/general     — upper center (clear of E)
-  B: { x: 880,  y: 545,  cols: 3 },   // Dry/general     — lower center (below A)
-  D: { x: 1990, y: 80,   cols: 1 },   // Hazmat          — far right, isolated
-  E: { x: 50,   y: 430,  cols: 2 },   // Empty depot     — lower left  (below C)
-  S: { x: 880,  y: 990,  cols: 5 },   // Staging         — near gate
-  R: { x: 50,   y: 1100, cols: 10 },  // Receiving       — near gate, wide strip
-  F: { x: 1990, y: 420,  cols: 1 },   // Reefer          — far right, below D (D bottom ≈ 350)
-  Q: { x: 1990, y: 740,  cols: 1 },   // Quarantine/M&R  — far right, below F (F bottom ≈ 690)
+  C: { x: 50,   y: 80,  cols: 2 },   // Customs hold    — upper left
+  A: { x: 880,  y: 80,  cols: 3 },   // Dry/general     — upper centre
+  D: { x: 2028, y: 80,  cols: 1 },   // Hazmat          — upper right  (x: 1990→2028 opens 40 px cross-road)
+  E: { x: 50,   y: 522, cols: 2 },   // Empty depot     — middle left  (y: 430→522 opens boulevard)
+  B: { x: 880,  y: 522, cols: 3 },   // Dry/general     — middle centre (y: 545→522 aligns with E)
+  F: { x: 2028, y: 522, cols: 1 },   // Reefer          — middle right  (y: 420→522, x: 1990→2028)
+  Q: { x: 2028, y: 944, cols: 1 },   // Quarantine/M&R  — lower right   (y: 740→944, x: 1990→2028)
+  S: { x: 880,  y: 944, cols: 5 },   // Staging         — lower centre  (y: 990→944)
+  R: { x: 50,   y: 944, cols: 10 },  // Receiving       — lower left    (y: 1100→944)
 }
 
 export function computeBlockLayouts(
@@ -89,6 +100,8 @@ export function computeBlockLayouts(
         containerCount: blockContainers.length,
         capacity,
         topContainerIds: blockContainers.slice(0, 3).map(c => c.id),
+        rows:  zone.rows,
+        slots: zone.slots,
       })
     }
   }
@@ -251,6 +264,7 @@ export function computeLiveBlockLayouts(
         x, y, w: blockW, h: blockH,
         occupancyPct: b.pct, containerCount: b.occupied,
         capacity, topContainerIds: [],
+        rows, slots,
       })
     })
 
@@ -261,13 +275,16 @@ export function computeLiveBlockLayouts(
   return layouts
 }
 
+// Extra south margin to accommodate the truck queue area below the bottom cluster.
+const SOUTH_BUFFER_PX = 100   // replaces the old +40 constant
+
 export function getYardDimensions(
   layouts: BlockLayout[],
 ): { width: number; height: number } {
   if (layouts.length === 0) return { width: YARD_WIDTH, height: 600 }
   const maxX = Math.max(...layouts.map(l => l.x + l.w))
   const maxY = Math.max(...layouts.map(l => l.y + l.h))
-  return { width: maxX + LANE_WIDTH_PX, height: maxY + LANE_WIDTH_PX + 40 }
+  return { width: maxX + LANE_WIDTH_PX, height: maxY + LANE_WIDTH_PX + SOUTH_BUFFER_PX }
 }
 
 // ── Layer-system geometry ─────────────────────────────────────────────────────
@@ -280,54 +297,238 @@ export const BERTH_HEIGHT = 34
 /** Height of the GATE · TRUCK ENTRY strip at the bottom of the canvas. */
 export const GATE_HEIGHT = 34
 
-/** A rectangular road / aisle corridor in canvas-space coordinates. */
-export interface RoadCorridor {
-  x: number
-  y: number
-  w: number
-  h: number
+// ── CIRCULATION — complete road/aisle geometry for z0–z1 rendering ────────────
+//
+// Derivation (all values in canvas-space px, seed layout):
+//
+//  mainBoulevard   y=462   — bottom of top cluster (A row-1 bottom = 80+165+52+165 = 462)
+//                  width=60 — band height ("N–S extent" of the boulevard)
+//
+//  bottomTransversal y=904 — bottom of middle cluster (E/B bottom = 522+165+52+165 = 904)
+//                  width=40
+//
+//  crossRoads[0]   x=784, w=96  — E right (784) → A left (880); 96 px gap
+//  crossRoads[1]   x=1988, w=40 — A/B right (1988) → D/F/Q left (2028); exact 40 px
+//
+//  aisles (LANE_WIDTH_PX = 52 px each):
+//    C: x=50,   y=190 (80+110),    w=590  (50→640)
+//    A: x=880,  y=245 (80+165),    w=1108 (880→1988)
+//    D: x=2028, y=190 (80+110),    w=216  (2028→2244)
+//    E: x=50,   y=687 (522+165),   w=734  (50→784)
+//    B: x=880,  y=687 (522+165),   w=1108 (880→1988)
+//    F: x=2028, y=632 (522+110),   w=288  (2028→2316)
+//
+//  truckQueue      x=50 (Zone R left), y=999 (bottom-cluster bottom = 944+55)
+//                  dims.height = 999+52+100 = 1151  →  118 px for 5 bays
+//
+//  perimeter       inset=30 (grass strip), width=20 (service road)
+//                  → grass at x=0..30, service road at x=30..50 (aligns with zone left=50)
+
+export interface AisleSegment {
+  x: number; y: number; w: number; h: number
+  zoneId: string
+  direction: "E" | "W"
 }
 
-/**
- * Returns the major circulation corridors for the seed layout.
- * Geometry is derived from ZONE_LAYOUT positions:
- *   • North approach  — y = BERTH_HEIGHT .. first-zone-top  (46 px gap)
- *   • Central N–S     — x = 784 .. 880  (right of Zone E, left of Zone A; 96 px gap)
- *   • South approach  — below Zone R bottom, above gate strip  (≈ 58 px gap)
- *
- * Consumed exclusively by the z1-Circulation rendering layer.
- */
-export function computeRoadCorridors(
-  dims: { width: number; height: number },
-): RoadCorridor[] {
-  // Central corridor bounds, derived from ZONE_LAYOUT:
-  //   Zone E right edge = 50 + 2*(10*36 + 14) − 14 = 784
-  //   Zone A left edge  = 880
-  const centralX = 784
-  const centralW = 96           // 880 − 784
-  const northH   = 46           // ZONE_LAYOUT.C.y (80) − BERTH_HEIGHT (34)
+export interface CrossRoadSegment {
+  x: number   // left edge of the full gap (incl. shoulders)
+  w: number   // total gap width
+  label: string
+}
 
-  return [
-    // North approach — from berth quay to first storage zone tops
-    {
-      x: 0,
-      y: BERTH_HEIGHT,
-      w: dims.width,
-      h: northH,
-    },
-    // Central N–S corridor — between left (C/E) and centre (A/B) zone columns
-    {
-      x: centralX,
-      y: BERTH_HEIGHT + northH,
-      w: centralW,
-      h: dims.height - BERTH_HEIGHT - GATE_HEIGHT - northH,
-    },
-    // South approach — between Zone R bottom (y≈1155) and gate strip
-    {
-      x: 0,
-      y: dims.height - GATE_HEIGHT - 58,
-      w: dims.width,
-      h: 58,
-    },
-  ]
+export interface CirculationGeometry {
+  mainBoulevard:    { y: number; width: number; label: string }
+  bottomTransversal:{ y: number; width: number }
+  crossRoads:       CrossRoadSegment[]
+  aisles:           AisleSegment[]
+  truckQueue:       { x: number; y: number; bays: number; exitLaneW: number }
+  perimeter:        { inset: number; width: number }
+}
+
+export const CIRCULATION: CirculationGeometry = {
+  // Primary E-W thoroughfare between top (A/C/D) and middle (E/B/F) zone clusters
+  mainBoulevard: { y: 462, width: 60, label: "TERMINAL DRIVE" },
+
+  // Secondary E-W band between middle (E/B/F) and bottom (Q/S/R) clusters
+  bottomTransversal: { y: 904, width: 40 },
+
+  // N-S cross-roads between zone columns (full canvas height, minus berth/gate)
+  crossRoads: [
+    { x: 784,  w: 96, label: "WEST SERVICE RD"  },  // left–centre  (E right → A left)
+    { x: 1988, w: 40, label: "EAST SERVICE RD"  },  // centre–right (A/B right → D/F/Q left)
+  ],
+
+  // Working aisles between block-rows within each zone
+  aisles: [
+    { x: 50,   y: 190, w: 590,  h: 52, zoneId: "C", direction: "E" },
+    { x: 880,  y: 245, w: 1108, h: 52, zoneId: "A", direction: "W" },
+    { x: 2028, y: 190, w: 216,  h: 52, zoneId: "D", direction: "E" },
+    { x: 50,   y: 687, w: 734,  h: 52, zoneId: "E", direction: "W" },
+    { x: 880,  y: 687, w: 1108, h: 52, zoneId: "B", direction: "E" },
+    { x: 2028, y: 632, w: 288,  h: 52, zoneId: "F", direction: "E" },
+  ],
+
+  // Truck queue below Zone R — inbound bays + parallel exit lane
+  truckQueue: { x: 50, y: 999, bays: 5, exitLaneW: 40 },
+
+  // Perimeter: grass strip at canvas edge, service road inside it
+  perimeter: { inset: 30, width: 20 },
+}
+
+// ── Facility footprints (z2 — structural context, not focus) ─────────────────
+// Muted #8B8B8B building outlines adjacent to roads.
+// Positions are validated against ZONE_LAYOUT + panel padding so that z3 zone
+// panel backgrounds do not obscure them.
+//
+// Safe pockets (zone panels excluded):
+//   SLOT-W  x=660–780, y=85–455   right of Zone C panel (~x=656), west of WEST SERVICE RD
+//   SLOT-E  x=2262–2320, y=85–455 right of Zone D panel (~x=2260), east service road shoulder
+//   SLOT-S  x=160–1000, y=1012–1080  below all zone panels (bottom ≈1011), above gate
+
+export interface Facility {
+  id:      string
+  label:   string   // all-caps stencil label (≤5 chars)
+  icon:    string   // single glyph shown above label
+  tooltip: string   // full hover description (rendered in chrome)
+  x: number; y: number; w: number; h: number
+}
+
+export const FACILITIES: Facility[] = [
+  // ── SLOT-W — west corridor, north of TERMINAL DRIVE ──────────────────────
+  { id:"customs-insp",  label:"CUST",  icon:"⚖",  tooltip:"Customs Inspection Bay",          x:660, y:88,   w:62, h:42 },
+  { id:"admin",         label:"ADMIN", icon:"▪",   tooltip:"Terminal Administration Office",  x:660, y:142,  w:72, h:44 },
+  { id:"infirmary",     label:"MED",   icon:"+",   tooltip:"On-Site Medical / Infirmary",     x:660, y:198,  w:60, h:40 },
+  { id:"security",      label:"SEC",   icon:"◈",   tooltip:"Security / CCTV Control Post",    x:660, y:250,  w:54, h:40 },
+
+  // ── SLOT-E — east corridor, north of TERMINAL DRIVE ──────────────────────
+  { id:"hazmat-safety", label:"HAZ",   icon:"☢",   tooltip:"Hazmat / Emergency Safety Stn",  x:2262, y:88,  w:55, h:40 },
+  { id:"workshop",      label:"WRK",   icon:"⚙",   tooltip:"M&R Workshop / Maintenance Bay", x:2262, y:140, w:58, h:44 },
+
+  // ── SLOT-S — south strip, below bottom-cluster panels, above gate ─────────
+  { id:"weigh-stn",     label:"WGH",   icon:"▲",   tooltip:"Weighbridge / Weigh Station",     x:178, y:1014, w:64, h:44 },
+  { id:"cfs",           label:"CFS",   icon:"□",   tooltip:"CFS / Container Freight Station", x:362, y:1012, w:84, h:55 },
+  { id:"driver-rest",   label:"REST",  icon:"◉",   tooltip:"Driver Rest / Amenities Area",    x:562, y:1015, w:68, h:44 },
+  { id:"fuel",          label:"FUEL",  icon:"◆",   tooltip:"Fuel & AdBlue Station",           x:748, y:1015, w:62, h:40 },
+  { id:"reefer-power",  label:"REEF",  icon:"~",   tooltip:"Reefer Power Hub / PTI Bay",      x:928, y:1012, w:72, h:44 },
+]
+
+// ── Detention exposure ────────────────────────────────────────────────────────
+// Re-typed locally to avoid cross-module dependency on reference-pools.ts.
+
+export interface CarrierSched {
+  code:     string
+  freeDays: number
+  /** [dayFrom, dayTo, usdPerDay] — inclusive range */
+  tiers:    [number, number, number][]
+}
+
+export interface DetentionRow {
+  containerId:  string
+  zone:         string
+  block:        number
+  row:          number
+  slot:         number
+  tier:         number
+  address:      string
+  carrierName:  string
+  carrierCode:  string
+  hoursToLFD:   number    // negative = already breached
+  dwellDays:    number
+  dailyRateUsd: number    // applicable tier rate
+  exposureUsd:  number    // accumulated (breached) or 1-day risk (at_risk)
+  status:       "breached" | "at_risk"
+}
+
+function _detentionDailyRate(dwellDays: number, carrier: CarrierSched): number {
+  const tier = carrier.tiers.find(([f, t]) => dwellDays >= f && dwellDays <= t)
+  if (tier) return tier[2]
+  const last = carrier.tiers[carrier.tiers.length - 1]
+  return last ? last[2] : 50
+}
+
+/** Compute detention exposure for containers that are breached (hoursToLFD ≤ 0)
+ *  or at risk within 24 h.  Returns sorted rows, total USD, and the set of
+ *  contributing block labels (for map highlighting).
+ */
+export function computeDetentionExposure(
+  containers: Array<{
+    id: string; zone: string; block: number; row: number; slot: number; tier: number;
+    address: string; carrier: string; carrierName: string;
+    hoursToLFD: number; dwellDays: number; empty: boolean;
+  }>,
+  carriers: CarrierSched[],
+): { rows: DetentionRow[]; totalUsd: number; blockSet: Set<string> } {
+  const cMap   = new Map(carriers.map(c => [c.code, c]))
+  const rows: DetentionRow[] = []
+  const blockSet = new Set<string>()
+
+  for (const c of containers) {
+    if (c.empty || c.hoursToLFD > 24) continue
+
+    const status: "breached" | "at_risk" = c.hoursToLFD <= 0 ? "breached" : "at_risk"
+    const sched   = cMap.get(c.carrier)
+    const freeDays = sched?.freeDays ?? 7
+
+    let dailyRateUsd: number
+    let exposureUsd: number
+
+    if (status === "breached") {
+      const daysOver = Math.max(1, c.dwellDays - freeDays)
+      dailyRateUsd   = sched ? _detentionDailyRate(c.dwellDays, sched) : 50
+      exposureUsd    = dailyRateUsd * daysOver
+    } else {
+      // at_risk: estimate 1-day charge at the first tier that activates at breach
+      const firstPaidDay = freeDays + 1
+      dailyRateUsd = sched ? _detentionDailyRate(firstPaidDay, sched) : 50
+      exposureUsd  = dailyRateUsd   // 1-day risk
+    }
+
+    const blockLabel = `${c.zone}-${String(c.block).padStart(2, "0")}`
+    blockSet.add(blockLabel)
+    rows.push({
+      containerId: c.id,
+      zone: c.zone, block: c.block, row: c.row, slot: c.slot, tier: c.tier,
+      address: c.address, carrierName: c.carrierName, carrierCode: c.carrier,
+      hoursToLFD: c.hoursToLFD, dwellDays: c.dwellDays,
+      dailyRateUsd, exposureUsd, status,
+    })
+  }
+
+  rows.sort((a, b) => a.hoursToLFD - b.hoursToLFD)
+  const totalUsd = rows.reduce((s, r) => s + r.exposureUsd, 0)
+  return { rows, totalUsd, blockSet }
+}
+
+/** Count RESHUFFLE moves per source block — proxy for predicted rehandle debt.
+ *  The from-address format is "A-01-r-s-t"; block label = "A-01".
+ */
+export function computeRehandleByBlock(
+  moves: Array<{ type: string; from: string }>,
+): Map<string, number> {
+  const map = new Map<string, number>()
+  for (const m of moves) {
+    if (m.type !== "RESHUFFLE") continue
+    const parts = m.from.split("-")
+    if (parts.length < 2) continue
+    const label = `${parts[0]}-${String(parts[1]).padStart(2, "0")}`
+    map.set(label, (map.get(label) ?? 0) + 1)
+  }
+  return map
+}
+
+/** Per-block count of "hot" containers (hoursToLFD ≤ 4 h, non-empty).
+ *  Return value feeds the z5 pulsing badge — highest-priority signal on the map.
+ *  Hot = imminent detention risk: free time expires within the current shift.
+ */
+export function computeHotByBlock(
+  containers: Array<{ zone: string; block: number; empty: boolean; hoursToLFD: number }>,
+): Map<string, number> {
+  const map = new Map<string, number>()
+  for (const c of containers) {
+    if (!c.empty && c.hoursToLFD <= 4) {
+      const label = `${c.zone}-${String(c.block).padStart(2, "0")}`
+      map.set(label, (map.get(label) ?? 0) + 1)
+    }
+  }
+  return map
 }
