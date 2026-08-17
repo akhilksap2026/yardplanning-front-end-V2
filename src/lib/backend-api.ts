@@ -104,6 +104,7 @@ export interface BackendPlan {
   generated_at: string; confirmed_at: string | null; parent_plan_id: number | null;
   solve_seconds: number | null; objective_value: number | null; best_bound: number | null;
   gap_percent: number | null; solver_status: string | null; solver_config_id: number | null;
+  narration: string | null;
 }
 export interface BackendPlanDetail extends BackendPlan { moves: BackendMove[]; }
 export interface BackendDisruption {
@@ -205,6 +206,7 @@ export const backendApi = {
   generatePlan: (body: { plan_date?: string | null; strategy: SolveStrategy; time_budget_seconds?: number | null }) =>
     request<BackendPlanDetail>(`${P}/plans/generate`, { method: "POST", body: JSON.stringify(body) }),
   confirmPlan: (id: number) => request<BackendPlan>(`${P}/plans/${id}/confirm`, { method: "POST" }),
+  narratePlan: (id: number) => request<{ narration: string }>(`${P}/plans/${id}/narrate`, { method: "POST" }),
   replan: (id: number, reason: string, timeBudget?: number) =>
     request<BackendPlanDetail>(`${P}/plans/${id}/replan`, { method: "POST", body: JSON.stringify({ reason, time_budget_seconds: timeBudget }) }),
   deletePlan: (id: number) => request<void>(`${P}/plans/${id}`, { method: "DELETE" }),

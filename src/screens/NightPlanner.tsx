@@ -122,6 +122,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   const [viewedPlan,   setViewedPlan]   = useState<BackendPlanDetail | null>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [engineSel,    setEngineSel]    = useState<number | null>(null)
+  const [narrating,    setNarrating]    = useState(false)
 
   // ── New state: Steps 1–5 ─────────────────────────────────────────────────
   const [kpiExpanded,       setKpiExpanded]       = useState(false)          // Step 1
@@ -213,6 +214,19 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     try { const detail = await backendApi.plan(planId); setViewedPlan(detail) }
     catch (err) { console.error("[NightPlanner] history fetch failed:", err) }
     finally { setHistoryLoading(false) }
+  }
+
+  async function handleNarrate() {
+    if (!viewedPlan || narrating) return
+    setNarrating(true)
+    try {
+      const { narration } = await backendApi.narratePlan(viewedPlan.id)
+      setViewedPlan(prev => prev ? { ...prev, narration } : prev)
+    } catch (err) {
+      console.error("[NightPlanner] re-narrate failed:", err)
+    } finally {
+      setNarrating(false)
+    }
   }
 
   // ── Focus handling ────────────────────────────────────────────────────────
@@ -1286,6 +1300,43 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             </div>
           </div>
           <div className="bg-white flex flex-col min-h-0 overflow-auto" style={{ borderLeft:"1px solid var(--ds-border)", width:300 }}>
+
+            {/* ── Plan summary (narration) ─────────────────────────────── */}
+            {viewedPlan && (
+              <div style={{ borderBottom:"0.5px solid var(--ds-border-lt)", padding:"12px 16px" }}>
+                {/* heading row */}
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+                  <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase",
+                    color:"var(--ds-subtle)" }}>
+                    <i className="ti ti-sparkles" style={{ marginRight:5, fontSize:11 }} />
+                    Plan summary
+                  </span>
+                  <button
+                    onClick={handleNarrate}
+                    disabled={narrating}
+                    title="Re-generate AI narration"
+                    style={{ fontSize:10, padding:"2px 7px", borderRadius:4, cursor:narrating?"default":"pointer",
+                      border:"0.5px solid var(--ds-border)", background:"transparent",
+                      color:"var(--ds-subtle)", opacity:narrating?0.5:1, display:"inline-flex", alignItems:"center", gap:4 }}>
+                    <i className={`ti ${narrating?"ti-loader-2":"ti-refresh"}`}
+                      style={{ fontSize:11, animation:narrating?"spin 1s linear infinite":undefined }} />
+                    {narrating ? "Narrating…" : "Re-narrate"}
+                  </button>
+                </div>
+
+                {viewedPlan.narration ? (
+                  <p style={{ fontSize:12, lineHeight:1.65, color:"var(--text-primary)", margin:0 }}>
+                    {viewedPlan.narration}
+                  </p>
+                ) : (
+                  <p style={{ fontSize:12, color:"var(--ds-subtle)", fontStyle:"italic", margin:0 }}>
+                    Summary not available — click Re-narrate to generate.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* ── Move detail ─────────────────────────────────────────── */}
             {engineSelMove ? (
               <div>
                 <div className="px-4 pt-3 pb-3">

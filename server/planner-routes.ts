@@ -9,6 +9,9 @@
 import { Router } from 'express'
 import { pool } from './db.js'
 import { runGreedySolver } from './planner/greedy.js'
+import { narratePlan } from './planner/narrate.js'
+import type { NarrationInput } from './planner/narrate.js'
+import type { SolverResult, MoveReason } from './planner/types.js'
 
 export const plannerRouter = Router()
 
@@ -107,6 +110,85 @@ function shapePlan(row: Record<string, unknown>) {
     gap_percent: row.gap_percent != null ? Number(row.gap_percent) : null,
     solver_status: row.solver_status ?? null,
     solver_config_id: row.solver_config_id ?? null,
+    narration: row.narration != null ? String(row.narration) : null,
+  }
+}
+
+// ── Build NarrationInput from SolverResult + operator names ───────────────────
+async function buildNarrationInput(
+  planId: number,
+  planDate: string,
+  strategy: string,
+  result: SolverResult,
+): Promise<NarrationInput> {
+  // Collect unique jockey text-IDs from moves
+  const jockeyIds = [...new Set(result.moves.map(m => m.jockey_id).filter(Boolean))] as string[]
+
+  // Fetch operator names + certs in one query (small set)
+  let jockeyMap = new Map<string, { name: string; certs: string[] }>()
+  if (jockeyIds.length > 0) {
+    const { rows } = await pool.query<{ id: string; name: string; certs: string[] }>(
+      `SELECT id, name, certs FROM operators WHERE id = ANY($1::text[])`,
+      [jockeyIds]
+    )
+    for (const r of rows) jockeyMap.set(r.id, { name: r.name, certs: r.certs ?? [] })
+  }
+
+  // Per-jockey move counts
+  const jockeyMoveCounts = new Map<string, number>()
+  const moveBreakdown: Record<string, number> = {}
+  for (const m of result.moves) {
+    if (m.jockey_id) jockeyMoveCounts.set(m.jockey_id, (jockeyMoveCounts.get(m.jockey_id) ?? 0) + 1)
+    moveBreakdown[m.reason] = (moveBreakdown[m.reason] ?? 0) + 1
+  }
+
+  const jockeySummary = jockeyIds.map(id => ({
+    name:       jockeyMap.get(id)?.name ?? id,
+    certs:      jockeyMap.get(id)?.certs ?? [],
+    move_count: jockeyMoveCounts.get(id) ?? 0,
+  })).sort((a, b) => b.move_count - a.move_count)
+
+  // Top moves: first 5 in sequence order (they are already sorted by urgency score → assignment order)
+  const topMoves = result.moves.slice(0, 5).map(m => ({
+    container_id: m.container_id,
+    reason:       m.reason,
+    start_min:    m.start_time_min,
+    duration_min: m.estimated_duration_min,
+  }))
+
+  return {
+    plan_id:        planId,
+    plan_date:      planDate,
+    strategy,
+    solve_seconds:  result.solve_seconds,
+    total_moves:    result.moves.length,
+    unplaced_count: result.unplaced.length,
+    move_breakdown: moveBreakdown,
+    jockey_summary: jockeySummary,
+    top_moves:      topMoves,
+    unplaced:       result.unplaced,
+  }
+}
+
+// ── Fire-and-forget narration (runs after plan commit) ───────────────────────
+async function narrateAfterCommit(
+  planId: number,
+  planDate: string,
+  strategy: string,
+  result: SolverResult,
+): Promise<void> {
+  try {
+    const input = await buildNarrationInput(planId, planDate, strategy, result)
+    const narration = await narratePlan(input)
+    if (narration) {
+      await pool.query(
+        `UPDATE planner_plans SET narration = $1 WHERE id = $2`,
+        [narration, planId]
+      )
+      console.log(`[narrate] plan #${planId} narration stored`)
+    }
+  } catch (err) {
+    console.error(`[narrate] fire-and-forget narration failed for plan #${planId}:`, err)
   }
 }
 
@@ -468,6 +550,10 @@ plannerRouter.post('/plans/generate', async (req, res) => {
       console.log(`[planner] plan #${planId} generated: ${moves.length} moves, ${result.unplaced.length} unplaced`)
 
       res.json({ ...plan, moves: moves.map(shapeMove) })
+
+      // Fire-and-forget narration — runs after response is sent so a slow OpenAI
+      // call never delays the client. Failures are logged but never propagate.
+      narrateAfterCommit(planId, plan_date as string, strategy, result).catch(() => {})
     } catch (err) {
       await client.query('ROLLBACK')
       throw err
@@ -513,7 +599,7 @@ plannerRouter.get('/plans/:id', async (req, res) => {
               generated_at, confirmed_at, parent_plan_id,
               solve_seconds::float, objective_value::float,
               best_bound::float, gap_percent::float,
-              solver_status, solver_config_id
+              solver_status, solver_config_id, narration
        FROM planner_plans WHERE id = $1`,
       [id]
     )
@@ -531,6 +617,86 @@ plannerRouter.get('/plans/:id', async (req, res) => {
     res.json({ ...shapePlan(plans[0]), moves: moves.map(shapeMove) })
   } catch (err) {
     console.error('[planner] /plans/:id error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/planner/plans/:id/narrate
+// Re-narrate an existing plan (or narrate for the first time).
+// ─────────────────────────────────────────────────────────────────────────────
+plannerRouter.post('/plans/:id/narrate', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10)
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid plan id' })
+
+    // Load plan metadata
+    const { rows: plans } = await pool.query<{
+      id: number; plan_date: string; strategy: string;
+      solve_seconds: number | null; objective_value: number | null; solver_status: string | null
+    }>(
+      `SELECT id, plan_date, strategy, solve_seconds::float, objective_value::float, solver_status
+       FROM planner_plans WHERE id = $1`,
+      [id]
+    )
+    if (!plans.length) return res.status(404).json({ error: 'Plan not found' })
+    const plan = plans[0]
+
+    // Load moves from DB to reconstruct the NarrationInput
+    const { rows: moveRows } = await pool.query<{
+      container_id: string | null; jockey_id: string | null;
+      reason: string | null; estimated_duration_min: number; start_time_min: number
+    }>(
+      `SELECT container_id, jockey_id, reason,
+              estimated_duration_min::float, start_time_min::float
+       FROM planner_moves WHERE plan_id = $1 ORDER BY sequence_number`,
+      [id]
+    )
+
+    // Unplaced containers are not stored separately — reconstruct what we can from DB
+    // (we store them as moves with reason='max_moves_reached' etc. in unplaced log if needed;
+    // for re-narration just report 0 unplaced from DB perspective)
+
+    // Build a minimal SolverResult-like object for the narration helper
+    const mockResult: SolverResult = {
+      moves: moveRows
+        .filter(m => m.container_id && m.jockey_id)
+        .map((m, i) => ({
+          container_id:          m.container_id!,
+          jockey_id:             m.jockey_id!,
+          from_slot_id:          0,
+          to_slot_id:            0,
+          from_address:          '',
+          to_address:            '',
+          sequence_number:       i + 1,
+          estimated_duration_min: m.estimated_duration_min,
+          start_time_min:        m.start_time_min,
+          end_time_min:          m.start_time_min + m.estimated_duration_min,
+          reason:                (m.reason ?? 'shuffle') as MoveReason,
+          move_type:             m.reason ?? 'shuffle',
+        })),
+      unplaced: [],
+      objective_value: plan.objective_value ?? 0,
+      solve_seconds:   plan.solve_seconds   ?? 0,
+      solver_status:   (plan.solver_status  ?? 'feasible') as 'feasible' | 'optimal' | 'timeout' | 'empty',
+      strategy:        plan.strategy,
+    }
+
+    const input = await buildNarrationInput(id, plan.plan_date, plan.strategy, mockResult)
+    const narration = await narratePlan(input)
+
+    if (narration === null) {
+      return res.status(503).json({ error: 'Narration unavailable — OpenAI key not configured or API call failed' })
+    }
+
+    await pool.query(
+      `UPDATE planner_plans SET narration = $1 WHERE id = $2`,
+      [narration, id]
+    )
+
+    res.json({ narration })
+  } catch (err) {
+    console.error('[planner] POST /plans/:id/narrate error:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

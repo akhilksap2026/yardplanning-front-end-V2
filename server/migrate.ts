@@ -15,6 +15,13 @@ export async function runMigrations(): Promise<void> {
         ADD COLUMN IF NOT EXISTS end_time_min   NUMERIC(7,2) NOT NULL DEFAULT 0
     `)
     console.log('[migrate] planner_moves timeline columns: ok')
+
+    // Task #8 — LLM narration: add narration column to planner_plans
+    await client.query(`
+      ALTER TABLE planner_plans
+        ADD COLUMN IF NOT EXISTS narration TEXT
+    `)
+    console.log('[migrate] planner_plans.narration column: ok')
   } catch (err) {
     console.error('[migrate] migration failed — server will not start:', err)
     throw err
