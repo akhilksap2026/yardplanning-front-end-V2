@@ -9,24 +9,23 @@ import OperatorTablet from "@/screens/OperatorTablet"
 import SettingsScreen from "@/screens/Settings"
 import CommandPalette from "@/components/CommandPalette"
 import LiveOps from "@/screens/LiveOps"
-import OptimizerComparison from "@/screens/OptimizerComparison"
-import ShiftScorecard from "@/screens/ShiftScorecard"
+
 import { useLang } from "@/lib/i18n"
 
-type Screen  = "plan" | "yard" | "gate" | "tower" | "operator" | "settings" | "liveops" | "optimizer" | "scorecard"
+type Screen  = "plan" | "yard" | "gate" | "tower" | "operator" | "settings" | "liveops"
 type Persona = "manager" | "ops" | "operator"
 
 // Static persona / nav definitions — labels are translated at render time via t()
 const PERSONA_DEFS: { id: Persona; nameKey: string; subKey: string; screens: Screen[] | "*" }[] = [
   { id: "manager",  nameKey: "persona.manager",  subKey: "persona.manager.sub", screens: "*" },
-  { id: "ops",      nameKey: "persona.ops",      subKey: "persona.ops.sub",     screens: ["yard", "gate", "optimizer"] },
+  { id: "ops",      nameKey: "persona.ops",      subKey: "persona.ops.sub",     screens: ["yard", "gate"] },
   { id: "operator", nameKey: "persona.operator", subKey: "persona.operator.sub",screens: ["operator"] },
 ]
 
 // Keep legacy PERSONAS shape for compat helpers that use .name / .sub
 const PERSONAS_STATIC = [
   { id: "manager"  as Persona, name: "Manager",  sub: "Yard Manager · full authority", screens: "*" as const },
-  { id: "ops"      as Persona, name: "Ops",      sub: "Gate & yard front line",        screens: ["yard", "gate", "optimizer"] as Screen[] },
+  { id: "ops"      as Persona, name: "Ops",      sub: "Gate & yard front line",        screens: ["yard", "gate"] as Screen[] },
   { id: "operator" as Persona, name: "Operator", sub: "Tablet · device-bound",         screens: ["operator"] as Screen[] },
 ]
 
@@ -39,8 +38,7 @@ const NAV_ITEMS: { id: Screen; groupKey: NavGroupKey; nameKey: string; alert?: b
   { id: "yard",     groupKey: "nav.group.yard",      nameKey: "nav.yard"                  },
   { id: "gate",     groupKey: "nav.group.movement",  nameKey: "nav.gate",      alert: true },
   { id: "operator", groupKey: "nav.group.movement",  nameKey: "nav.operator"              },
-  { id: "optimizer",  groupKey: "nav.group.todaysOps", nameKey: "nav.optimizer"            },
-  { id: "scorecard",  groupKey: "nav.group.todaysOps", nameKey: "nav.scorecard"            },
+
   { id: "settings",   groupKey: "nav.group.config",    nameKey: "nav.settings"             },
 ]
 const NAV_GROUP_KEYS: NavGroupKey[] = [
@@ -60,8 +58,7 @@ const NAV_ICONS: Record<Screen, string> = {
   yard:      "▦",
   gate:      "⊞",
   operator:  "⊟",
-  optimizer: "◭",
-  scorecard: "◇",
+
   settings:  "⊙",
 }
 
@@ -530,8 +527,6 @@ function AppShell() {
             : screen === "gate"     ? <GateConsole    focus={focus} onNavigate={navigate} />
             : screen === "tower"    ? <ControlTower   focus={focus} onNavigate={navigate} />
             : screen === "operator"  ? <OperatorTablet focus={focus} />
-            : screen === "optimizer" ? <OptimizerComparison />
-            : screen === "scorecard" ? <ShiftScorecard />
             : screen === "settings"  ? <SettingsScreen focus={focus} />
             : null}
         </div>

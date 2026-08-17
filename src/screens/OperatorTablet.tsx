@@ -599,7 +599,7 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
         <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
           <span className="font-semibold text-[15px] tracking-tight">Operator Tablet</span>
           <button className="ml-auto text-[12px] px-3 py-1.5" style={{ border:"1px solid #e5e7eb", borderRadius:6, color:"#374151" }}
-            onClick={() => { setSelectedJockeyId(null); setEngineTask(null) }}>Switch jockey</button>
+            onClick={() => { setSelectedSeedOperator(null); setSelectedJockeyId(null); setEngineTask(null) }}>Switch jockey</button>
         </div>
         <div className="flex flex-1 items-center justify-center p-8">
           <div className={phoneFrame} style={phoneStyle}>
@@ -686,7 +686,7 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                   Dispatch has been notified. You are removed from the active queue.<br/>Stand by for further instructions.
                 </div>
                 {backendConnected
-                  ? <button onClick={() => { setEquipReported(false); setSelectedJockeyId(null); setEngineTask(null) }}
+                  ? <button onClick={() => { setEquipReported(false); setSelectedSeedOperator(null); setSelectedJockeyId(null); setEngineTask(null) }}
                       className="w-full py-3.5 text-white font-bold text-[14px]" style={{ background:NAVY, borderRadius:12 }}>
                       Switch jockey →
                     </button>
@@ -725,7 +725,7 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
         <div className="ml-auto flex gap-2">
           {backendConnected && (
             <button style={{ background:"transparent", color:"#374151", border:"1px solid #e5e7eb", borderRadius:5, fontSize:12, padding:"4px 12px" }}
-              onClick={() => { setSelectedJockeyId(null); setEngineTask(null) }}>
+              onClick={() => { setSelectedSeedOperator(null); setSelectedJockeyId(null); setEngineTask(null) }}>
               Switch jockey
             </button>
           )}

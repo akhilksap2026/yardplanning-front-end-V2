@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "FPvb36DmMTmUdStpqDptw"
+uri = "file://yard-map-module.zip"
+type = "unspecified"
+title = "Yard Map Module"
+description = "10 source files: YardMap.tsx, BlockInteriorView, BlockTooltip, PhysicalYardMap, SlotStackView, types.ts, yard-data.ts, yard-ops.ts, yard-color.ts, yard-layout.ts"

@@ -234,7 +234,7 @@ export default function SlotStackView({
                 <div className="text-[9.5px] font-bold tracking-widest text-neutral-400 uppercase mb-2">Navigate to</div>
                 <div className="flex flex-col gap-1.5">
                   {[
-                    { screen:"S4", label:"View in night plan →" },
+                    { screen:"S4", label:"View in planner →" },
                     { screen:"S7", label:"Related events in the tower →" },
                     { screen:"S2", label:"Container in the gate console →" },
                   ].map(({ screen, label }) => (

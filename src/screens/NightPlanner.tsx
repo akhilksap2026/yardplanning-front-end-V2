@@ -14,6 +14,8 @@ import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type Planni
 import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
 import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, isExtraMovement, getStatusStyle, getDisplayContainerId, isAnonymousContainer, generateWhyText } from "@/utils/displayLabels"
 import { useLang } from "@/lib/i18n"
+import ShiftScorecard from "@/screens/ShiftScorecard"
+import OptimizerComparison from "@/screens/OptimizerComparison"
 
 interface Props {
   focus: string | null
@@ -92,6 +94,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   // ── Existing state ────────────────────────────────────────────────────────
   const [sel,          setSel]          = useState<string>(() => { const s = allSteps[0]; return s ? stepId(s) : "" })
   const [tab,          setTab]          = useState("detail")
+  const [screenTab,    setScreenTab]    = useState<"planner" | "scorecard" | "quality">("planner")
   const [q,            setQ]            = useState("")
   const [filter,       setFilter]       = useState("ALL")
   const [published,    setPublished]    = useState(false)
@@ -671,6 +674,28 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         </>
       )}
 
+      {/* ── Screen-level tab bar: Planner | Scorecard | Plan Quality ─────── */}
+      <div style={{ display:"flex", alignItems:"stretch", background:"white",
+        borderBottom:"0.5px solid var(--ds-border)", flexShrink:0, padding:"0 20px" }}>
+        {([
+          { key:"planner",   label:"Planner",      icon:"ti-calendar-stats" },
+          { key:"scorecard", label:"Scorecard",     icon:"ti-chart-bar"      },
+          { key:"quality",   label:"Plan Quality",  icon:"ti-adjustments"    },
+        ] as const).map(({ key, label, icon }) => (
+          <button key={key} onClick={() => setScreenTab(key)}
+            style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"10px 14px",
+              fontSize:13, fontWeight:screenTab===key?600:400, cursor:"pointer",
+              color:screenTab===key?"var(--ds-accent)":"var(--ds-subtle)",
+              background:"transparent", border:"none",
+              borderBottom:screenTab===key?"2px solid var(--ds-accent)":"2px solid transparent",
+              transition:"all 0.12s", whiteSpace:"nowrap" }}>
+            <i className={`ti ${icon}`} style={{ fontSize:14 }} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {screenTab === "planner" && (<>
       {/* ══════════════════════════════════════════════════════════════════
           HEADER — breadcrumb · title + DRAFT badge · metadata tokens
           ══════════════════════════════════════════════════════════════════ */}
@@ -1363,6 +1388,17 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
               <div className="px-4 py-4 text-[12px] text-[var(--ds-subtle)] leading-relaxed">Select a move from the table to see its details.</div>
             )}
           </div>
+        </div>
+      )}
+      </>)}
+      {screenTab === "scorecard" && (
+        <div style={{ flex:1, minHeight:0, overflow:"hidden" }}>
+          <ShiftScorecard />
+        </div>
+      )}
+      {screenTab === "quality" && (
+        <div style={{ flex:1, minHeight:0, overflow:"hidden" }}>
+          <OptimizerComparison />
         </div>
       )}
     </div>

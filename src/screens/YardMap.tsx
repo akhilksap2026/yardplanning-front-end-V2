@@ -377,6 +377,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
           containers={liveBlockViewContainers.filter(c => c.slotCol === selectedSlot.col && c.rowNum === selectedSlot.row)}
           mode={mode}
           onBack={() => { setDrawerOpen(false); setSelectedSlot(null) }}
+          onNavigate={onNavigate}
         />
       )
     }
