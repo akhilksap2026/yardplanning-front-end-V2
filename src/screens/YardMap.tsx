@@ -137,9 +137,6 @@ export default function YardMap({ focus, onNavigate }: Props) {
   const [forecast,      setForecast]      = useState<BackendForecast | null>(null)
   const [loadingFcast,  setLoadingFcast]  = useState(false)
 
-  // ── Step 1: toolbar dropdown / switch state ───────────────────────────────
-  const [colorDropdownOpen, setColorDropdownOpen] = useState(false)
-  const colorDropdownRef  = useRef<HTMLDivElement>(null)
   // Drawer focus management — save what opened it so we can return focus on close
   const drawerPanelRef   = useRef<HTMLDivElement>(null)
   const drawerInvokerRef = useRef<HTMLElement | null>(null)
@@ -168,17 +165,6 @@ export default function YardMap({ focus, onNavigate }: Props) {
 
   // ── Colorblind-safe mode — Phase 3.6 ──────────────────────────────────────
   const [cbMode, setCbMode] = useState(false)
-
-  // ── Outside-click: color dropdown ────────────────────────────────────────
-  useEffect(() => {
-    if (!colorDropdownOpen) return
-    const h = (e: MouseEvent) => {
-      if (colorDropdownRef.current && !colorDropdownRef.current.contains(e.target as Node))
-        setColorDropdownOpen(false)
-    }
-    document.addEventListener("mousedown", h)
-    return () => document.removeEventListener("mousedown", h)
-  }, [colorDropdownOpen])
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
@@ -831,45 +817,24 @@ export default function YardMap({ focus, onNavigate }: Props) {
           />
         )}
 
-        {/* Color-by dropdown — toolbar position */}
+        {/* Color-by radio pills — inline, no dropdown */}
         {view==="map" && !isLive && (
-          <div ref={colorDropdownRef} className="relative">
-            <button
-              onClick={() => setColorDropdownOpen(v => !v)}
-              className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 font-semibold"
-              style={{ border:"1px solid #e5e7eb", borderRadius:5, color:"#374151" }}
-            >
-              Color: {COLOR_MODE_LABELS[mode]}
-              <span style={{ fontSize:8, color:"#9ca3af" }}>{colorDropdownOpen?"▲":"▼"}</span>
-            </button>
-            {colorDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 z-30 bg-white"
-                style={{ border:"1px solid #e5e7eb", borderRadius:5, boxShadow:"0 4px 12px rgba(0,0,0,0.10)", minWidth:160, overflow:"hidden" }}>
-                {(["status","lfd","channel","dwell","priority","rehandle"] as ColorMode[]).map(k => (
-                  <button key={k} onClick={() => { setMode(k); setColorDropdownOpen(false) }}
-                    className="w-full text-left px-3 py-2 text-[11px] transition-colors hover:bg-[#f9fafb]"
-                    style={{ fontWeight:mode===k?700:400, color:mode===k?"#111827":"#374151", background:mode===k?"#f9fafb":"transparent", borderBottom:"1px solid #f3f4f6" }}>
-                    {COLOR_MODE_LABELS[k]}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] font-semibold text-neutral-500 mr-0.5">Color:</span>
+            {(["status","lfd","channel","dwell","priority","rehandle"] as ColorMode[]).map(k => (
+              <button key={k} onClick={() => setMode(k)}
+                className="text-[11px] px-2 py-1 transition-colors"
+                style={{
+                  borderRadius: 4,
+                  border: mode===k ? "1px solid #6366f1" : "1px solid #e5e7eb",
+                  background: mode===k ? "#6366f1" : "transparent",
+                  color: mode===k ? "#fff" : "#374151",
+                  fontWeight: mode===k ? 600 : 400,
+                }}>
+                {COLOR_MODE_LABELS[k]}
+              </button>
+            ))}
           </div>
-        )}
-
-        {/* Shift Story play button — 90-second exec walkthrough (Phase 3.4) */}
-        {view === "map" && !isLive && (
-          <button
-            onClick={() => {
-              if (storyMode) { setStoryMode(false); setStoryPlaying(false); setStoryStep(0) }
-              else { setStoryMode(true); setStoryStep(0); setStoryPlaying(true) }
-            }}
-            className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 font-semibold transition-colors"
-            style={{ border: "1px solid #e5e7eb", borderRadius: 5, background: storyMode ? "#111827" : "transparent", color: storyMode ? "#fff" : "#374151" }}
-            title="Shift Story — guided 90-second exec demo"
-          >
-            {storyMode ? "■ Story" : "▶ Story"}
-          </button>
         )}
 
         {/* ? shortcut hint */}
