@@ -217,7 +217,7 @@ function AppShell() {
             <div
               className="flex-none flex items-center justify-center text-white font-black text-[11px] tracking-tight"
               style={{ width: 32, height: 32, background: "var(--ds-accent)", borderRadius: 8 }}
-            >YO</div>
+            >YN</div>
             <div className="flex flex-col gap-0.5 leading-none">
               <span className="font-bold text-[13px] tracking-tight text-[var(--ds-fg)]">{t("app.title")}</span>
               <span className="ds-label">{t("app.subtitle")}</span>

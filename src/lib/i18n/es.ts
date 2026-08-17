@@ -4,7 +4,7 @@
  */
 export const es: Record<string, string> = {
   // ── App chrome ────────────────────────────────────────────────────────────
-  "app.title":               "YardOS",
+  "app.title":               "YMSNow",
   "app.subtitle":            "Consola de Operaciones",
   "app.search":              "Buscar contenedor, placa…",
   "app.syncing":             "Sincronizando…",

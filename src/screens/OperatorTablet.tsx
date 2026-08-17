@@ -460,8 +460,8 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
           <div className={phoneFrame} style={{ ...phoneStyle, background:"#1e3a5f", height:680, minHeight:680, maxHeight:680 }}>
             <div className="flex justify-center pt-3 pb-1 flex-none"><div style={{ width:100, height:24, background:NAVY, borderRadius:12 }} /></div>
             <div className="flex flex-col items-center pt-6 pb-4 flex-none">
-              <div className="w-14 h-14 flex items-center justify-center mb-3 font-black text-white text-xl" style={{ background:AMBER, borderRadius:16 }}>YO</div>
-              <div className="text-white font-black text-[20px] tracking-tight">YardOS Mobile</div>
+              <div className="w-14 h-14 flex items-center justify-center mb-3 font-black text-white text-xl" style={{ background:AMBER, borderRadius:16 }}>YN</div>
+              <div className="text-white font-black text-[20px] tracking-tight">YMSNow Mobile</div>
               <div className="text-white/60 text-[12px] mt-0.5">Operator app · v3.4</div>
             </div>
             <div className="flex flex-col gap-3 px-5 py-4 flex-1">

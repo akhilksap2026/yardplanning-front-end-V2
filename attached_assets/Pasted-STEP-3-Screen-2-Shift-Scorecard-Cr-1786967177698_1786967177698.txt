@@ -1,0 +1,35 @@
+STEP 3 — Screen 2: Shift Scorecard
+────────────────────────────────────────────────────────────
+Create src/screens/ShiftScorecard.tsx:
+  - Header: title "Shift scorecard", subtitle "Night shift, planned end-to-end — in money, not
+    moves. Aug 15, 20:00 → 05:30 close."
+  - Top: a grid of 6 .ds-kpi metric cards from SHIFT_ROI.kpis (value big, sub muted, delta colored
+    green for improvement).
+  - Middle: a compact "Shift at a glance" row from SHIFT_ROI.shift: 60 gate receptions · 2 outbound
+    truck loads · 51 reshuffles · 174 moves under plan PLAN-20260815-01, close 05:30.
+  - "Extrapolated monthly (≈21 shifts)" panel from SHIFT_ROI.monthly: "$122k detention avoided",
+    "174 machine-hours saved", "483 reshuffles avoided" — as three bold stat tiles.
+  - Bottom: a quiet positioning callout (SHIFT_ROI.positioning) in a bordered .ds-card, muted styling —
+    this answers "where does it sit vs my TMS".
+  - Optional: a small recharts bar comparing optimized vs baseline for turn-time and reshuffles, styled
+    to match existing dashboard charts. If recharts adds risk, use the existing div-bar pattern instead.
+Register in App.tsx nav (id "scorecard", label "Scorecard", persona: Manager). Do NOT alter other entries.
+Run `npm run build`.
+
+────────────────────────────────────────────────────────────
+STEP 4 — Final verification
+────────────────────────────────────────────────────────────
+Run `npm run build` AND `npm run test` — both must pass. Confirm:
+  □ Two new nav items appear ("Plan Quality" and "Scorecard") for the right personas; existing nav
+    unchanged.
+  □ Plan Quality shows the 7-row comparison table + headline strip + objective bars, with 174 moves
+    on the optimized side.
+  □ Scorecard shows the 6 KPI cards + shift-at-a-glance + monthly extrapolation + positioning callout,
+    consistent with the seeded plan (72 containers, 174 moves, 20:00→05:30).
+  □ The screens' figures reconcile with dashboardCounts()/operationSummary() (174 / 116 / 36 / 15 / 7).
+  □ Both screens use existing design tokens and look native (no clashing styles).
+  □ No existing screen changed behavior; no field renamed/removed; no data model change.
+  □ The words "demo", "dummy", "sample", "mock" appear nowhere in UI copy, file names, or comments.
+Give me a final report: files created, the two nav lines added, build+test status, checklist green.
+
+THROUGHOUT: additive only; build after every step; revert any step that breaks; reuse existing tokens.
