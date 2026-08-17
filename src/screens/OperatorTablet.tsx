@@ -33,7 +33,7 @@ type Overlay    = null | "damage" | "cant-find" | "mismatch" | "equipment"
 type DisplayTask = {
   id: string|number; seq: number; container: string
   size?: string; weight?: string; from: string; to: string
-  reason: string; warn?: string; est: number
+  reason: string; warn?: string; schedule?: string; est: number
 }
 
 // ── Wizard steps (for right-panel reference) ──────────────────────────────────
@@ -70,7 +70,9 @@ const SUPERVISOR_PINS: Record<string, string> = {
 function _fmtLoc(loc: PlanningStep["origin"]): string {
   if (!loc || loc.bay == null) return "—"
   if (loc.bay === "GATE / OFF-YARD") return "GATE"
-  return `Bay-${loc.bay} R${loc.row ?? "?"} T${loc.tier ?? "?"}`
+  // Non-slotted locations (e.g. STAGING, rail ramp) have no row/tier — show the bay name as-is
+  if (loc.row == null || loc.tier == null) return String(loc.bay)
+  return `Bay-${loc.bay} R${loc.row} T${loc.tier}`
 }
 function _stepDurMin(s: PlanningStep): number {
   if (!s.estimated_start || !s.estimated_end) return 5
@@ -263,7 +265,8 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
       from:      _fmtLoc(s.origin),
       to:        _fmtLoc(s.destination),
       reason:    s.operator_pickup ?? s.operation,
-      warn:      s.estimated_start
+      // Schedule is informational — keep it out of `warn` (reserved for safety alerts)
+      schedule:  s.estimated_start
         ? `Scheduled ${new Date(s.estimated_start).toISOString().slice(11, 16)} → ${new Date(s.estimated_end ?? s.estimated_start).toISOString().slice(11, 16)}`
         : undefined,
       est:       _stepDurMin(s),
@@ -840,6 +843,15 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                       style={{ background:"#fef2f2", border:`1.5px solid ${RED}` }}>
                       <span className="text-[16px] flex-none">⚠️</span>
                       <span className="text-[12px] font-semibold leading-relaxed" style={{ color:"#7f1d1d" }}>{displayTask.warn}</span>
+                    </div>
+                  )}
+
+                  {/* Scheduled window — informational, not an alert */}
+                  {displayTask.schedule && (
+                    <div className="mx-3 mt-3 px-3 py-2.5 rounded-xl flex gap-2 items-center"
+                      style={{ background:"#eff6ff", border:"1.5px solid #bfdbfe" }}>
+                      <span className="text-[14px] flex-none">🕐</span>
+                      <span className="text-[12px] font-semibold leading-relaxed" style={{ color:"#1e40af" }}>{displayTask.schedule}</span>
                     </div>
                   )}
 
