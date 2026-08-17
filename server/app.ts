@@ -18,6 +18,7 @@ import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { pool } from './db.js'
+import { plannerRouter } from './planner-routes.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -32,6 +33,9 @@ app.use(express.json())
 // ── Serve built frontend in production ────────────────────────────────────────
 const distDir = path.resolve(__dirname, '../dist')
 app.use(express.static(distDir))
+
+// ── Planning engine routes (mounted before generic routes to avoid conflicts) ──
+app.use('/api/planner', plannerRouter)
 
 // ── Health ────────────────────────────────────────────────────────────────────
 app.get('/api/health', (_, res) => res.json({ ok: true }))

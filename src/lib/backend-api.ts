@@ -176,39 +176,43 @@ export interface BackendOptimizerRun {
 
 // ─── API functions ───────────────────────────────────────────────────
 
+// Planner-engine routes use /api/planner/* to avoid shape conflicts
+// with the existing /api/containers, /api/moves, etc. routes.
+const P = "/planner";
+
 export const backendApi = {
   // Yard
-  yard: () => request<BackendYardState>("/yard"),
+  yard: () => request<BackendYardState>(`${P}/yard`),
 
-  // Containers
+  // Containers (planning shape — distinct from /api/containers yard shape)
   containers: (params?: { status?: ContainerStatus }) => {
     const q = new URLSearchParams();
     if (params?.status) q.set("status", params.status);
     const qs = q.toString();
-    return request<BackendContainer[]>(`/containers${qs ? `?${qs}` : ""}`);
+    return request<BackendContainer[]>(`${P}/containers${qs ? `?${qs}` : ""}`);
   },
-  container: (id: number) => request<BackendContainerDetail>(`/containers/${id}`),
+  container: (id: number) => request<BackendContainerDetail>(`${P}/containers/${id}`),
 
   // Orders
-  orders: () => request<BackendOrder[]>("/orders"),
+  orders: () => request<BackendOrder[]>(`${P}/orders`),
 
   // Jockeys (= operators in old seed data)
-  jockeys: () => request<BackendJockey[]>("/jockeys"),
+  jockeys: () => request<BackendJockey[]>(`${P}/jockeys`),
 
   // Plans — THE PLANNING ENGINE
-  plans: () => request<BackendPlan[]>("/plans"),
-  plan: (id: number) => request<BackendPlanDetail>(`/plans/${id}`),
+  plans: () => request<BackendPlan[]>(`${P}/plans`),
+  plan: (id: number) => request<BackendPlanDetail>(`${P}/plans/${id}`),
   generatePlan: (body: { plan_date?: string | null; strategy: SolveStrategy; time_budget_seconds?: number | null }) =>
-    request<BackendPlanDetail>("/plans/generate", { method: "POST", body: JSON.stringify(body) }),
-  confirmPlan: (id: number) => request<BackendPlan>(`/plans/${id}/confirm`, { method: "POST" }),
+    request<BackendPlanDetail>(`${P}/plans/generate`, { method: "POST", body: JSON.stringify(body) }),
+  confirmPlan: (id: number) => request<BackendPlan>(`${P}/plans/${id}/confirm`, { method: "POST" }),
   replan: (id: number, reason: string, timeBudget?: number) =>
-    request<BackendPlanDetail>(`/plans/${id}/replan`, { method: "POST", body: JSON.stringify({ reason, time_budget_seconds: timeBudget }) }),
-  deletePlan: (id: number) => request<void>(`/plans/${id}`, { method: "DELETE" }),
+    request<BackendPlanDetail>(`${P}/plans/${id}/replan`, { method: "POST", body: JSON.stringify({ reason, time_budget_seconds: timeBudget }) }),
+  deletePlan: (id: number) => request<void>(`${P}/plans/${id}`, { method: "DELETE" }),
 
   // Disruptions
-  disruptions: () => request<BackendDisruption[]>("/disruptions"),
+  disruptions: () => request<BackendDisruption[]>(`${P}/disruptions`),
   createDisruption: (body: { event_type: DisruptionType; affected_container_id?: number | null; affected_jockey_id?: number | null; description: string }) =>
-    request<BackendDisruption>("/disruptions", { method: "POST", body: JSON.stringify(body) }),
+    request<BackendDisruption>(`${P}/disruptions`, { method: "POST", body: JSON.stringify(body) }),
 
   // Moves (operator tablet)
   nextMove: (jockeyId: number) => request<BackendMoveDetail | null>(`/moves/next?jockey_id=${jockeyId}`),
@@ -246,10 +250,10 @@ export const backendApi = {
     state?: string; auto?: string; detail?: string; diff?: Record<string, unknown>;
   }) => request<{ id: string }>(`/events`, { method: "POST", body: JSON.stringify(body) }),
 
-  // Weights (priority factors)
-  weights: () => request<BackendWeight[]>("/weights"),
+  // Weights (priority factors — live in solver_weights table)
+  weights: () => request<BackendWeight[]>(`${P}/weights`),
   updateWeights: (weights: { factor_name: string; weight: number }[], updatedBy = "yard_manager") =>
-    request<{ weights: BackendWeight[]; warnings: string[] }>("/weights/batch", { method: "PUT", body: JSON.stringify({ weights, updated_by: updatedBy }) }),
+    request<{ weights: BackendWeight[]; warnings: string[] }>(`${P}/weights/batch`, { method: "PUT", body: JSON.stringify({ weights, updated_by: updatedBy }) }),
 
   // Forecast
   forecast: (months = 3, capacity?: number) => {

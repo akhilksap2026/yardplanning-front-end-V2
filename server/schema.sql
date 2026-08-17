@@ -258,3 +258,75 @@ CREATE TABLE IF NOT EXISTS settings (
 INSERT INTO settings (k, v, note)
   VALUES ('language', 'en', 'UI language: en | es')
   ON CONFLICT (k) DO NOTHING;
+
+-- ── Planner engine tables ─────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS planner_plans (
+  id              SERIAL PRIMARY KEY,
+  plan_date       TEXT NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'draft',  -- draft|confirmed|in_progress|superseded
+  strategy        TEXT NOT NULL DEFAULT 'greedy', -- greedy|cp_sat
+  generated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  confirmed_at    TIMESTAMPTZ,
+  parent_plan_id  INTEGER REFERENCES planner_plans(id),
+  solve_seconds   NUMERIC,
+  objective_value NUMERIC,
+  best_bound      NUMERIC,
+  gap_percent     NUMERIC,
+  solver_status   TEXT,
+  solver_config_id INTEGER,
+  narration       TEXT  -- LLM plain-language explanation (Task C)
+);
+
+CREATE TABLE IF NOT EXISTS planner_moves (
+  id                     SERIAL PRIMARY KEY,
+  plan_id                INTEGER NOT NULL REFERENCES planner_plans(id) ON DELETE CASCADE,
+  container_id           TEXT,    -- references containers.id (text key)
+  jockey_id              TEXT,    -- references operators.id (text key)
+  from_slot_id           TEXT,    -- address string e.g. "A-01-1-1-1"
+  to_slot_id             TEXT NOT NULL,
+  sequence_number        INTEGER NOT NULL DEFAULT 0,
+  estimated_duration_min NUMERIC NOT NULL DEFAULT 0,
+  status                 TEXT NOT NULL DEFAULT 'planned',  -- planned|in_progress|done|cancelled
+  reason                 TEXT,
+  scanned_confirmed      BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS solver_weights (
+  id                 SERIAL,
+  factor_name        TEXT PRIMARY KEY,
+  weight             NUMERIC NOT NULL DEFAULT 1.0,
+  is_hard_constraint BOOLEAN NOT NULL DEFAULT FALSE,
+  transform_type     TEXT,
+  source_field       TEXT,
+  transform_params   JSONB,
+  null_default       NUMERIC,
+  display_order      INTEGER NOT NULL DEFAULT 0,
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by         TEXT NOT NULL DEFAULT 'system'
+);
+
+CREATE TABLE IF NOT EXISTS planner_disruptions (
+  id                    SERIAL PRIMARY KEY,
+  event_type            TEXT NOT NULL,
+  affected_container_id TEXT,
+  affected_order_id     TEXT,
+  affected_jockey_id    TEXT,
+  occurred_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  description           TEXT,
+  triggered_replan_id   INTEGER REFERENCES planner_plans(id)
+);
+
+-- Default solver weight factors
+INSERT INTO solver_weights
+  (factor_name, weight, is_hard_constraint, source_field, display_order, updated_by)
+VALUES
+  ('detention_urgency',    3.0, FALSE, 'hours_to_lfd',   1, 'system'),
+  ('hazmat_priority',      2.5, TRUE,  'hazmat',          2, 'system'),
+  ('priority_level',       2.0, FALSE, 'priority',        3, 'system'),
+  ('dwell_days',           1.5, FALSE, 'dwell_days',      4, 'system'),
+  ('travel_distance',      1.0, FALSE, 'address',         5, 'system'),
+  ('cert_match',           2.0, TRUE,  'certs',           6, 'system'),
+  ('slot_tier',            0.5, FALSE, 'tier',            7, 'system'),
+  ('operator_utilisation', 1.0, FALSE, 'status',          8, 'system')
+ON CONFLICT (factor_name) DO NOTHING;
