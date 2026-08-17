@@ -70,7 +70,8 @@ const _EQUIPMENT_BASE = [
   { id:"RS-02", type:"Reach stacker", model:"Kalmar DRG450", maxRowDepth:3, status:"available", hourMeter:9620, maintenanceDue:"in 380 h" },
   { id:"RS-03", type:"Reach stacker", model:"Hyster RS46", maxRowDepth:2, status:"available", hourMeter:14210, maintenanceDue:"in 60 h" },
   { id:"EH-01", type:"Empty handler", model:"SMV 4.5", maxRowDepth:4, status:"available", hourMeter:7330, maintenanceDue:"in 500 h" },
-  { id:"TT-01", type:"Terminal tractor", model:"Terberg YT223", maxRowDepth:0, status:"maintenance", hourMeter:20110, maintenanceDue:"in service" }
+  { id:"TT-01", type:"Terminal tractor", model:"Terberg YT223", maxRowDepth:0, status:"maintenance", hourMeter:20110, maintenanceDue:"in service" },
+  { id:"TT-02", type:"Terminal tractor", model:"Terberg YT223", maxRowDepth:0, status:"available",   hourMeter:14880, maintenanceDue:"in 200 h" }
 ];
 
 const _OPERATORS_BASE = [

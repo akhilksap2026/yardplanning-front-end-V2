@@ -446,7 +446,13 @@ app.patch('/api/settings/:k', async (req, res) => {
   res.json(rows[0])
 })
 
-// ── Catch-all: serve index.html for client-side routing ──────────────────────
-app.get('/{*path}', (_, res) => {
+// ── Catch-all ─────────────────────────────────────────────────────────────────
+// Unknown /api/* routes → JSON 404 (keeps DataContext error handling clean).
+// Everything else → serve index.html for client-side routing (production only;
+// in dev the Vite dev server handles non-API routes directly).
+app.get('/{*path}', (req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: `No route for ${req.method} ${req.path}` })
+  }
   res.sendFile(path.join(distDir, 'index.html'))
 })

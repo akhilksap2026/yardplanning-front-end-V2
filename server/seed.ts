@@ -114,23 +114,28 @@ async function run() {
       await client.query(
         `INSERT INTO equipment (id, type, model, max_row_depth, status, hour_meter, maintenance_due)
          VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [e.id, e.type, e.model, e.maxRowDepth, e.status, e.hourMeter, e.maintenanceDue]
+        [e.id, e.type, e.model, e.maxRowDepth ?? 1, e.status, e.hourMeter, e.maintenanceDue ?? null]
       )
     }
     console.log(`  equipment: ${EQUIPMENT.length}`)
 
-    // Operators
+    // Operators — equipment may be a placeholder ("—") or reference an ID
+    // not present in the equipment table; coerce those to null.
+    const equipmentIds = new Set(EQUIPMENT.map(e => e.id))
     for (const o of OPERATORS) {
+      const eqId = o.equipment && equipmentIds.has(o.equipment) ? o.equipment : null
       await client.query(
         `INSERT INTO operators (id, name, equipment_id, certs, shift, status)
          VALUES ($1,$2,$3,$4,$5,$6)`,
-        [o.id, o.name, o.equipment, o.certs, o.shift, o.status]
+        [o.id, o.name, eqId, o.certs, o.shift, o.status]
       )
     }
     console.log(`  operators: ${OPERATORS.length}`)
 
-    // Containers
+    // Containers — carrier_code must reference an existing carrier; null if unknown
+    const carrierCodes = new Set(CARRIERS.map(c => c.code))
     for (const c of CONTAINERS) {
+      const carrierCode = c.carrier && carrierCodes.has(c.carrier) ? c.carrier : null
       await client.query(
         `INSERT INTO containers
          (id, zone_id, block, row_num, slot, tier, address, size, gross_kg,
@@ -139,9 +144,9 @@ async function run() {
           priority, empty, why_here, seal)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
         [c.id, c.zone, c.block, c.row, c.slot, c.tier, c.address, c.size, c.grossKg,
-         c.carrier, c.carrierName, c.consignee, c.vessel, c.terminal,
+         carrierCode, c.carrierName, c.consignee, c.vessel, c.terminal,
          c.hazmat, c.imdg, c.channel, c.status, c.hoursToLFD, c.dwellDays,
-         c.priority, c.empty, c.whyHere, c.seal]
+         c.priority, c.empty, c.whyHere, c.seal ?? null]
       )
     }
     console.log(`  containers: ${CONTAINERS.length}`)
@@ -273,11 +278,14 @@ async function run() {
     console.log(`  truckers: ${TRUCKERS.length}`)
 
     // Gate containers (inbound + outbound)
+    // trucker_scac must reference an existing trucker; null if placeholder
+    const truckerScacs = new Set(TRUCKERS.map(t => t.scac))
     const allGate = [
       ...INBOUND_SEED.map(r => ({ ...r, type: 'inbound' })),
       ...OUTBOUND_SEED.map(r => ({ ...r, type: 'outbound' })),
     ]
     for (const r of allGate) {
+      const truckerScac = r.truckerScac && truckerScacs.has(r.truckerScac) ? r.truckerScac : null
       await client.query(
         `INSERT INTO gate_containers
          (container_id, type, scac, size, consignee, carrier_name,
@@ -286,7 +294,7 @@ async function run() {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
          ON CONFLICT (container_id) DO NOTHING`,
         [r.containerId, r.type, r.scac, r.size, r.consignee, r.carrierName,
-         r.truckerScac, r.trucker, r.driver, r.plate, r.channel, r.appt,
+         truckerScac, r.trucker, r.driver, r.plate, r.channel, r.appt,
          r.gateStatus, r.hoursToLFD, r.hold ?? null, r.excl ?? null,
          r.grossKg, r.isoType, r.sealNumber]
       )
