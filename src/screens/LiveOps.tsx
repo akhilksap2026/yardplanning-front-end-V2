@@ -493,13 +493,7 @@ export default function LiveOps({ onNavigate }: Props) {
 
       {/* ── Operator Gantt ───────────────────────────────────────────────────── */}
       <div className="flex-none">
-        <GanttTimeline
-          moves={moves}
-          now={now}
-          shiftStart={shiftStart}
-          shiftEnd={shiftEnd}
-          onHourClick={min => { setNow(min); setFocus(null) }}
-        />
+        <GanttTimeline />
       </div>
 
       {/* ── Live state summary — fully derived from enriched entities + now ── */}
