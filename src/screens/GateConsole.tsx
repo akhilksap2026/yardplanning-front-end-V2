@@ -10,6 +10,7 @@ import { fmtTime, fmtTimestamp } from "@/utils/time"
 import GateInspection from "@/components/gate/GateInspection"
 import { allSteps } from "@/data/planningData"
 import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
+import { STORY_GATE_TXNS } from "@/data/story-seed"
 import { useLang } from "@/lib/i18n"
 import Skeleton from "@/components/ui/Skeleton"
 
@@ -262,11 +263,27 @@ export default function GateConsole({ focus, onNavigate }: Props) {
   function stateLabel(s: string) { return GATE_STATE_I18N[s] ? t(GATE_STATE_I18N[s]) : s }
   function dirFromPurpose(p:string){ return /drop|inbound/i.test(p)?"IN":/pickup|retrieval/i.test(p)?"OUT":"EMPTY" }
 
+  // Build a plate-keyed lookup from the combined gate-seed so we can enrich visits
+  // with channel, consignee, seal, size, LFD urgency, hold, chassis, etc.
+  const gateSeedByPlate = new Map(
+    [...INBOUND_SEED, ...OUTBOUND_SEED].map(r => [r.plate, r])
+  )
+
+  // Compute actual turnaround (minutes) from queue-in → gate-out timestamps
+  function calcTurn(queueIn: string|null, gateOut: string|null): number {
+    if (!queueIn || !gateOut) return 0
+    const [qh, qm] = queueIn.split(":").map(Number)
+    const [gh, gm] = gateOut.split(":").map(Number)
+    return Math.max(0, (gh * 60 + gm) - (qh * 60 + qm))
+  }
+
   const seedGtxRows = visits.map(v => {
-    const cont = containers.find(c => c.id === v.container)
-    const ch = cont?.channel ?? "road"
+    const gsRow = gateSeedByPlate.get(v.plate)
+    const ch  = gsRow?.channel ?? (containers.find(c => c.id === v.container)?.channel ?? "road")
     const dir = dirFromPurpose(v.purpose)
-    return { visit:v, cont, ch, dir }
+    // For GATE_OUT visits the stored turn is 0; compute it from timestamps instead
+    const actualTurn = v.turn > 0 ? v.turn : calcTurn(v.queueIn, v.gateOut)
+    return { visit:v, cont: containers.find(c=>c.id===v.container), ch, dir, gsRow, actualTurn }
   }).sort((a,b) => {
     const ta = a.visit.gateOut??a.visit.served??a.visit.atPosition??a.visit.checkIn??a.visit.queueIn??""
     const tb = b.visit.gateOut??b.visit.served??b.visit.atPosition??b.visit.checkIn??b.visit.queueIn??""
@@ -278,13 +295,15 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     (gtxDirFilter==="all"  || r.dir===gtxDirFilter)
   )
 
+  const turnsWithData = seedGtxRows.filter(r => r.actualTurn > 0)
   const gtxKpis = {
-    total:   seedGtxRows.length,
-    road:  seedGtxRows.filter(r=>r.ch==="road").length,
-    sea:   seedGtxRows.filter(r=>r.ch==="sea").length,
-    rail:  seedGtxRows.filter(r=>r.ch==="rail").length,
-    avgTurn: (seedGtxRows.filter(r=>r.visit.turn>0).reduce((s,r)=>s+r.visit.turn,0)/Math.max(1,seedGtxRows.filter(r=>r.visit.turn>0).length)).toFixed(1),
+    total:     seedGtxRows.length,
+    road:      seedGtxRows.filter(r=>r.ch==="road").length,
+    sea:       seedGtxRows.filter(r=>r.ch==="sea").length,
+    rail:      seedGtxRows.filter(r=>r.ch==="rail").length,
+    avgTurn:   (turnsWithData.reduce((s,r)=>s+r.actualTurn,0)/Math.max(1,turnsWithData.length)).toFixed(1),
     completed: seedGtxRows.filter(r=>r.visit.state==="GATE_OUT").length,
+    withHold:  seedGtxRows.filter(r=>r.gsRow?.hold).length,
   }
 
   const pickableContainers = backendContainers.filter(c=>c.status==="in_transit"||c.status==="yard")
@@ -910,16 +929,17 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           {/* ── Summary KPI strip ─────────────────────────────────────────── */}
           <div className="flex flex-none border-b border-[#e5e7eb] bg-white">
             {[
-              { k:"Visits today",  v:String(gtxKpis.total),     sub:"all states",        color:undefined },
-              { k:"Completed",     v:String(gtxKpis.completed), sub:"gate-out issued",   color:undefined },
-              { k:"Road ✓",        v:String(gtxKpis.road),      sub:"road transport",    color:"#16a34a" },
-              { k:"Sea ▲",         v:String(gtxKpis.sea),       sub:"sea freight",       color:"#d97706" },
-              { k:"Rail ✕",        v:String(gtxKpis.rail),      sub:"rail / customs",    color:"#dc2626" },
-              { k:"Avg turn",      v:`${gtxKpis.avgTurn}′`,     sub:"vs 15′ target",     color:parseFloat(gtxKpis.avgTurn)>15?"#dc2626":undefined },
+              { k:"Visits today",  v:String(gtxKpis.total),     sub:"all states",                color:undefined },
+              { k:"Completed",     v:String(gtxKpis.completed), sub:"gate-out issued",           color:undefined },
+              { k:"Road",          v:String(gtxKpis.road),      sub:"road transport",            color:"#16a34a" },
+              { k:"Sea",           v:String(gtxKpis.sea),       sub:"sea freight",               color:"#2563eb" },
+              { k:"Rail",          v:String(gtxKpis.rail),      sub:"rail / intermodal",         color:"#7c3aed" },
+              { k:"Holds",         v:String(gtxKpis.withHold),  sub:"action required",           color:gtxKpis.withHold>0?"#dc2626":undefined },
+              { k:"Avg turn",      v:`${gtxKpis.avgTurn}′`,     sub:"queue-in → gate-out",       color:parseFloat(gtxKpis.avgTurn)>15?"#dc2626":parseFloat(gtxKpis.avgTurn)>10?"#d97706":undefined },
             ].map(m => (
               <div key={m.k} className="flex-1 px-4 py-2.5 flex flex-col gap-0.5 border-r border-[#e5e7eb]">
                 <span className="ds-label text-neutral-500">{m.k}</span>
-                <span className="font-mono font-bold text-[24px] leading-none" style={{ color:m.color }}>{m.v}</span>
+                <span className="font-mono font-bold text-[22px] leading-none" style={{ color:m.color }}>{m.v}</span>
                 <span className="text-[10px] text-neutral-400">{m.sub}</span>
               </div>
             ))}
@@ -1015,7 +1035,9 @@ export default function GateConsole({ focus, onNavigate }: Props) {
             <table className="w-full border-collapse text-[12px]">
               <thead className="sticky top-0 z-10">
                 <tr style={{ background:"#fff", borderBottom:"2px solid #e5e7eb" }}>
-                  {["VISIT",t("gate.container"),t("gate.channel"),"DIRECTION",t("gate.col.purpose"),"QUEUE IN","CHECK IN",t("gate.gateOut"),"TURN","TRUCK · DRIVER",t("gate.carrier"),t("gate.col.appt"),t("gate.status")].map(h => (
+                  {["VISIT", t("gate.container"), t("gate.channel"), "DIRECTION", t("gate.col.purpose"),
+                    "QUEUE IN", "CHECK IN", t("gate.gateOut"), "TURN",
+                    "TRUCK · DRIVER", "CONSIGNEE", "SEAL #", t("gate.status")].map(h => (
                     <th key={h} className="px-3 py-2 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap"
                       style={{ borderBottom:"1px solid #e5e7eb" }}>
                       {h}
@@ -1024,11 +1046,14 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filteredGtxRows.map(({ visit:v, ch }) => {
+                {filteredGtxRows.map(({ visit:v, ch, gsRow, actualTurn }) => {
                   const [chanBg, chanFg] = CHAN_COLOR[ch] ?? ["#f3f4f6","#6b7280"]
                   const [stBg,  stFg]   = STATE_STYLE[v.state] ?? ["#f3f4f6","#6b7280"]
                   const isLive  = v.state !== "GATE_OUT" && v.state !== "EXPECTED"
-                  const isExcl  = !!v.excl
+                  const isExcl  = !!(v.excl ?? gsRow?.excl)
+                  const lfdH    = gsRow?.hoursToLFD ?? null
+                  const lfdColor = lfdH == null ? "#9ca3af" : lfdH < 0 ? "#dc2626" : lfdH < 24 ? "#dc2626" : lfdH < 72 ? "#d97706" : "#059669"
+                  const lfdLabel = lfdH == null ? null : lfdH < 0 ? `LFD breached ${Math.abs(lfdH)}h ago` : `LFD ${lfdH}h`
                   return (
                     <tr key={v.id}
                       className="border-b border-[#f3f4f6] transition-colors"
@@ -1039,16 +1064,24 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                       {/* Visit ID */}
                       <td className="px-3 py-2.5 font-mono text-[11px] font-bold text-neutral-400 whitespace-nowrap">{v.id}</td>
 
-                      {/* Container */}
+                      {/* Container + size + LFD */}
                       <td className="px-3 py-2.5">
                         <div className="font-mono font-bold text-[12px] text-neutral-900">{v.container}</div>
+                        {gsRow && (
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[9.5px] text-neutral-400 font-medium">{gsRow.size}</span>
+                            {lfdLabel && (
+                              <span className="text-[9.5px] font-semibold" style={{ color: lfdColor }}>{lfdLabel}</span>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       {/* Channel pill */}
                       <td className="px-3 py-2.5">
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-bold capitalize"
                           style={{ background:chanBg, color:chanFg, border:`1px solid ${chanFg}30` }}>
-                          {ch==="road"?"✓":ch==="sea"?"▲":"✕"} {ch==="road"?"Road":ch==="sea"?"Sea":"Rail"}
+                          {ch==="road"?"🚛":ch==="sea"?"🚢":"🚂"} {ch==="road"?"Road":ch==="sea"?"Sea":"Rail"}
                         </span>
                       </td>
 
@@ -1056,7 +1089,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                       <td className="px-3 py-2.5">
                         <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded"
                           style={{ background: dirFromPurpose(v.purpose)==="IN"?"#eff6ff":dirFromPurpose(v.purpose)==="OUT"?"#faf5ff":"#f0fdf4", color: dirFromPurpose(v.purpose)==="IN"?"#1d4ed8":dirFromPurpose(v.purpose)==="OUT"?"#6d28d9":"#065f46" }}>
-                          {dirFromPurpose(v.purpose)==="IN"?"↓ Inbound":dirFromPurpose(v.purpose)==="OUT"?"↑ Outbound":"⇄ Empty"}
+                          {dirFromPurpose(v.purpose)==="IN"?"↓ IN":dirFromPurpose(v.purpose)==="OUT"?"↑ OUT":"⇄ EMPTY"}
                         </span>
                       </td>
 
@@ -1068,13 +1101,13 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                       <td className="px-3 py-2.5 font-mono text-[11.5px] text-neutral-700">{v.checkIn??<span className="text-neutral-300">—</span>}</td>
                       <td className="px-3 py-2.5 font-mono text-[11.5px]"
                         style={{ color:v.gateOut?"#059669":isLive?"#d97706":"#9ca3af", fontWeight:v.gateOut?600:400 }}>
-                        {v.gateOut??( isLive ? <span style={{color:"#d97706"}}>running</span> : "—" )}
+                        {v.gateOut??( isLive ? <span style={{color:"#d97706"}}>● running</span> : "—" )}
                       </td>
 
-                      {/* Turn */}
+                      {/* Turn (computed) */}
                       <td className="px-3 py-2.5 font-mono font-bold text-[12px]"
-                        style={{ color: v.turn===0?"#9ca3af":v.turn>15?"#dc2626":v.turn>10?"#d97706":"#059669" }}>
-                        {v.turn>0?`${v.turn}′`:"—"}
+                        style={{ color: actualTurn===0?"#9ca3af":actualTurn>20?"#dc2626":actualTurn>12?"#d97706":"#059669" }}>
+                        {actualTurn>0?`${actualTurn}′`:"—"}
                       </td>
 
                       {/* Truck · Driver */}
@@ -1083,21 +1116,35 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                         <div className="text-[10.5px] text-neutral-500">{v.driver}</div>
                       </td>
 
-                      {/* Carrier */}
-                      <td className="px-3 py-2.5 text-[11.5px] text-neutral-700 whitespace-nowrap">{v.carrier}</td>
+                      {/* Consignee (from gate-seed) */}
+                      <td className="px-3 py-2.5 whitespace-nowrap">
+                        {gsRow
+                          ? <div>
+                              <div className="text-[11.5px] text-neutral-800 font-medium">{gsRow.consignee}</div>
+                              <div className="text-[10px] text-neutral-400">{gsRow.carrierName}</div>
+                            </div>
+                          : <span className="text-neutral-300">—</span>}
+                      </td>
 
-                      {/* Lane */}
-                      <td className="px-3 py-2.5 font-mono text-[11.5px] text-neutral-600">{v.lane}</td>
+                      {/* Seal # */}
+                      <td className="px-3 py-2.5 font-mono text-[11px] text-neutral-600 whitespace-nowrap">
+                        {gsRow?.sealNumber ?? <span className="text-neutral-300">—</span>}
+                      </td>
 
-                      {/* Status */}
+                      {/* Status + hold badge */}
                       <td className="px-3 py-2.5">
                         <div className="flex flex-col gap-1 items-start">
                           <span className="ds-badge" style={{ background:stBg, color:stFg }}>
                             {stateLabel(v.state)}
                           </span>
+                          {gsRow?.hold && (
+                            <span className="ds-badge ds-badge-warning" style={{ marginTop:2 }}>
+                              🔒 {gsRow.hold === "customs" ? "Customs hold" : gsRow.hold === "quality" ? "Quality hold" : "Damage hold"}
+                            </span>
+                          )}
                           {isExcl && (
-                            <span className="ds-badge ds-badge-warning" style={{ marginTop:3, maxWidth:140 }}>
-                              ⚠ {v.excl}
+                            <span className="ds-badge ds-badge-warning" style={{ marginTop:2, maxWidth:160 }}>
+                              ⚠ {v.excl ?? gsRow?.excl}
                             </span>
                           )}
                         </div>
@@ -1107,6 +1154,56 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                 })}
               </tbody>
             </table>
+
+            {/* ── Recent Gate Events (from story seed) ──────────────────────── */}
+            <div className="mx-5 mt-5 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="ds-label text-neutral-500 font-bold tracking-widest">RECENT GATE EVENTS</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                  style={{ background:"#f0fdf4", color:"#16a34a", border:"1px solid #bbf7d0" }}>
+                  live feed
+                </span>
+              </div>
+              <table className="w-full border-collapse text-[12px]">
+                <thead>
+                  <tr style={{ borderBottom:"1px solid #e5e7eb" }}>
+                    {["TIME","GATE","TYPE","CONTAINER","CHASSIS","STAGING","SEAL #","NOTE","PLAN REF"].map(h=>(
+                      <th key={h} className="px-3 py-1.5 text-left text-[10px] font-bold tracking-wider text-neutral-400 whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {STORY_GATE_TXNS.map((txn, i) => {
+                    const typeCfg =
+                      txn.type === "IN"   ? { bg:"#eff6ff", fg:"#1d4ed8", label:"↓ IN"   } :
+                      txn.type === "OUT"  ? { bg:"#f0fdf4", fg:"#16a34a", label:"↑ OUT"  } :
+                                            { bg:"#faf5ff", fg:"#7c3aed", label:"⚓ HOOK" }
+                    return (
+                      <tr key={i} className="border-b border-[#f3f4f6] hover:bg-[#f8faff]">
+                        <td className="px-3 py-2 font-mono font-semibold text-[11.5px] text-neutral-800 whitespace-nowrap">{txn.time}</td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-neutral-500">{txn.gate}</td>
+                        <td className="px-3 py-2">
+                          <span className="text-[10.5px] font-bold px-2 py-0.5 rounded"
+                            style={{ background:typeCfg.bg, color:typeCfg.fg }}>
+                            {typeCfg.label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 font-mono font-bold text-[11.5px] text-neutral-900">{txn.containerId}</td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-neutral-600">{txn.chassisId}</td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-neutral-500">{txn.stagingSlot ?? <span className="text-neutral-300">—</span>}</td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-neutral-600">{txn.sealNumber}</td>
+                        <td className="px-3 py-2 text-[11px] text-neutral-600 max-w-[200px]">{txn.note}</td>
+                        <td className="px-3 py-2 font-mono text-[11px]">
+                          {txn.planRef
+                            ? <span className="px-2 py-0.5 rounded text-[10.5px] font-semibold" style={{ background:"#f3f4f6", color:"#374151" }}>{txn.planRef}</span>
+                            : <span className="text-neutral-300">—</span>}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
 
             {/* Backend transactions section — shown additionally when connected */}
             {backendConnected && txGroups.length > 0 && (
