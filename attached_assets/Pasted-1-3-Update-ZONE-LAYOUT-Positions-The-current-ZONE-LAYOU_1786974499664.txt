@@ -1,0 +1,64 @@
+1.3 — Update ZONE_LAYOUT Positions
+
+The current ZONE_LAYOUT in yard-layout.ts places zones in a grid. You need to adjust positions to create road gaps between zone clusters:
+
+Current positions:
+
+C: { x: 50,   y: 80,   cols: 2 }
+A: { x: 880,  y: 80,   cols: 3 }
+D: { x: 1990, y: 80,   cols: 1 }
+E: { x: 50,   y: 430,  cols: 2 }
+B: { x: 880,  y: 545,  cols: 3 }
+S: { x: 880,  y: 990,  cols: 5 }
+R: { x: 50,   y: 1100, cols: 10 }
+F: { x: 1990, y: 420,  cols: 1 }
+Q: { x: 1990, y: 740,  cols: 1 }
+
+Adjust these values so that:
+
+There is a 60px horizontal road gap between Zone C/E (left) and Zone A/B (center), where a secondary cross-road runs.
+There is a 60px horizontal road gap between Zone A/B (center) and Zone D/F/Q (right).
+There is a 60px vertical road gap through the center of the yard (the main boulevard), running horizontally between the upper zones (C, A) and lower zones (E, B).
+All zones remain flush against perimeter edges or roads — no floating in empty space.
+The overall yard canvas height increases to accommodate the gate complex at the bottom.
+
+Export the new positions plus new constants for road paths:
+
+typescript
+export const ROADS = {
+  mainBoulevard: { x1: 0, y1: <centerY>, x2: <totalWidth>, y2: <centerY>, width: 60 },
+  crossRoadLeft: { x1: <betweenCEandAB>, y1: 0, x2: <betweenCEandAB>, y2: <totalHeight>, width: 40 },
+  crossRoadRight: { x1: <betweenABandDFQ>, y1: 0, x2: <betweenABandDFQ>, y2: <totalHeight>, width: 40 },
+  perimeterRoad: { inset: 30, width: 20 },
+  truckQueue: { x: <gateCenterX>, yStart: <gateY>, yEnd: <receivingY>, width: 30, bays: 5 },
+}
+1.4 — Road Rendering in PhysicalYardMap
+
+Inside the zoomable canvas div in PhysicalYardMap.tsx, render roads as new elements before the zone panels (so zones sit on top of roads):
+
+Main Boulevard:
+
+A horizontal <div> running the full width of the yard at the center Y position.
+background: #4A4A4A, height 60px.
+Add a dashed yellow center line using a CSS pseudo-element or inner div: 2px dashed 
+#F5C518.
+Add solid white edge lines: 1.5px solid 
+#FFFFFF at top and bottom edges.
+Add text label TERMINAL DRIVE rendered on the road surface using transform: none, color: rgba(255,255,255,0.3), font-size: 14px, letter-spacing: 0.3em, font-weight: 800.
+
+Secondary Cross-Roads:
+
+Vertical <div> elements at the gap positions.
+Same asphalt color 
+#4A4A4A, width 40px.
+Single directional arrows rendered as CSS triangles or SVG ▲ markers, colored white with 30% opacity.
+
+Perimeter Service Road:
+
+A narrow (20px wide) lighter grey (
+#5A5A5A) path running along the inside of the perimeter, as a CSS border or series of divs.
+
+Truck Queuing Lane (bottom of yard):
+
+Below Zone R, leading to the gate: a vertical road segment with numbered bay markings (Bay 1 through Bay 5) drawn as thin horizontal lines across the lane, with small text labels.
+Parallel exit lane to the right.

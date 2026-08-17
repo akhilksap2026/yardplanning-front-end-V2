@@ -1,0 +1,46 @@
+1.5 — Perimeter Fence
+
+Render a perimeter boundary around the entire yard canvas:
+
+border: 2px dashed #8B8B8B on the outer edge.
+At the four corners and at the gate positions, add small SVG camera icons (simple: a small rounded rectangle with a circle, 8×8px, colored 
+#6B7280).
+1.6 — Berth Side Redesign
+
+Replace the current flat berth strip (<div> with background: "#1e293b") with:
+
+Water area: A 60px-tall band above the quay wall with background: linear-gradient(180deg, #3B6E8F 0%, #5A9EC4 100%). Add a subtle wave SVG pattern overlay at 10% opacity.
+Quay wall: A 6px-tall solid band background: #2C2C2C between the water and the yard ground.
+Bollards: Small circles (6px diameter, 
+#64748B, border: 1px solid #94A3B8) spaced every 80px along the quay wall.
+Crane rail lines: Two thin (1.5px) horizontal lines running the length of the berth, stroke: #94A3B8, positioned 10px and 20px below the quay wall.
+Label: Keep BERTH SIDE — QUAY WALL text but style it as white with 40% opacity, tracked wide, positioned over the water area.
+1.7 — Gate Complex Redesign
+
+Replace the current flat gate strip with:
+
+A wider (80px) area at the very bottom of the yard.
+Entry lane: Left half, with a green ▲ IN arrow marker and boom barrier graphic (a thin horizontal line with a pivot circle on one end).
+Exit lane: Right half, with a red ▼ OUT arrow marker and a separate boom barrier.
+Road surface extends from the truck queuing lane down through the gate.
+Label: GATE · TRUCK ENTRY in stencil style on the road surface.
+1.8 — North Arrow & Scale Bar
+North arrow: A simple SVG arrow in the top-right corner of the zoomable canvas, 30×30px, fill: #64748B, pointing up. Label N below it.
+Scale bar: Bottom-right of the zoomable canvas. A 100px-wide line with tick marks at 0 and the end, labeled ~50m. stroke: #64748B, font-size: 9px.
+1.9 — Preserve All Existing Functionality
+
+After making these changes, verify:
+
+ All zone panels still render with correct zone headers and colors.
+ All blocks render inside their zones with correct positioning.
+ Block click still opens the right drawer with BlockInteriorView.
+ Zone click in the left panel still opens zone detail in the drawer.
+ Equipment overlay still positions icons correctly (recalculate from updated block centers).
+ Move trails still draw between block centers.
+ Minimap still shows zone positions (update minimap to reflect new layout).
+ Zoom and pan work correctly.
+ Keyboard shortcuts work.
+ Search highlighting works.
+ Live-yard mode (liveBlockLayouts) still renders.
+
+End of Phase 1. The map now has a realistic ground, roads with markings, a textured berth with water, a proper gate complex, and all zones repositioned with road gaps.

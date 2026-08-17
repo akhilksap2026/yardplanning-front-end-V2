@@ -1,0 +1,49 @@
+0.2 — Current Layout Architecture
+
+Analyze src/lib/yard-layout.ts and document the exact spatial configuration currently in use:
+
+What is the ZONE_LAYOUT record? List every zone with its x, y, cols values.
+What are SLOT_WIDTH_PX (36), ROW_HEIGHT_PX (55), LANE_WIDTH_PX (52), BLOCK_MARGIN_PX (14)?
+How does computeBlockLayouts() calculate each block's (x, y, w, h)?
+What is the total yard canvas size produced by getYardDimensions()?
+How does computeLiveBlockLayouts() differ from the seed layout?
+
+Document the current zone placement as a spatial diagram:
+
+TERMINAL · BERTH SIDE (top strip, y=0, height=34px)
+Zone C (x=50, y=80)      | Zone A (x=880, y=80)       | Zone D (x=1990, y=80)
+Zone E (x=50, y=430)     | Zone B (x=880, y=545)      | Zone F (x=1990, y=420)
+                          |                             | Zone Q (x=1990, y=740)
+                          | Zone S (x=880, y=990)
+Zone R (x=50, y=1100)
+GATE · TRUCK ENTRY (bottom strip)
+0.3 — Current Visual Rendering
+
+Analyze src/components/yard/PhysicalYardMap.tsx and document:
+
+Ground: What is the background color? (
+#d4d8dc — flat grey, no texture)
+Zone panels: What visual styles does ZONE_PANEL define per zone? (bg, border, headerBg, headerText, blockBg, blockBorder for A, B, C, D, E, S, R)
+Zone headers: How are they rendered? (Colored bar at top of zone panel with name + subtitle)
+Berth strip: How is it rendered? (Div at top, 
+#1e293b bg, TERMINAL · BERTH SIDE text)
+Gate strip: How is it rendered? (Div at bottom, 
+#14532d bg, GATE · TRUCK ENTRY text)
+Blocks: How are individual blocks styled? (Absolute div, background from ZONE_PANEL, 2px border, occupancy bar on left, label top-left, count bottom-left, percentage bottom-right)
+Move trails: SVG lines with dashed stroke
+Equipment icons: Div squares/circles positioned at block centers
+Minimap: Bottom-left corner, 148×108px, zone-colored rectangles + viewport rect
+Zoom controls: Bottom-right, three buttons (+, −, fit)
+
+List every visual element that does NOT exist currently:
+
+No roads, no asphalt texture, no lane markings
+No perimeter fence or boundary
+No buildings or facility footprints
+No water/quay rendering (just a flat strip)
+No ground texture (just flat 
+#d4d8dc)
+No scale bar or north arrow
+No container slot markings within blocks
+No realistic shadows
+No hazard striping around Zone D
