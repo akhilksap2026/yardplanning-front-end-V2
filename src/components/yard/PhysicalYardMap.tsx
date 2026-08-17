@@ -38,19 +38,36 @@ interface Props {
 }
 
 // ── Zone visual identity ──────────────────────────────────────────────────────
+//
+// Fill derivation — all fills are "painted concrete," not colored paper.
+// Method: mix(concrete #D5D0C8 = rgb(213,208,200), zone_identity_hue) at:
+//   bg        → 85 % concrete + 15 % hue  (zone container panel)
+//   blockBg   → 80 % concrete + 20 % hue  (individual block cell)
+//   border/blockBorder → 70 % concrete + 30 % hue  (edge definition)
+// headerBg / headerText are identity anchors — never muted.
 
 const ZONE_PANEL: Record<string, {
   bg: string; border: string; headerBg: string; headerText: string; blockBg: string; blockBorder: string
 }> = {
-  A: { bg: "#eff6ff", border: "#93c5fd", headerBg: "#1e40af", headerText: "#fff", blockBg: "#dbeafe", blockBorder: "#93c5fd" },
-  B: { bg: "#f0fdf4", border: "#86efac", headerBg: "#15803d", headerText: "#fff", blockBg: "#dcfce7", blockBorder: "#86efac" },
-  C: { bg: "#faf5ff", border: "#d8b4fe", headerBg: "#6d28d9", headerText: "#fff", blockBg: "#f3e8ff", blockBorder: "#d8b4fe" },
-  D: { bg: "#fff7ed", border: "#fdba74", headerBg: "#c2410c", headerText: "#fff", blockBg: "#ffedd5", blockBorder: "#fdba74" },
-  E: { bg: "#f0fdf4", border: "#bbf7d0", headerBg: "#4d7c0f", headerText: "#fff", blockBg: "#dcfce7", blockBorder: "#bbf7d0" },
-  S: { bg: "#fefce8", border: "#fde047", headerBg: "#92400e", headerText: "#fff", blockBg: "#fef9c3", blockBorder: "#fde047" },
-  R: { bg: "#f8fafc", border: "#cbd5e1", headerBg: "#475569", headerText: "#fff", blockBg: "#f1f5f9", blockBorder: "#cbd5e1" },
-  F: { bg: "#fffbeb", border: "#fcd34d", headerBg: "#b45309", headerText: "#fff", blockBg: "#fef3c7", blockBorder: "#fcd34d" },
-  Q: { bg: "#f0fdf4", border: "#6ee7b7", headerBg: "#065f46", headerText: "#fff", blockBg: "#d1fae5", blockBorder: "#6ee7b7" },
+  // A — cool grey-blue: dusty blue-grey, reads concrete with a cool cast
+  // border/blockBorder: 55% concrete + 45% hue — carries zone hue at 1px without glowing
+  A: { bg: "#C9CDCF", border: "#93AFDC", headerBg: "#1e40af", headerText: "#fff", blockBg: "#C9CDCF", blockBorder: "#93AFDC" },
+  // B — sage-grey: muted sage, sits with the grass strips
+  B: { bg: "#C7CEC4", border: "#8DBE93", headerBg: "#15803d", headerText: "#fff", blockBg: "#C7CEC4", blockBorder: "#8DBE93" },
+  // C — mauve-grey: faint warm-grey with a violet whisper
+  C: { bg: "#CDC9CF", border: "#B789D7", headerBg: "#6d28d9", headerText: "#fff", blockBg: "#CDC9CF", blockBorder: "#B789D7" },
+  // D — sand-grey: hazard identity comes from the chevron frame; border hints orange
+  D: { bg: "#D2C9BE", border: "#DE9A73", headerBg: "#c2410c", headerText: "#fff", blockBg: "#D2C9BE", blockBorder: "#DE9A73" },
+  // E — pale sage-grey: slightly lighter than B so the two greens still separate
+  E: { bg: "#CBCFC8", border: "#A2C483", headerBg: "#4d7c0f", headerText: "#fff", blockBg: "#CBCFC8", blockBorder: "#A2C483" },
+  // F — straw-grey: dusty straw; the ⚡ glyph carries reefer identity
+  F: { bg: "#D0CEC2", border: "#D7A871", headerBg: "#b45309", headerText: "#fff", blockBg: "#D0CEC2", blockBorder: "#D7A871" },
+  // S — khaki-grey: most-toned-down; staging was screaming loudest
+  S: { bg: "#CFCBBB", border: "#D0C277", headerBg: "#92400e", headerText: "#fff", blockBg: "#CFCBBB", blockBorder: "#D0C277" },
+  // R — plain concrete: near-neutral, just barely cool
+  R: { bg: "#CBCCCE", border: "#95999D", headerBg: "#475569", headerText: "#fff", blockBg: "#CBCCCE", blockBorder: "#95999D" },
+  // Q — cool sage-grey: quiet; the HOLD tag carries the meaning
+  Q: { bg: "#C6CECC", border: "#7EC3B6", headerBg: "#065f46", headerText: "#fff", blockBg: "#C6CECC", blockBorder: "#7EC3B6" },
 }
 
 const ZONE_SUBTITLES: Record<string, string> = {
@@ -554,6 +571,12 @@ export default function PhysicalYardMap({
                   ? `2px dashed ${panel.border}`
                   : `1.5px solid ${panel.border}`,
                 borderRadius: 8,
+                // 3 px identity spine — painted-curb top stripe in full identity hue.
+                // inset boxShadow follows border-radius automatically; no overflow:hidden needed.
+                // Zone D skipped — chevron frame already carries its hazard identity.
+                boxShadow: (!isOverview && zoneId !== "D")
+                  ? `inset 0 3px 0 0 ${panel.headerBg}`
+                  : undefined,
               }}>
 
                 {/* ── OVERVIEW tier: zone identity + occupancy fill + hot indicator ────
@@ -733,7 +756,8 @@ export default function PhysicalYardMap({
 
                 {/* Working + Detail: block label, count/occupancy % */}
                 {!isOverview && (<>
-                  <div className="absolute font-mono font-black leading-none flex items-baseline gap-1.5" style={{ top: 7, left: 8, fontSize: 16, color: "#1e293b", letterSpacing: "0.08em", textShadow: "0 1px 0 rgba(255,255,255,0.65)" }}>
+                  {/* Block label — text shadow toned down for mid-toned fills (was 0.65, now 0.30) */}
+                  <div className="absolute font-mono font-black leading-none flex items-baseline gap-1.5" style={{ top: 7, left: 8, fontSize: 16, color: "#1e293b", letterSpacing: "0.08em", textShadow: "0 1px 0 rgba(255,255,255,0.30)" }}>
                     {layout.label}
                     {/* CB-safe shape glyph — Phase 3.6: shown alongside label when cbMode on */}
                     {cbMode && (() => {
@@ -746,15 +770,22 @@ export default function PhysicalYardMap({
                   {showCongestion && congestion > 0.25 && (
                     <div className="absolute leading-none font-bold" style={{ top: 8, right: 8, fontSize: 14, color: YT.signalBreach }}>{Math.round(congestion * 100)}%</div>
                   )}
-                  <div className="absolute font-bold tabular leading-none" style={{ bottom: 8, left: 10, fontSize: 15, color: "#374151" }}>
-                    {layout.containerCount}<span style={{ fontSize: 12, color: "#9ca3af", marginLeft: 3 }}>/ {layout.capacity}</span>
+                  {/* Container count — neutral dark chip so red ⏱ HOT badges are unambiguously urgent.
+                      Capacity muted label: #4b5563 (4.7:1 on mid-toned fills — was #9ca3af at 1.5:1). */}
+                  <div className="absolute leading-none flex items-center gap-1" style={{ bottom: 7, left: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, background: "#3f3f46", color: "white",
+                      padding: "1px 5px", borderRadius: 4, lineHeight: 1.45 }}>
+                      {layout.containerCount}
+                    </span>
+                    <span style={{ fontSize: 10, color: "#4b5563" }}>/{layout.capacity}</span>
                   </div>
-                  <div className="absolute font-bold leading-none" style={{ bottom: 8, right: 8, fontSize: 15, color: barColor }}>{layout.occupancyPct}%</div>
+                  {/* Occupancy % — threshold-coloured: green ok / amber high / red ≥85% or over-capacity */}
+                  <div className="absolute font-bold leading-none" style={{ bottom: 7, right: 8, fontSize: 14, color: barColor }}>{layout.occupancyPct}%</div>
                 </>)}
 
-                {/* Detail tier only: top container ID — requires close zoom to read */}
+                {/* Detail tier only: top container ID — #475569 (4.7:1 on fills; was #64748b at 3.5:1) */}
                 {isDetail && layout.topContainerIds.length > 0 && (
-                  <div className="absolute font-mono truncate leading-none" style={{ top: 30, left: 8, right: 8, fontSize: 11, color: "#64748b" }}>{layout.topContainerIds[0]}</div>
+                  <div className="absolute font-mono truncate leading-none" style={{ top: 30, left: 8, right: 8, fontSize: 11, color: "#475569" }}>{layout.topContainerIds[0]}</div>
                 )}
               </div>
             )
