@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Skeleton from "@/components/ui/Skeleton"
 import { useData }         from "@/lib/DataContext"
 import { backendApi }      from "@/lib/backend-api"
 import type { BackendMoveDetail } from "@/lib/backend-api"
 import { slotAddress, REASON_LABELS } from "@/lib/backend-adapters"
 import { useLang }         from "@/lib/i18n"
+import { stepsForOperator, operators, type PlanningStep } from "@/data/planningData"
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const AMBER   = "#b45309"
@@ -64,6 +65,25 @@ const SUPERVISOR_PINS: Record<string, string> = {
   "9002": "M. Herrera (Shift Supervisor)",
   "9003": "L. Mora (Deputy Supervisor)",
 }
+
+// ── Seed operator roster — sourced from planning fixture ─────────────────────
+function _fmtLoc(loc: PlanningStep["origin"]): string {
+  if (!loc || loc.bay == null) return "—"
+  if (loc.bay === "GATE / OFF-YARD") return "GATE"
+  return `Bay-${loc.bay} R${loc.row ?? "?"} T${loc.tier ?? "?"}`
+}
+function _stepDurMin(s: PlanningStep): number {
+  if (!s.estimated_start || !s.estimated_end) return 5
+  return Math.round((new Date(s.estimated_end).getTime() - new Date(s.estimated_start).getTime()) / 60000)
+}
+
+const SEED_OPERATORS = Object.values(operators).map(op => ({
+  name:       op.name,
+  steps:      op.assigned_steps,
+  // Equipment badge derived from the jockey prefix in the name (e.g. "J-1 Alex Rivera" → "J-1")
+  badge:      op.name.match(/^(J-\d+)/)?.[1] ?? op.name.split(" ")[0],
+  initials:   op.name.replace(/^J-\d+\s+/, "").split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase(),
+}))
 
 // ── Override reason codes ─────────────────────────────────────────────────────
 const OVERRIDE_REASONS = [
@@ -182,7 +202,8 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
   const { t } = useLang()
 
   // ── Task / jockey state ───────────────────────────────────────────────────
-  const [selectedJockeyId, setSelectedJockeyId] = useState<number|null>(null)
+  const [selectedJockeyId,    setSelectedJockeyId]    = useState<number|null>(null)
+  const [selectedSeedOperator, setSelectedSeedOperator] = useState<string|null>(null)
   const [engineTask,       setEngineTask]       = useState<BackendMoveDetail|null>(null)
   const [fetchingTask,     setFetchingTask]     = useState(false)
   const [noMoreTasks,      setNoMoreTasks]      = useState(false)
@@ -228,8 +249,32 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
   const [overrideReason, setOverrideReason] = useState<string|null>(null)
   const [overrideAudit,  setOverrideAudit]  = useState<{t:string;what:string}[]>([])
 
+  // ── Seed queue — operator-specific steps from planning fixture ───────────
+  // Built once per selected operator; sorted by estimated_start (already sorted
+  // by stepsForOperator). Resets queueIdx when operator changes.
+  const seedQueue: DisplayTask[] = useMemo(() => {
+    if (!selectedSeedOperator) return []
+    return stepsForOperator(selectedSeedOperator).map((s, i) => ({
+      id:        `${selectedSeedOperator.replace(/\s+/g, "-")}-${i + 1}`,
+      seq:       i + 1,
+      container: s.container_id ?? "—",
+      size:      undefined,
+      weight:    undefined,
+      from:      _fmtLoc(s.origin),
+      to:        _fmtLoc(s.destination),
+      reason:    s.operator_pickup ?? s.operation,
+      warn:      s.estimated_start
+        ? `Scheduled ${new Date(s.estimated_start).toISOString().slice(11, 16)} → ${new Date(s.estimated_end ?? s.estimated_start).toISOString().slice(11, 16)}`
+        : undefined,
+      est:       _stepDurMin(s),
+    }))
+  }, [selectedSeedOperator])
+
+  // Reset queue pointer when operator is switched
+  useEffect(() => { setQueueIdx(0); setCompletedIds(new Set()) }, [selectedSeedOperator])
+
   // ── Derived task ──────────────────────────────────────────────────────────
-  const seedTask = operatorTasks[queueIdx] ?? null
+  const seedTask = seedQueue[queueIdx] ?? null
 
   // demoMode: derived from focus prop — when the demo tour is on step 6, bypass
   // the jockey-picker and use seed data so the job-card is always shown regardless
@@ -249,19 +294,21 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
       warn: engineTask.container.is_hazmat ? `HAZMAT class ${engineTask.container.hazmat_class ?? "?"} — follow hazmat protocol` : undefined,
       est: engineTask.estimated_duration_min,
     }
-    if (!backendConnected && seedTask) {
-      const s = seedTask as any
-      return { id: seedTask.id, seq: parseInt(seedTask.seq)||0, container: seedTask.container??"", size: s.size, weight: s.weight, from: seedTask.from, to: seedTask.to, reason: seedTask.reason, warn: s.warn, est: Number(seedTask.est) }
-    }
+    if (!backendConnected && seedTask) return seedTask
     return null
   })()
 
-  const liveBackend  = backendConnected && !demoMode
-  const jockeyName   = liveBackend ? (backendJockeys.find(j=>j.id===selectedJockeyId)?.name ?? "Operator") : "R. Giménez"
-  const initials     = jockeyName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()
-  const equipBadge   = liveBackend ? "RTG #C-3" : "RS-01"
-  const pendingCount = liveBackend ? 1 : Math.max(0, operatorTasks.length - completedIds.size)
-  const doneCount    = liveBackend ? 47 : completedIds.size
+  const liveBackend    = backendConnected && !demoMode
+  const seedOpMeta     = SEED_OPERATORS.find(o => o.name === selectedSeedOperator)
+  const jockeyName     = liveBackend
+    ? (backendJockeys.find(j => j.id === selectedJockeyId)?.name ?? "Operator")
+    : (seedOpMeta?.name.replace(/^J-\d+\s+/, "") ?? "Operator")
+  const initials       = liveBackend
+    ? jockeyName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
+    : (seedOpMeta?.initials ?? "OP")
+  const equipBadge     = liveBackend ? "RTG #C-3" : (seedOpMeta?.badge ?? "J-?")
+  const pendingCount   = liveBackend ? 1 : Math.max(0, seedQueue.length - completedIds.size)
+  const doneCount      = liveBackend ? 47 : completedIds.size
 
   const currentStepIdx = FLOW_STEPS.findIndex(s => {
     if (wizardStep === "job-card")    return s.key === "job-card"
@@ -446,7 +493,51 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
   const phoneStyle = { borderRadius:28, height:680, minHeight:680, maxHeight:680, border:`6px solid ${NAVY}` }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // EARLY RETURN: Jockey picker
+  // EARLY RETURN: Seed operator picker (offline / no backend)
+  // ══════════════════════════════════════════════════════════════════════════
+  if (!backendConnected && !demoMode && selectedSeedOperator == null) {
+    return (
+      <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
+        <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
+          <span className="font-semibold text-[15px] tracking-tight">Operator Tablet</span>
+          <span className="text-[11px] text-neutral-500 ml-2">Select your operator identity</span>
+        </div>
+        <div className="flex flex-1 items-center justify-center p-8">
+          <div className={phoneFrame} style={{ ...phoneStyle, background:"#1e3a5f", height:560, minHeight:560, maxHeight:560 }}>
+            <div className="flex justify-center pt-3 pb-1 flex-none">
+              <div style={{ width:100, height:24, background:NAVY, borderRadius:12 }} />
+            </div>
+            <div className="flex flex-col items-center pt-6 pb-4 flex-none">
+              <div className="w-14 h-14 flex items-center justify-center mb-3 font-black text-white text-xl" style={{ background:AMBER, borderRadius:16 }}>YN</div>
+              <div className="text-white font-black text-[20px] tracking-tight">YMSNow Mobile</div>
+              <div className="text-white/60 text-[12px] mt-0.5">Operator app · v3.4</div>
+            </div>
+            <div className="flex flex-col gap-3 px-5 py-4 flex-1">
+              <div className="text-white/50 text-[11px] font-semibold tracking-wider text-center mb-1">WHO ARE YOU?</div>
+              {SEED_OPERATORS.map(op => (
+                <button key={op.name} onClick={() => setSelectedSeedOperator(op.name)}
+                  className="flex items-center gap-3 text-left px-4 py-3.5 transition-all active:scale-[0.97]"
+                  style={{ background:"#fff", borderRadius:12 }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-[13px] text-white flex-none"
+                    style={{ background:AMBER }}>
+                    {op.initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-[14px] text-neutral-900">{op.name.replace(/^J-\d+\s+/, "")}</div>
+                    <div className="text-[11px] text-neutral-500">{op.badge} · {op.steps} moves assigned</div>
+                  </div>
+                  <span className="text-neutral-300">›</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // EARLY RETURN: Jockey picker (backend connected)
   // ══════════════════════════════════════════════════════════════════════════
   const availableJockeys = backendJockeys.filter(j => j.status==="available"||j.status==="busy")
   if (backendConnected && !demoMode && selectedJockeyId == null) {
@@ -775,7 +866,7 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                       <span className="text-[10px] font-semibold" style={{ color: AMBER }}>
                         {backendConnected
                           ? "engine-managed"
-                          : `${Math.max(0, operatorTasks.length - completedIds.size - 1)} more after this`}
+                          : `${Math.max(0, seedQueue.length - completedIds.size - 1)} more after this`}
                       </span>
                     </div>
 
@@ -793,11 +884,11 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                     </div>
 
                     {/* Upcoming jobs (seed mode) */}
-                    {!backendConnected && operatorTasks.slice(queueIdx + 1, queueIdx + 5).map((task, i) => {
+                    {!backendConnected && seedQueue.slice(queueIdx + 1, queueIdx + 5).map((task, i) => {
                       const tb = getBadge(task.reason ?? "")
-                      const isDone = completedIds.has(task.id)
+                      const isDone = completedIds.has(String(task.id))
                       return (
-                        <div key={task.id}
+                        <div key={String(task.id)}
                           className="flex items-center gap-3 px-4 py-2.5 border-b border-[#f9fafb]"
                           style={{ opacity: isDone ? 0.4 : 1 }}>
                           <span className="text-[9px] font-bold tracking-wider text-white px-2 py-0.5 rounded-full flex-none"
