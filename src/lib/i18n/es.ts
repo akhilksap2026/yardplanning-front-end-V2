@@ -14,6 +14,8 @@ export const es: Record<string, string> = {
   "app.reconnect":           "↻ Reconectar",
   "app.syncing_btn":         "↻ Sincronizando…",
   "app.refresh":             "↻ Actualizar",
+  "app.db.connected":        "BD Conectada",
+  "app.db.offline":          "Sin conexión — datos de muestra",
   "app.demo":                "Demo",
   "app.notifications":       "Notificaciones",
   "app.toggleDemo":          "Mostrar/ocultar barra de demo",

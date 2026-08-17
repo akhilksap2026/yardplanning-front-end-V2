@@ -67,7 +67,7 @@ function allowed(persona: Persona, screen: Screen): boolean {
 
 // ── Inner shell ───────────────────────────────────────────────────────────────
 function AppShell() {
-  const { moves, events, visits, refresh, backendConnected, dbLoading, reconnectBackend } = useData()
+  const { moves, events, visits, refresh, backendConnected, dbLoading, dbError, reconnectBackend } = useData()
   const { t, lang, setLang } = useLang()
 
   const [persona,      setPersona]      = useState<Persona>("manager")
@@ -368,6 +368,27 @@ function AppShell() {
                 {t("app.lastSync", syncLabel)}
               </div>
             </div>
+
+            {/* DB connection status chip */}
+            {!dbLoading && !dbError && (
+              <span
+                className="flex items-center gap-1.5 px-2.5 py-1 select-none"
+                style={{ fontSize: 11, color: "#16a34a", border: "1px solid #bbf7d0", background: "#f0fdf4", borderRadius: 6 }}
+              >
+                <span className="flex-none rounded-full" style={{ width: 6, height: 6, background: "#22c55e" }} />
+                {t("app.db.connected")}
+              </span>
+            )}
+            {!dbLoading && dbError && (
+              <span
+                className="flex items-center gap-1.5 px-2.5 py-1 select-none"
+                title={dbError}
+                style={{ fontSize: 11, color: "#92400e", border: "1px solid #fde68a", background: "#fffbeb", borderRadius: 6, cursor: "default" }}
+              >
+                <span className="flex-none rounded-full" style={{ width: 6, height: 6, background: "#f59e0b" }} />
+                {t("app.db.offline")}
+              </span>
+            )}
 
             {/* Reconnect — shown only when backend offline */}
             {!backendConnected && (

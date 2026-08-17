@@ -14,6 +14,8 @@ export const en: Record<string, string> = {
   "app.reconnect":           "↻ Reconnect",
   "app.syncing_btn":         "↻ Syncing…",
   "app.refresh":             "↻ Refresh",
+  "app.db.connected":        "DB Connected",
+  "app.db.offline":          "Offline — seed data",
   "app.demo":                "Demo",
   "app.notifications":       "Notifications",
   "app.toggleDemo":          "Toggle demo story bar",
