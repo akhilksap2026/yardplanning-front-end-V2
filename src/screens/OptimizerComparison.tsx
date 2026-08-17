@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { OPTIMIZER_VS_BASELINE } from "@/data/plan-metrics"
 
 // ── Plain-language tooltips ───────────────────────────────────────────────────
@@ -21,15 +21,23 @@ const OBJECTIVE_TIPS: Record<string, string> = {
 
 // ── Floating info bubble ──────────────────────────────────────────────────────
 function InfoTip({ text }: { text: string }) {
-  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
+  const ref = useRef<HTMLSpanElement>(null)
+
+  function show() {
+    if (!ref.current) return
+    const r = ref.current.getBoundingClientRect()
+    setPos({ x: r.left + r.width / 2, y: r.top })
+  }
+
   return (
     <span
-      style={{ position: "relative", display: "inline-flex", alignItems: "center", marginLeft: 5, verticalAlign: "middle" }}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      style={{ display: "inline-flex", alignItems: "center", marginLeft: 5, verticalAlign: "middle" }}
+      onMouseEnter={show}
+      onMouseLeave={() => setPos(null)}
     >
       {/* ① trigger icon */}
-      <span style={{
+      <span ref={ref} style={{
         display: "inline-flex", alignItems: "center", justifyContent: "center",
         width: 14, height: 14, borderRadius: "50%",
         fontSize: 9, fontWeight: 700, lineHeight: 1,
@@ -37,15 +45,15 @@ function InfoTip({ text }: { text: string }) {
         cursor: "default", userSelect: "none", flexShrink: 0,
       }}>?</span>
 
-      {/* ② bubble */}
-      {open && (
+      {/* ② bubble — fixed so it escapes any overflow:hidden ancestor */}
+      {pos && (
         <span style={{
-          position: "absolute",
-          bottom: "calc(100% + 6px)",
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 50,
-          width: 200,
+          position: "fixed",
+          left: pos.x,
+          top: pos.y - 6,
+          transform: "translate(-50%, -100%)",
+          zIndex: 9999,
+          width: 210,
           background: "#1e293b",
           color: "#f1f5f9",
           fontSize: 11.5,
