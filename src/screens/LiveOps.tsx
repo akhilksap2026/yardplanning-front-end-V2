@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react"
 import { useData } from "@/lib/DataContext"
 import type { Visit } from "@/data/yard-ops"
-import { CONTAINERS } from "@/data/yard-data"
+import { CONTAINERS, OPERATORS, EQUIPMENT } from "@/data/yard-data"
 import { fmtTime } from "@/utils/time"
 import Skeleton from "@/components/ui/Skeleton"
 
@@ -26,38 +26,42 @@ interface EquipSeed {
   blockingFrom?: number; blockingUntil?: number
   blockingCause?: string; blockingImpact?: string; blockingNext?: string
 }
+
+function _opFor(equipId: string): string {
+  return OPERATORS.find(o => o.equipment === equipId)?.name ?? equipId
+}
 const EQUIP_SEEDS: EquipSeed[] = [
   {
-    id: "RS-01", what: "Reach-stacker · Zone A",
-    subDefault: "R. Giménez · shift 06:00–14:00",
+    id: "RS-01",
+    what: `${_typeFor("RS-01")} · Zone A`,
+    subDefault: `${_opFor("RS-01")} · shift 06:00–14:00`,
     plannedStart: 360, plannedEnd: 840,
-    owner: "Ops · R. Giménez", nextDefault: "Next job MV-1028 at 06:42",
+    owner: `Ops · ${_opFor("RS-01")}`, nextDefault: "Next job MV-1028 at 06:42",
   },
   {
-    id: "RS-02", what: "Reach-stacker · Zone B/C",
-    subDefault: "M. Sosa · shift 06:00–14:00",
+    id: "RS-02",
+    what: `${_typeFor("RS-02")} · Zone B/C`,
+    subDefault: `${_opFor("RS-02")} · shift 06:00–14:00`,
     plannedStart: 360, plannedEnd: 840,
-    owner: "Ops · M. Sosa", nextDefault: "Pre-marshal MV-1032 at 07:22",
+    owner: `Ops · ${_opFor("RS-02")}`, nextDefault: "Pre-marshal MV-1032 at 07:22",
   },
   {
-    id: "RS-03", what: "Reach-stacker · Zone C",
-    subDefault: "A. Peña · shift 06:00–14:00",
+    id: "RS-03",
+    what: `${_typeFor("RS-03")} · Zone C`,
+    subDefault: `${_opFor("RS-03")} · shift 06:00–14:00`,
     plannedStart: 360, plannedEnd: 840,
-    owner: "Maint · A. Peña", nextDefault: "Return to Zone C moves after 07:15",
+    owner: `Maint · ${_opFor("RS-03")}`, nextDefault: "Return to Zone C moves after 07:15",
     blockingFrom: 360, blockingUntil: 840,          // 06:00 – 14:00 (off-site repair, full shift out)
     blockingCause:  "Hydraulic fault — unit sent off-site for repair",
     blockingImpact: "Zone C moves redistributed for shift",
     blockingNext:   "Unit unavailable this shift · 14 moves redistributed",
   },
   {
-    id: "RS-04", what: "Reach-stacker · Zone D",
-    subDefault: "F. Ríos · shift 06:00–14:00",
+    id: "EH-01",
+    what: `${_typeFor("EH-01")} · Zone E`,
+    subDefault: `${_opFor("EH-01")} · shift 06:00–14:00`,
     plannedStart: 360, plannedEnd: 840,
-    owner: "Maint · F. Ríos", nextDefault: "Resume Zone D ops after 07:00",
-    blockingFrom: 360, blockingUntil: 840,          // 06:00 – 14:00 (extended maintenance window)
-    blockingCause:  "Scheduled maintenance — full-shift service window",
-    blockingImpact: "Zone D moves held for shift",
-    blockingNext:   "Unit unavailable this shift · Zone D loads redistributed",
+    owner: `Ops · ${_opFor("EH-01")}`, nextDefault: "Load lane EH-01 assigned",
   },
 ]
 
@@ -762,4 +766,8 @@ export default function LiveOps({ onNavigate }: Props) {
       </div>
     </div>
   )
+}
+
+function _typeFor(equipId: string): string {
+  return EQUIPMENT.find(e => e.id === equipId)?.type ?? equipId
 }
