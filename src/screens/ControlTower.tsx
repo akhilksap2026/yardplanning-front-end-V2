@@ -499,9 +499,26 @@ export default function ControlTower({ focus, onNavigate }: Props) {
                       </table>
                     </>
                   )}
-                  {activeDiffRows.length === 0 && (
-                    <div className="px-5 py-4 text-[12px] text-neutral-400">No plan changes for this alert.</div>
-                  )}
+                  {activeDiffRows.length === 0 && (() => {
+                    const s = activeDiffStats
+                    const hasChanges = s && (Number(s.reassigned) > 0 || Number(s.added) > 0 || Number(s.cancelled) > 0)
+                    if (!hasChanges) {
+                      return <div className="px-5 py-4 text-[12px] text-neutral-400">No plan changes for this alert.</div>
+                    }
+                    // Build a plain-language description matching the engine response
+                    const parts: string[] = []
+                    if (Number(s!.reassigned) > 0) parts.push(`${s!.reassigned} move${Number(s!.reassigned) === 1 ? "" : "s"} reassigned`)
+                    if (Number(s!.added) > 0)      parts.push(`${s!.added} added`)
+                    if (Number(s!.cancelled) > 0)  parts.push(`${s!.cancelled} removed`)
+                    return (
+                      <div className="px-5 py-4">
+                        <div className="text-[11px] font-bold uppercase tracking-widest text-emerald-700 mb-1">{t("tower.engineResponse")}</div>
+                        <div className="text-[13px] text-neutral-800 leading-relaxed">
+                          {t("tower.planAdjusted")} <strong>{parts.join(", ")}</strong>.
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               )}
             </div>

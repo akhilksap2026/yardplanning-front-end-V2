@@ -742,10 +742,10 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
         </div>
       </div>
 
-      <div className="grid flex-1 min-h-0 overflow-auto" style={{ gridTemplateColumns:"minmax(360px,440px) minmax(300px,1fr)" }}>
+      <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        {/* ── Phone frame ─────────────────────────────────────────────────── */}
-        <div className="border-r border-[#e5e7eb] p-6 flex justify-center items-center overflow-auto bg-[#eef0f4]">
+        {/* ── Phone frame — centered in full area ─────────────────────────── */}
+        <div className="flex-1 py-8 px-6 flex justify-center items-center overflow-auto bg-[#eef0f4]">
           <div className={phoneFrame} style={phoneStyle}>
 
             {/* Notch */}
@@ -1463,8 +1463,8 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
           </div>{/* end phone frame */}
         </div>
 
-        {/* ── Right panel ─────────────────────────────────────────────────── */}
-        <div className="flex flex-col min-h-0 overflow-auto bg-white">
+        {/* ── Right panel — hidden; phone is now centered in full area ──── */}
+        <div className="hidden flex-col min-h-0 overflow-auto bg-white">
 
           {/* Step progress */}
           <div className="px-4 py-3 border-b border-[#e5e7eb]">
