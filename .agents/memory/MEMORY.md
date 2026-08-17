@@ -6,3 +6,4 @@
 - [Yard map z-layer contract](yard-zindex.md) — z0 ground, z1 circulation, z2 facilities, z3 zone panels, z4 blocks, z5 signals, z6 chrome; facility positions must be outside zone panel bboxes (z3 opaque bg covers z2)
 - [Yard map phase 2.3–2.4](yard-phase2-signals.md) — detention KPI is live/interactive; congestion moved to z5 hatching (not flat fill); rehandle glyph at block bottom-left
 - [Yard map dark-glass panel](panel-dark-glass.md) — Phase 3.1 dark panel tokens (WCAG-verified), collapse pattern, section order, #f87171 not #dc2626 on dark bg
+- [Yard map phases 3.2–3.5](yard-phase3.md) — zoom tiers, road-routed trails, Shift Story exec demo, keyboard shortcuts + cheatsheet; all verified TSC-clean

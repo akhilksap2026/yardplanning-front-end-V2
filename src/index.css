@@ -490,3 +490,20 @@
   background-size: 800px 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
+
+/* ── Map block keyboard focus ring — Phase 3.5 ──────────────────────────────
+   Indigo — distinct from the red selection ring and the amber detention ring.
+   :focus-visible fires on keyboard navigation only, not mouse clicks.
+   The glow halo gives extra visible area for low-vision operators.
+*/
+.yard-block:focus-visible {
+  outline: 2.5px solid #6366f1 !important;
+  outline-offset: 3px !important;
+  box-shadow: 2px 3px 6px rgba(0,0,0,0.12), 0 0 0 5px rgba(99,102,241,0.14) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yard-block:focus-visible {
+    transition: none !important;
+  }
+}

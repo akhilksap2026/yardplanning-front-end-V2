@@ -27,6 +27,10 @@ interface Props {
   highlightBlocks?:   Set<string>
   // Phase 2.4 — rehandle debt glyph
   rehandleByBlock?:   Map<string, number>
+  // Phase 3.3 / 3.4 — story mode commanded view (seq-gated animated pan/zoom)
+  commandedView?:     { cx: number; cy: number; zoom: number; seq: number } | null
+  // Phase 3.5 — fit-view trigger: fitView fires when this counter increments
+  fitViewSeq?:        number
 }
 
 // ── Zone visual identity ──────────────────────────────────────────────────────
@@ -104,6 +108,50 @@ function FireSuppressionMarker({ style }: { style?: React.CSSProperties }) {
   )
 }
 
+// ── Road-routing helpers — Phase 3.3 ─────────────────────────────────────────
+
+/** Build a round-cornered polyline path string from an ordered waypoint list */
+function buildRoundedPath(pts: [number, number][], r: number): string {
+  if (pts.length < 2) return ""
+  let d = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1], curr = pts[i], next = pts[i + 1]
+    if (!next) { d += ` L ${curr[0].toFixed(1)} ${curr[1].toFixed(1)}`; continue }
+    const dx1 = curr[0] - prev[0], dy1 = curr[1] - prev[1]
+    const len1 = Math.hypot(dx1, dy1)
+    const dx2 = next[0] - curr[0], dy2 = next[1] - curr[1]
+    const len2 = Math.hypot(dx2, dy2)
+    const cr = Math.min(r, len1 / 2, len2 / 2)
+    if (cr < 2) { d += ` L ${curr[0].toFixed(1)} ${curr[1].toFixed(1)}`; continue }
+    const a1x = curr[0] - (dx1 / len1) * cr, a1y = curr[1] - (dy1 / len1) * cr
+    const a2x = curr[0] + (dx2 / len2) * cr, a2y = curr[1] + (dy2 / len2) * cr
+    d += ` L ${a1x.toFixed(1)} ${a1y.toFixed(1)} Q ${curr[0].toFixed(1)} ${curr[1].toFixed(1)} ${a2x.toFixed(1)} ${a2y.toFixed(1)}`
+  }
+  return d
+}
+
+/** Route a move from (fromX,fromY) to (toX,toY) through the yard road network.
+ *  Strategy: exit to nearest N-S service road → travel to nearest E-W boulevard → arrive. */
+function routeViaRoads(fromX: number, fromY: number, toX: number, toY: number): string {
+  const crCenters = CIRCULATION.crossRoads.map(cr => cr.x + cr.w / 2)
+  const nearFrom  = crCenters.reduce((b, cx) => Math.abs(cx - fromX) < Math.abs(b - fromX) ? cx : b, crCenters[0])
+  const nearTo    = crCenters.reduce((b, cx) => Math.abs(cx - toX)   < Math.abs(b - toX)   ? cx : b, crCenters[0])
+  const mbY  = CIRCULATION.mainBoulevard.y    + CIRCULATION.mainBoulevard.width    / 2
+  const btY  = CIRCULATION.bottomTransversal.y + CIRCULATION.bottomTransversal.width / 2
+  const midY = (fromY + toY) / 2
+  const horizY = Math.abs(midY - mbY) < Math.abs(midY - btY) ? mbY : btY
+  const raw: [number, number][] = [
+    [fromX, fromY], [nearFrom, fromY], [nearFrom, horizY],
+    [nearTo, horizY], [nearTo, toY],   [toX, toY],
+  ]
+  const pts: [number, number][] = [raw[0]]
+  for (let i = 1; i < raw.length; i++) {
+    const p = raw[i], q = pts[pts.length - 1]
+    if (Math.abs(p[0] - q[0]) > 2 || Math.abs(p[1] - q[1]) > 2) pts.push(p)
+  }
+  return buildRoundedPath(pts, 26)
+}
+
 export default function PhysicalYardMap({
   layouts, selectedBlock, onSelectBlock, zoneNames = {}, children,
   equipment = [], showEquipment = false,
@@ -113,6 +161,7 @@ export default function PhysicalYardMap({
   hotByBlock, onHotBadgeClick,
   highlightBlocks,
   rehandleByBlock,
+  commandedView, fitViewSeq,
 }: Props) {
   const containerRef  = useRef<HTMLDivElement>(null)
   const dragging      = useRef(false)
@@ -173,6 +222,21 @@ export default function PhysicalYardMap({
     return set
   }, [hotByBlock, layouts])
 
+  // Empty zones — "No containers" overlay in working/detail tier
+  const emptyZones = useMemo(() => {
+    const totals = new Map<string, number>()
+    for (const l of layouts) totals.set(l.zone, (totals.get(l.zone) ?? 0) + l.containerCount)
+    return new Set([...totals.entries()].filter(([, n]) => n === 0).map(([z]) => z))
+  }, [layouts])
+
+  // Reduced-motion preference — disables animated trail dots
+  const prefersReducedMotion = useMemo(() =>
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches, [])
+
+  // Smooth pan/zoom animation state — activated by commandedView changes
+  const [animating,   setAnimating] = useState(false)
+  const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // ── Fit to view ────────────────────────────────────────────────────────────
   const fitView = useCallback(() => {
     if (!containerRef.current || layouts.length === 0) return
@@ -182,6 +246,25 @@ export default function PhysicalYardMap({
   }, [dims.width, dims.height, layouts.length])
 
   useEffect(() => { fitView() }, [layouts.length]) // eslint-disable-line
+
+  // ── Commanded view — story mode sends pan/zoom targets ────────────────────
+  useEffect(() => {
+    if (!commandedView || !containerRef.current) return
+    const { width: cw, height: ch } = containerRef.current.getBoundingClientRect()
+    const { cx, cy, zoom: s } = commandedView
+    setAnimating(true)
+    setTf({ x: cw / 2 - cx * s, y: ch / 2 - cy * s, scale: s })
+    if (animTimerRef.current) clearTimeout(animTimerRef.current)
+    animTimerRef.current = setTimeout(() => setAnimating(false), 850)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commandedView?.seq])
+
+  // ── Fit-view trigger — keyboard F shortcut increments from parent ─────────
+  useEffect(() => {
+    if (!fitViewSeq) return
+    fitView()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitViewSeq])
 
   // ── Zoom at a point ────────────────────────────────────────────────────────
   const zoomAt = useCallback((cx: number, cy: number, factor: number) => {
@@ -279,6 +362,7 @@ export default function PhysicalYardMap({
           transform: `translate(${tf.x}px, ${tf.y}px) scale(${tf.scale})`,
           transformOrigin: "0 0",
           width: dims.width, height: dims.height,
+          transition: animating ? "transform 750ms cubic-bezier(0.4,0,0.2,1)" : undefined,
         }}
       >
 
@@ -556,6 +640,23 @@ export default function PhysicalYardMap({
                     ))}
                   </div>
                 )}
+
+                {/* ── Empty zone state — working + detail only ─────────────────────
+                    Shown when a zone has zero containers across all its blocks.
+                    Interface voice: specific, not generic ("No containers in this
+                    zone yet" not "Empty" or a blank box).
+                ───────────────────────────────────────────────────────────────── */}
+                {!isOverview && emptyZones.has(zoneId) && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    style={{ paddingTop: PANEL_PAD_TOP + 10 }}>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 20, opacity: 0.18, lineHeight: 1 }}>□</div>
+                      <div style={{ marginTop: 5, fontSize: 9.5, fontWeight: 600, color: panel.headerBg, opacity: 0.38, letterSpacing: "0.10em", lineHeight: 1.55 }}>
+                        No containers<br/>in this zone yet
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}
@@ -579,21 +680,32 @@ export default function PhysicalYardMap({
             const congestion = congestionByBlock?.get(layout.label) ?? 0
 
             return (
-              <div key={layout.label} className="absolute" style={{
-                left: layout.x, top: layout.y, width: layout.w, height: layout.h,
-                background: bg,
-                border: `2px solid ${isSelected ? "#dc2626" : isActive ? "#f59e0b" : bdr}`,
-                outline: isSelected ? "3px solid rgba(220,38,38,0.25)" : isActive ? "2px solid rgba(245,158,11,0.4)" : "none",
-                outlineOffset: 2, borderRadius: 4, cursor: "pointer",
-                // Directional shadow adds physical depth without fighting colour semantics
-                boxShadow: "2px 3px 6px rgba(0,0,0,0.12)",
-                transition: "border-color 300ms, outline 300ms",
-              }}
+              <div key={layout.label}
+                className="absolute yard-block"
+                tabIndex={0}
+                role="button"
+                aria-label={`Block ${layout.label}: ${layout.occupancyPct}% occupied, ${layout.containerCount} of ${layout.capacity} slots`}
+                aria-pressed={isSelected}
+                style={{
+                  left: layout.x, top: layout.y, width: layout.w, height: layout.h,
+                  background: bg,
+                  border: `2px solid ${isSelected ? "#dc2626" : isActive ? "#f59e0b" : bdr}`,
+                  outline: isSelected ? "3px solid rgba(220,38,38,0.25)" : isActive ? "2px solid rgba(245,158,11,0.4)" : "none",
+                  outlineOffset: 2, borderRadius: 4, cursor: "pointer",
+                  boxShadow: "2px 3px 6px rgba(0,0,0,0.12)",
+                  transition: "border-color 300ms, outline 300ms",
+                }}
                 onClick={e => { e.stopPropagation(); if (!didDrag.current) onSelectBlock(layout.label) }}
                 onMouseDown={e => { if (e.button === 0) e.stopPropagation() }}
                 onMouseEnter={e => handleBlockEnter(layout, e)}
                 onMouseMove={e  => handleBlockMove(layout, e)}
                 onMouseLeave={handleBlockLeave}
+                onKeyDown={e => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault(); e.stopPropagation()
+                    onSelectBlock(layout.label)
+                  }
+                }}
               >
                 {/* Left-edge occupancy bar — always visible at every zoom tier.
                     This is the primary status signal: the only z4 element at overview. */}
@@ -640,16 +752,38 @@ export default function PhysicalYardMap({
         ──────────────────────────────────────────────────────────────── */}
         <div className="absolute inset-0" style={{ zIndex: 5, pointerEvents: "none" }}>
 
-          {/* Move trails */}
-          {showTrails && moveTrails.length > 0 && (
-            <svg className="absolute" style={{ left: 0, top: 0, width: dims.width, height: dims.height, overflow: "visible" }}>
-              {moveTrails.map((trail, i) => (
-                <line key={trail.id}
-                  x1={trail.fromX} y1={trail.fromY} x2={trail.toX} y2={trail.toY}
-                  stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="5 4"
-                  opacity={0.2 + 0.2 * (i / moveTrails.length)}
-                />
-              ))}
+          {/* ── Move trails — road-routed paths with animated tracer dot ────────
+              Paths follow yard circulation network instead of straight cuts.
+              Recent trail (high index) = opaque; older = faded.
+              Each dot traces the route at a slightly different speed.
+              prefers-reduced-motion: static dashed line only, no dot.
+          ─────────────────────────────────────────────────────────────── */}
+          {showTrails && moveTrails && moveTrails.length > 0 && (
+            <svg className="absolute pointer-events-none"
+              style={{ left: 0, top: 0, width: dims.width, height: dims.height, overflow: "visible" }}>
+              {moveTrails.map((trail, i) => {
+                const n      = moveTrails.length
+                const opacity = 0.22 + 0.65 * (i / Math.max(n - 1, 1))
+                const d      = routeViaRoads(trail.fromX, trail.fromY, trail.toX, trail.toY)
+                const pathId = `yt-${trail.id.replace(/[^a-z0-9]/gi, "")}`
+                return (
+                  <g key={trail.id}>
+                    {/* Routed dashed path — always visible */}
+                    <path id={pathId} d={d} fill="none"
+                      stroke="#64748b" strokeWidth={1.8}
+                      strokeDasharray="7 5" strokeLinecap="round" strokeLinejoin="round"
+                      opacity={opacity * 0.55}/>
+                    {/* Animated tracer dot — suppressed by prefers-reduced-motion */}
+                    {!prefersReducedMotion && (
+                      <circle r={4} fill="#475569" stroke="#e2e8f0" strokeWidth={1.5} opacity={opacity}>
+                        <animateMotion dur={`${3.2 + i * 0.45}s`} repeatCount="indefinite">
+                          <mpath href={`#${pathId}`}/>
+                        </animateMotion>
+                      </circle>
+                    )}
+                  </g>
+                )
+              })}
             </svg>
           )}
 

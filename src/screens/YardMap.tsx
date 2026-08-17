@@ -29,6 +29,41 @@ interface Props {
 type DataSource = "seed" | "live"
 type ZoomLevel  = "yard" | "block"   // "slot" removed — slot detail lives in drawer
 
+// ── Shift Story — Phase 3.4 ───────────────────────────────────────────────────
+interface ShiftStoryStep {
+  id:            number
+  title:         string
+  time:          string
+  narration:     string
+  highlightMode: "none" | "hot" | "detention"
+  zoom:          number
+  focusX?:       number
+  focusY?:       number
+}
+
+const SHIFT_STORY: ShiftStoryStep[] = [
+  {
+    id: 1, title: "Inbound wave arrives", time: "06:00",
+    narration: "Three trucks clear the gate. System reads ASNs and locks in putaway slots in Zones A and B — the 15-minute yard clock starts.",
+    highlightMode: "none", zoom: 0.35, focusX: 1150, focusY: 700,
+  },
+  {
+    id: 2, title: "Hot container flagged", time: "08:30",
+    narration: "Free time expires in 3 h. Carrier detention clock is live. System auto-escalates priority and alerts the operator.",
+    highlightMode: "hot", zoom: 0.82,
+  },
+  {
+    id: 3, title: "Zero-rehandle retrieval locked in", time: "09:15",
+    narration: "Top-of-stack, zero moves needed first. Justin on Reach Stacker assigned — 12 min ETA. System protects the truck-turn window.",
+    highlightMode: "hot", zoom: 0.88,
+  },
+  {
+    id: 4, title: "Detention avoided — $8.4 k protected", time: "09:45",
+    narration: "Container staged and carrier confirmed before LFD. Detention exposure this shift: $0. An $8.4 k risk turned into a non-event.",
+    highlightMode: "detention", zoom: 0.37, focusX: 1150, focusY: 650,
+  },
+]
+
 // Seed-constant truck-turn P90 (matches the Dashboard view figure)
 const TRUCK_P90 = "21.4′"
 
@@ -115,6 +150,16 @@ export default function YardMap({ focus, onNavigate }: Props) {
   const [drawerHotFilter, setDrawerHotFilter] = useState(false)
   const [panelCollapsed,  setPanelCollapsed]  = useState(false)
 
+  // ── Shift Story state — Phase 3.4 ─────────────────────────────────────────
+  const [storyMode,    setStoryMode]    = useState(false)
+  const [storyStep,    setStoryStep]    = useState(0)
+  const [storyPlaying, setStoryPlaying] = useState(false)
+
+  // ── Keyboard UX helpers — Phase 3.5 ───────────────────────────────────────
+  const [shortcutOpen,   setShortcutOpen]   = useState(false)
+  const [fitViewSeq,     setFitViewSeq]     = useState(0)
+  const [commandedView,  setCommandedView]  = useState<{ cx: number; cy: number; zoom: number; seq: number } | null>(null)
+
   // ── Outside-click: color dropdown ────────────────────────────────────────
   useEffect(() => {
     if (!colorDropdownOpen) return
@@ -133,19 +178,25 @@ export default function YardMap({ focus, onNavigate }: Props) {
       if (view !== "map") return
       switch (e.key) {
         case "Escape":
-          if (drawerOpen) { setDrawerOpen(false); setSelectedSlot(null) }
+          if (shortcutOpen)  { setShortcutOpen(false); break }
+          if (storyMode)     { setStoryMode(false); setStoryPlaying(false); setStoryStep(0); break }
+          if (drawerOpen)    { setDrawerOpen(false); setSelectedSlot(null) }
           else if (zoomLevel === "block") { setZoomLevel("yard"); setSelectedSlot(null) }
           break
         case "1": setZoomLevel("yard"); setSelectedSlot(null); setDrawerOpen(false); break
         case "2": if (selectedBlockLabel || activeLiveBlock) setZoomLevel("block"); break
         case "e": case "E": setShowEquipment(v => !v); break
         case "t": case "T": setShowTrails(v => !v); break
+        case "h": case "H": setShowCongestion(v => !v); break
+        case "p": case "P": setPlannerMode(v => !v); break
+        case "f": case "F": setFitViewSeq(s => s + 1); break
+        case "?": setShortcutOpen(v => !v); break
       }
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, zoomLevel, drawerOpen, selectedBlockLabel, selectedSlot])
+  }, [view, zoomLevel, drawerOpen, selectedBlockLabel, selectedSlot, shortcutOpen, storyMode])
 
   // ── Auto-clear planner toast ──────────────────────────────────────────────
   useEffect(() => {
@@ -153,6 +204,33 @@ export default function YardMap({ focus, onNavigate }: Props) {
     const t = setTimeout(() => setPlannerToast(null), 3500)
     return () => clearTimeout(t)
   }, [plannerToast])
+
+  // ── Story: pan/zoom when step changes ────────────────────────────────────
+  useEffect(() => {
+    if (!storyMode) return
+    const step = SHIFT_STORY[storyStep]
+    if (!step) return
+    let cx = step.focusX ?? 1150, cy = step.focusY ?? 650
+    if (step.highlightMode === "hot" && hotByBlock) {
+      const entry = [...hotByBlock.entries()].find(([, n]) => n > 0)
+      if (entry) {
+        const bl = blockLayouts.find(l => l.label === entry[0])
+        if (bl) { cx = bl.x + bl.w / 2; cy = bl.y + bl.h / 2 }
+      }
+    }
+    setCommandedView({ cx, cy, zoom: step.zoom, seq: storyStep * 100 + step.id })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storyMode, storyStep])
+
+  // ── Story: auto-advance when playing ─────────────────────────────────────
+  useEffect(() => {
+    if (!storyPlaying || !storyMode) return
+    const t = setTimeout(() => {
+      if (storyStep < SHIFT_STORY.length - 1) setStoryStep(s => s + 1)
+      else setStoryPlaying(false)
+    }, 5200)
+    return () => clearTimeout(t)
+  }, [storyPlaying, storyMode, storyStep])
 
   // ── Existing effects ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -726,6 +804,31 @@ export default function YardMap({ focus, onNavigate }: Props) {
           </div>
         )}
 
+        {/* Shift Story play button — 90-second exec walkthrough (Phase 3.4) */}
+        {view === "map" && !isLive && (
+          <button
+            onClick={() => {
+              if (storyMode) { setStoryMode(false); setStoryPlaying(false); setStoryStep(0) }
+              else { setStoryMode(true); setStoryStep(0); setStoryPlaying(true) }
+            }}
+            className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 font-semibold transition-colors"
+            style={{ border: "1px solid #e5e7eb", borderRadius: 5, background: storyMode ? "#111827" : "transparent", color: storyMode ? "#fff" : "#374151" }}
+            title="Shift Story — guided 90-second exec demo"
+          >
+            {storyMode ? "■ Story" : "▶ Story"}
+          </button>
+        )}
+
+        {/* ? shortcut hint */}
+        {view === "map" && (
+          <button onClick={() => setShortcutOpen(true)}
+            className="text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors font-mono"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}
+            title="Keyboard shortcuts">
+            ?
+          </button>
+        )}
+
         {/* Status chip */}
         <span className="ml-auto text-[11px] text-neutral-400">
           {isLive
@@ -735,6 +838,38 @@ export default function YardMap({ focus, onNavigate }: Props) {
               : `${seedContainers.length} units · ${totalZones} zones`}
         </span>
       </div>
+
+      {/* Keyboard shortcut cheatsheet — ? key opens, Esc closes — Phase 3.5 */}
+      {shortcutOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.38)" }}
+          onClick={() => setShortcutOpen(false)}>
+          <div style={{ width: 308, background: "white", borderRadius: 16, boxShadow: "0 8px 40px rgba(0,0,0,0.18)", padding: "22px 26px" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.01em", marginBottom: 16 }}>Keyboard shortcuts</div>
+            {([
+              ["H",    "Toggle heat map (congestion)"],
+              ["T",    "Toggle move trails"],
+              ["E",    "Toggle equipment"],
+              ["P",    "Toggle planner mode"],
+              ["F",    "Fit yard to view"],
+              ["1",    "Yard-level view"],
+              ["2",    "Block-level view"],
+              ["Esc",  "Close drawer or go back"],
+              ["?",    "This cheatsheet"],
+            ] as [string, string][]).map(([key, desc]) => (
+              <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #f1f5f9" }}>
+                <span style={{ fontSize: 12, color: "#475569" }}>{desc}</span>
+                <kbd style={{ fontSize: 10, fontFamily: "ui-monospace,monospace", fontWeight: 700, background: "#f1f5f9", color: "#1e293b", padding: "2px 7px", borderRadius: 5, border: "1px solid #e2e8f0", flexShrink: 0 }}>{key}</kbd>
+              </div>
+            ))}
+            <button onClick={() => setShortcutOpen(false)}
+              style={{ marginTop: 16, width: "100%", fontSize: 11, color: "#94a3b8", background: "none", border: "none", cursor: "pointer" }}>
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           MAP VIEW — 3-column layout: left panel | map | right drawer
@@ -1014,17 +1149,34 @@ export default function YardMap({ focus, onNavigate }: Props) {
                   activeMoveBlocks={scrubberMin !== null ? activeMoveBlocks : undefined}
                   hotByBlock={hotByBlock}
                   onHotBadgeClick={handleHotBadgeClick}
-                  highlightBlocks={detentionHovered ? detentionExposure.blockSet : undefined}
+                  highlightBlocks={
+                    storyMode && SHIFT_STORY[storyStep]?.highlightMode === "hot"
+                      ? new Set([...(hotByBlock?.keys() ?? [])].filter(k => (hotByBlock?.get(k) ?? 0) > 0))
+                      : storyMode && SHIFT_STORY[storyStep]?.highlightMode === "detention"
+                        ? detentionExposure.blockSet
+                        : detentionHovered ? detentionExposure.blockSet : undefined
+                  }
                   rehandleByBlock={rehandleByBlock}
+                  commandedView={commandedView}
+                  fitViewSeq={fitViewSeq}
                 />
               </>
             )}
 
             {isLive && backendSlots.length === 0 && (
               <div className="flex-1 flex items-center justify-center">
-                <div className="bg-neutral-50 px-8 py-6 max-w-sm text-center" style={{ border:"1px solid #e5e7eb", borderRadius:5 }}>
-                  <div className="font-black text-[16px] mb-2">No slot data from backend</div>
-                  <div className="text-[12.5px] text-neutral-600 leading-relaxed">Backend connected but returned no yard slots. Check the planning engine.</div>
+                <div style={{ maxWidth: 340, textAlign: "center", padding: "32px 28px", background: "#fafafa", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+                  <div style={{ fontSize: 30, marginBottom: 12, opacity: 0.22 }}>📡</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#111827", marginBottom: 6, letterSpacing: "-0.01em" }}>
+                    No yard data yet
+                  </div>
+                  <div style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.65 }}>
+                    Backend is connected but returned no slot data. Check the planning engine, or switch to Seed mode to explore the demo yard.
+                  </div>
+                  <button onClick={() => setDataSource("seed")}
+                    style={{ marginTop: 16, fontSize: 11, fontWeight: 700, color: "#374151", background: "white", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 16px", cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                    Switch to Seed mode
+                  </button>
                 </div>
               </div>
             )}
@@ -1045,6 +1197,66 @@ export default function YardMap({ focus, onNavigate }: Props) {
                 showTrails={false}
                 showCongestion={false}
               />
+            )}
+
+            {/* ── Shift Story narration overlay — Phase 3.4 ────────────────────
+                Dark-glass card anchored at map bottom-centre.
+                Shows step title, narration text, step dots, and play controls.
+                Pointer-events disabled on the wrapper; re-enabled on controls.
+            ─────────────────────────────────────────────────────────────── */}
+            {storyMode && view === "map" && (
+              <div className="absolute left-1/2 pointer-events-none"
+                style={{ bottom: 28, transform: "translateX(-50%)", zIndex: 30, width: 480 }}>
+                <div style={{
+                  background: "rgba(15,20,30,0.93)", backdropFilter: "blur(14px)",
+                  border: "1px solid rgba(255,255,255,0.11)", borderRadius: 12, padding: "14px 18px 12px",
+                }}>
+                  {/* Header: label · time · step dots */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.16em", color: "rgba(255,255,255,0.40)" }}>SHIFT STORY</span>
+                    <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>·</span>
+                    <span style={{ fontSize: 9, fontFamily: "ui-monospace,monospace", color: "rgba(255,255,255,0.45)" }}>
+                      {SHIFT_STORY[storyStep]?.time}
+                    </span>
+                    <div style={{ marginLeft: "auto", display: "flex", gap: 5, pointerEvents: "auto" }}>
+                      {SHIFT_STORY.map((_, i) => (
+                        <button key={i} onClick={() => { setStoryStep(i); setStoryPlaying(false) }}
+                          style={{ width: 7, height: 7, borderRadius: "50%", border: "none", cursor: "pointer", padding: 0,
+                            background: i === storyStep ? "#f87171" : i < storyStep ? "rgba(255,255,255,0.50)" : "rgba(255,255,255,0.16)" }}/>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Step title */}
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: "rgba(255,255,255,0.94)", marginBottom: 5, letterSpacing: "-0.01em" }}>
+                    {SHIFT_STORY[storyStep]?.title}
+                  </div>
+                  {/* Narration */}
+                  <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.62)", lineHeight: 1.60, marginBottom: 10 }}>
+                    {SHIFT_STORY[storyStep]?.narration}
+                  </div>
+                  {/* Play controls */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, pointerEvents: "auto" }}>
+                    <button onClick={() => { setStoryStep(s => Math.max(0, s - 1)); setStoryPlaying(false) }}
+                      disabled={storyStep === 0}
+                      style={{ fontSize: 14, color: storyStep === 0 ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.60)", background: "none", border: "none", cursor: storyStep === 0 ? "default" : "pointer", padding: "0 4px", lineHeight: 1 }}>
+                      ◀
+                    </button>
+                    <button onClick={() => setStoryPlaying(v => !v)}
+                      style={{ fontSize: 11, fontWeight: 700, color: storyPlaying ? "#fbbf24" : "rgba(255,255,255,0.85)", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 6, cursor: "pointer", padding: "4px 13px" }}>
+                      {storyPlaying ? "⏸ Pause" : "▶ Play"}
+                    </button>
+                    <button onClick={() => { setStoryStep(s => Math.min(SHIFT_STORY.length - 1, s + 1)); setStoryPlaying(false) }}
+                      disabled={storyStep === SHIFT_STORY.length - 1}
+                      style={{ fontSize: 14, color: storyStep === SHIFT_STORY.length - 1 ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.60)", background: "none", border: "none", cursor: storyStep === SHIFT_STORY.length - 1 ? "default" : "pointer", padding: "0 4px", lineHeight: 1 }}>
+                      ▶
+                    </button>
+                    <button onClick={() => { setStoryMode(false); setStoryPlaying(false); setStoryStep(0) }}
+                      style={{ marginLeft: "auto", fontSize: 10, color: "rgba(255,255,255,0.36)", background: "none", border: "none", cursor: "pointer" }}>
+                      ✕ Close
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* ── Story container locator (zone R — outside block grid) ──────── */}
