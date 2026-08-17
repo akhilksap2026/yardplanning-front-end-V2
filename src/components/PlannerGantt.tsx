@@ -326,24 +326,6 @@ export default function PlannerGantt({ sel, onSelect, published }: Props) {
                         outlineOffset: 1,
                       }}
                     >
-                      {/* Short label — visible only when segment is wide enough (CSS hides via overflow) */}
-                      <span
-                        aria-hidden="true"
-                        style={{
-                          fontSize: 7.5,
-                          fontFamily: "var(--font-mono)",
-                          fontWeight: 700,
-                          lineHeight: 1,
-                          color: "rgba(255,255,255,0.92)",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          pointerEvents: "none",
-                          userSelect: "none",
-                          letterSpacing: "0.01em",
-                        }}
-                      >
-                        {seg.short}
-                      </span>
                     </div>
                   )
                 })}
