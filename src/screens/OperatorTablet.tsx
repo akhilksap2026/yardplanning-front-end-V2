@@ -281,10 +281,17 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
   // of whether the backend is reachable.
   const demoMode = focus === "demo:job-card"
 
+  // Seed operator is always chosen first; liveBackend only applies in legacy jockey path
+  const liveBackend    = backendConnected && !demoMode && selectedSeedOperator == null && selectedJockeyId != null
+  const seedOpMeta     = SEED_OPERATORS.find(o => o.name === selectedSeedOperator)
+
   const displayTask: DisplayTask | null = (() => {
     // Demo mode: always use the fixed DEMO_TASK — no backend reads, no queue
     if (demoMode) return DEMO_TASK
-    if (backendConnected && engineTask) return {
+    // Seed operator selected → always use planning-fixture queue
+    if (selectedSeedOperator && seedTask) return seedTask
+    // Legacy: backend jockey path
+    if (liveBackend && engineTask) return {
       id: engineTask.id, seq: engineTask.sequence_number,
       container: engineTask.container.container_number,
       size: `${engineTask.container.size_ft}ft`, weight: "—",
@@ -294,12 +301,9 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
       warn: engineTask.container.is_hazmat ? `HAZMAT class ${engineTask.container.hazmat_class ?? "?"} — follow hazmat protocol` : undefined,
       est: engineTask.estimated_duration_min,
     }
-    if (!backendConnected && seedTask) return seedTask
     return null
   })()
 
-  const liveBackend    = backendConnected && !demoMode
-  const seedOpMeta     = SEED_OPERATORS.find(o => o.name === selectedSeedOperator)
   const jockeyName     = liveBackend
     ? (backendJockeys.find(j => j.id === selectedJockeyId)?.name ?? "Operator")
     : (seedOpMeta?.name.replace(/^J-\d+\s+/, "") ?? "Operator")
@@ -493,9 +497,9 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
   const phoneStyle = { borderRadius:28, height:680, minHeight:680, maxHeight:680, border:`6px solid ${NAVY}` }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // EARLY RETURN: Seed operator picker (offline / no backend)
+  // EARLY RETURN: Seed operator picker — always shown first (planning fixture is source of truth)
   // ══════════════════════════════════════════════════════════════════════════
-  if (!backendConnected && !demoMode && selectedSeedOperator == null) {
+  if (!demoMode && selectedSeedOperator == null) {
     return (
       <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
         <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
@@ -537,10 +541,12 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // EARLY RETURN: Jockey picker (backend connected)
+  // EARLY RETURN: Jockey picker (backend connected, no seed operator chosen)
+  // Note: seed picker above always runs first, so this block is only reached
+  // in legacy/demo paths where selectedSeedOperator was not set.
   // ══════════════════════════════════════════════════════════════════════════
   const availableJockeys = backendJockeys.filter(j => j.status==="available"||j.status==="busy")
-  if (backendConnected && !demoMode && selectedJockeyId == null) {
+  if (backendConnected && !demoMode && selectedJockeyId == null && selectedSeedOperator == null) {
     return (
       <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
         <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
