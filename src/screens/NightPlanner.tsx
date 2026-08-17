@@ -739,8 +739,12 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                 <i className="ti ti-moon-stars" />
               </button>
               {/* Configure */}
-              <button onClick={() => setConfigOpen(true)} className="ds-btn ds-btn-ghost">
-                <i className="ti ti-settings" style={{ fontSize:13 }} /> Configure
+              <button onClick={() => setConfigOpen(true)}
+                className="flex items-center gap-1.5"
+                style={{ fontSize:12, fontWeight:600, padding:"5px 12px", borderRadius:6,
+                  background:"white", border:"1.5px solid #d1d5db", color:"#111827",
+                  boxShadow:"0 1px 2px rgba(0,0,0,0.06)", cursor:"pointer" }}>
+                <i className="ti ti-settings" style={{ fontSize:13, color:"#6b7280" }} /> Configure
               </button>
               {planSource === "seed" ? (<>
                 <button onClick={() => setPublished(false)} className="ds-btn ds-btn-ghost">
@@ -832,8 +836,12 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             </button>
             {/* Assumptions & weights */}
             {planSource === "seed" && (
-              <button onClick={()=>setDrawerOpen(true)} className="ds-btn ds-btn-ghost" style={{ fontSize:12, gap:4 }}>
-                <i className="ti ti-adjustments" style={{ fontSize:13 }} /> Assumptions &amp; weights
+              <button onClick={()=>setDrawerOpen(true)}
+                className="flex items-center gap-1.5"
+                style={{ fontSize:12, fontWeight:600, padding:"5px 12px", borderRadius:6,
+                  background:"white", border:"1.5px solid #d1d5db", color:"#111827",
+                  boxShadow:"0 1px 2px rgba(0,0,0,0.06)", cursor:"pointer" }}>
+                <i className="ti ti-adjustments" style={{ fontSize:13, color:"#6b7280" }} /> Assumptions &amp; weights
               </button>
             )}
           </div>

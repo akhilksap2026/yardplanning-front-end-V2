@@ -823,13 +823,14 @@ export default function YardMap({ focus, onNavigate }: Props) {
             <span className="text-[11px] font-semibold text-neutral-500 mr-0.5">Color:</span>
             {(["status","lfd","channel","dwell","priority","rehandle"] as ColorMode[]).map(k => (
               <button key={k} onClick={() => setMode(k)}
-                className="text-[11px] px-2 py-1 transition-colors"
+                className="text-[11px] px-2.5 py-1 transition-all"
                 style={{
-                  borderRadius: 4,
-                  border: mode===k ? "1px solid #6366f1" : "1px solid #e5e7eb",
-                  background: mode===k ? "#6366f1" : "transparent",
+                  borderRadius: 5,
+                  border: mode===k ? "1.5px solid #6366f1" : "1.5px solid #d1d5db",
+                  background: mode===k ? "#6366f1" : "white",
                   color: mode===k ? "#fff" : "#374151",
-                  fontWeight: mode===k ? 600 : 400,
+                  fontWeight: mode===k ? 600 : 500,
+                  boxShadow: mode===k ? "0 1px 3px rgba(99,102,241,0.3)" : "0 1px 2px rgba(0,0,0,0.06)",
                 }}>
                 {COLOR_MODE_LABELS[k]}
               </button>

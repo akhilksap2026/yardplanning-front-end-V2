@@ -510,12 +510,12 @@ function AppShell() {
             {/* Language toggle — compact pill */}
             <button
               onClick={() => void setLang(lang === "en" ? "es" : "en")}
-              className="flex items-center gap-0.5 font-mono font-semibold"
-              style={{ fontSize: 10.5, background: "var(--ds-surface-hover)", border: "1px solid var(--ds-border)", color: "var(--ds-fg-secondary)", borderRadius: 6, padding: "3px 10px", letterSpacing: "0.04em" }}
+              className="flex items-center font-mono font-semibold"
+              style={{ fontSize: 11, background: "white", border: "1.5px solid #d1d5db", color: "var(--ds-fg-secondary)", borderRadius: 6, padding: "3px 2px", letterSpacing: "0.06em", boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}
             >
-              <span style={{ color: lang === "en" ? "var(--ds-accent)" : "var(--ds-subtle)" }}>EN</span>
-              <span style={{ color: "#d1d5db", margin: "0 3px" }}>|</span>
-              <span style={{ color: lang === "es" ? "var(--ds-accent)" : "var(--ds-subtle)" }}>ES</span>
+              <span style={{ padding: "0 8px", borderRadius: 4, background: lang === "en" ? "var(--ds-accent)" : "transparent", color: lang === "en" ? "#fff" : "#9ca3af", transition: "all 0.15s" }}>EN</span>
+              <span style={{ color: "#d1d5db" }}>|</span>
+              <span style={{ padding: "0 8px", borderRadius: 4, background: lang === "es" ? "var(--ds-accent)" : "transparent", color: lang === "es" ? "#fff" : "#9ca3af", transition: "all 0.15s" }}>ES</span>
             </button>
 
             {/* Refresh */}
