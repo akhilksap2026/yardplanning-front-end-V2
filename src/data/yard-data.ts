@@ -471,11 +471,25 @@ export const ASSUMPTIONS = [
 // Base arrays (_*_BASE) were renamed above; these final exports concatenate
 // context-seed + story-seed data without touching any existing rows.
 
-export const CONTAINERS: Container[] = [
-  ..._CONTAINERS_BASE,
-  ...(STORY_CONTAINERS as unknown as Container[]),
-  ...(CONTEXT_CONTAINERS as Container[]),
-];
+export const CONTAINERS: Container[] = (() => {
+  const all: Container[] = [
+    ..._CONTAINERS_BASE,
+    ...(STORY_CONTAINERS as unknown as Container[]),
+    ...(CONTEXT_CONTAINERS as Container[]),
+  ];
+  // Keep exactly 13 breached containers (hoursToLFD ≤ 0, non-empty).
+  // Retain the deepest breaches (most negative) as the visible detentions;
+  // push the excess to realistic positive LFD windows so the yard looks
+  // operationally plausible without inflating the exposure figure.
+  const breached = all.filter(c => !c.empty && c.hoursToLFD <= 0);
+  if (breached.length > 13) {
+    breached.sort((a, b) => a.hoursToLFD - b.hoursToLFD); // most-negative first
+    breached.slice(13).forEach((c, i) => {
+      c.hoursToLFD = 26 + i * 7; // spread: 26 h, 33 h, 40 h, 47 h … — within free time
+    });
+  }
+  return all;
+})();
 
 export const OPERATORS = [
   ..._OPERATORS_BASE,
