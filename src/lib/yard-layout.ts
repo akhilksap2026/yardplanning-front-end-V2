@@ -269,3 +269,65 @@ export function getYardDimensions(
   const maxY = Math.max(...layouts.map(l => l.y + l.h))
   return { width: maxX + LANE_WIDTH_PX, height: maxY + LANE_WIDTH_PX + 40 }
 }
+
+// ── Layer-system geometry ─────────────────────────────────────────────────────
+// These exports feed the explicit z0–z6 layer contract in PhysicalYardMap.
+// All consuming code must import from here — never hardcode these values.
+
+/** Height of the TERMINAL · BERTH SIDE strip at the top of the canvas. */
+export const BERTH_HEIGHT = 34
+
+/** Height of the GATE · TRUCK ENTRY strip at the bottom of the canvas. */
+export const GATE_HEIGHT = 34
+
+/** A rectangular road / aisle corridor in canvas-space coordinates. */
+export interface RoadCorridor {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/**
+ * Returns the major circulation corridors for the seed layout.
+ * Geometry is derived from ZONE_LAYOUT positions:
+ *   • North approach  — y = BERTH_HEIGHT .. first-zone-top  (46 px gap)
+ *   • Central N–S     — x = 784 .. 880  (right of Zone E, left of Zone A; 96 px gap)
+ *   • South approach  — below Zone R bottom, above gate strip  (≈ 58 px gap)
+ *
+ * Consumed exclusively by the z1-Circulation rendering layer.
+ */
+export function computeRoadCorridors(
+  dims: { width: number; height: number },
+): RoadCorridor[] {
+  // Central corridor bounds, derived from ZONE_LAYOUT:
+  //   Zone E right edge = 50 + 2*(10*36 + 14) − 14 = 784
+  //   Zone A left edge  = 880
+  const centralX = 784
+  const centralW = 96           // 880 − 784
+  const northH   = 46           // ZONE_LAYOUT.C.y (80) − BERTH_HEIGHT (34)
+
+  return [
+    // North approach — from berth quay to first storage zone tops
+    {
+      x: 0,
+      y: BERTH_HEIGHT,
+      w: dims.width,
+      h: northH,
+    },
+    // Central N–S corridor — between left (C/E) and centre (A/B) zone columns
+    {
+      x: centralX,
+      y: BERTH_HEIGHT + northH,
+      w: centralW,
+      h: dims.height - BERTH_HEIGHT - GATE_HEIGHT - northH,
+    },
+    // South approach — between Zone R bottom (y≈1155) and gate strip
+    {
+      x: 0,
+      y: dims.height - GATE_HEIGHT - 58,
+      w: dims.width,
+      h: 58,
+    },
+  ]
+}
