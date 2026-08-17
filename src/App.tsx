@@ -37,7 +37,6 @@ const NAV_ITEMS: { id: Screen; groupKey: NavGroupKey; nameKey: string; alert?: b
   { id: "plan",     groupKey: "nav.group.todaysOps", nameKey: "nav.plan"                  },
   { id: "yard",     groupKey: "nav.group.yard",      nameKey: "nav.yard"                  },
   { id: "gate",     groupKey: "nav.group.movement",  nameKey: "nav.gate",      alert: true },
-  { id: "operator", groupKey: "nav.group.movement",  nameKey: "nav.operator"              },
 ]
 const NAV_GROUP_KEYS: NavGroupKey[] = [
   "nav.group.todaysOps", "nav.group.yard", "nav.group.movement",
@@ -75,6 +74,7 @@ function AppShell() {
   const [screen,       setScreen]       = useState<Screen>("plan")
   const [focus,        setFocus]        = useState<string | null>(null)
   const [paletteOpen,  setPaletteOpen]  = useState(false)
+  const [operatorOpen, setOperatorOpen] = useState(false)
   const [refreshing,   setRefreshing]   = useState(false)
   const [reconnecting, setReconnecting] = useState(false)
   const [syncLabel,    setSyncLabel]    = useState("just now")
@@ -310,6 +310,25 @@ function AppShell() {
             })}
           </div>
 
+          {/* ── Operator Tablet launch button ─────────────────────────────── */}
+          <div className="px-3 pb-2 flex-none">
+            <button
+              onClick={() => setOperatorOpen(true)}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left"
+              style={{
+                background: "var(--ds-accent)",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                color: "#fff",
+              }}
+            >
+              <span style={{ fontSize: 15, lineHeight: 1 }}>📱</span>
+              <span className="flex-1">Operator Tablet</span>
+              <span style={{ fontSize: 10, opacity: 0.7 }}>↗</span>
+            </button>
+          </div>
+
           {/* User row — pinned to bottom */}
           <div
             className="flex items-center gap-2.5 px-3 py-3 flex-none"
@@ -502,6 +521,31 @@ function AppShell() {
             </button>
           </div>
         </div>
+
+        {/* ── Operator Tablet modal ────────────────────────────────────────── */}
+        {operatorOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: "rgba(17,24,39,0.6)", backdropFilter: "blur(6px)" }}
+            onClick={e => { if (e.target === e.currentTarget) setOperatorOpen(false) }}
+          >
+            <div className="relative" style={{ borderRadius: 34 }}>
+              <button
+                onClick={() => setOperatorOpen(false)}
+                className="absolute flex items-center justify-center font-bold"
+                style={{
+                  top: -12, right: -12, zIndex: 10,
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: "#fff", color: "#374151",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.22)",
+                  border: "1px solid #e5e7eb",
+                  fontSize: 12,
+                }}
+              >✕</button>
+              <OperatorTablet focus={focus} inModal />
+            </div>
+          </div>
+        )}
 
         {/* ── Main content ──────────────────────────────────────────────────── */}
         <div

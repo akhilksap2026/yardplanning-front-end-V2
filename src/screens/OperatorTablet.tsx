@@ -199,7 +199,7 @@ function NavMap({ from, to }: { from: string; to: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function OperatorTablet({ focus }: { focus?: string | null }) {
+export default function OperatorTablet({ focus, inModal = false }: { focus?: string | null; inModal?: boolean }) {
   const { operatorTasks, refresh, backendConnected, backendJockeys } = useData()
   const { t } = useLang()
 
@@ -499,18 +499,28 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
   const phoneFrame = "w-[340px] flex flex-col overflow-hidden"
   const phoneStyle = { borderRadius:28, height:680, minHeight:680, maxHeight:680, border:`6px solid ${NAVY}` }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // EARLY RETURN: Seed operator picker — always shown first (planning fixture is source of truth)
-  // ══════════════════════════════════════════════════════════════════════════
-  if (!demoMode && selectedSeedOperator == null) {
+  // In modal mode skip the desktop chrome; return just the phone frame element.
+  function shell(phone: JSX.Element, extra?: React.ReactNode): JSX.Element {
+    if (inModal) return phone
     return (
       <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
         <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
           <span className="font-semibold text-[15px] tracking-tight">Operator Tablet</span>
-          <span className="text-[11px] text-neutral-500 ml-2">Select your operator identity</span>
+          {extra}
         </div>
         <div className="flex-1 py-8 px-6 flex justify-center items-center overflow-auto bg-[#eef0f4]">
-          <div className={phoneFrame} style={{ ...phoneStyle, height:560, minHeight:560, maxHeight:560 }}>
+          {phone}
+        </div>
+      </div>
+    )
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // EARLY RETURN: Seed operator picker — always shown first (planning fixture is source of truth)
+  // ══════════════════════════════════════════════════════════════════════════
+  if (!demoMode && selectedSeedOperator == null) {
+    return shell(
+      <div className={phoneFrame} style={{ ...phoneStyle, height:560, minHeight:560, maxHeight:560 }}>
 
             {/* Amber notch */}
             <div className="flex justify-center pt-3 pb-1 flex-none" style={{ background:AMBER }}>
@@ -564,9 +574,8 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
               </div>
             </div>
 
-          </div>
-        </div>
-      </div>
+      </div>,
+      <span className="text-[11px] text-neutral-500 ml-2">Select your operator identity</span>
     )
   }
 
@@ -577,14 +586,8 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
   // ══════════════════════════════════════════════════════════════════════════
   const availableJockeys = backendJockeys.filter(j => j.status==="available"||j.status==="busy")
   if (backendConnected && !demoMode && selectedJockeyId == null && selectedSeedOperator == null) {
-    return (
-      <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
-        <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
-          <span className="font-semibold text-[15px] tracking-tight">Operator Tablet</span>
-          <span className="text-[11px] text-neutral-500 ml-2">Backend connected — select your jockey</span>
-        </div>
-        <div className="flex-1 py-8 px-6 flex justify-center items-center overflow-auto bg-[#eef0f4]">
-          <div className={phoneFrame} style={{ ...phoneStyle, height:620, minHeight:620, maxHeight:620 }}>
+    return shell(
+      <div className={phoneFrame} style={{ ...phoneStyle, height:620, minHeight:620, maxHeight:620 }}>
 
             {/* Amber notch */}
             <div className="flex justify-center pt-3 pb-1 flex-none" style={{ background:AMBER }}>
@@ -644,9 +647,8 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
               </div>
             </div>
 
-          </div>
-        </div>
-      </div>
+      </div>,
+      <span className="text-[11px] text-neutral-500 ml-2">Backend connected — select your jockey</span>
     )
   }
 
@@ -654,15 +656,8 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
   // EARLY RETURN: Loading / idle
   // ══════════════════════════════════════════════════════════════════════════
   if (backendConnected && (fetchingTask || (noMoreTasks && !engineTask))) {
-    return (
-      <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
-        <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
-          <span className="font-semibold text-[15px] tracking-tight">Operator Tablet</span>
-          <button className="ml-auto text-[12px] px-3 py-1.5" style={{ border:"1px solid #e5e7eb", borderRadius:6, color:"#374151" }}
-            onClick={() => { setSelectedSeedOperator(null); setSelectedJockeyId(null); setEngineTask(null) }}>Switch jockey</button>
-        </div>
-        <div className="flex flex-1 items-center justify-center p-8">
-          <div className={phoneFrame} style={phoneStyle}>
+    return shell(
+      <div className={phoneFrame} style={phoneStyle}>
             <div className="flex justify-center pt-3 pb-1 flex-none" style={{ background:AMBER }}><div style={{ width:100, height:22, background:NAVY, borderRadius:12 }} /></div>
             <PhoneAmberHeader initials={initials} name={jockeyName} badge={equipBadge} pending={pendingCount} done={doneCount} />
             <div className="flex-1 flex items-center justify-center px-6 py-8 bg-white">
@@ -685,23 +680,16 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      </div>
+      </div>,
+      <button className="ml-auto text-[12px] px-3 py-1.5" style={{ border:"1px solid #e5e7eb", borderRadius:6, color:"#374151" }}
+        onClick={() => { setSelectedSeedOperator(null); setSelectedJockeyId(null); setEngineTask(null) }}>Switch jockey</button>
     )
   }
 
   // Fix #7 — seed mode all-done screen (no task loops)
   if (!backendConnected && !seedTask) {
-    return (
-      <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
-        <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
-          <span className="font-semibold text-[15px] tracking-tight">Operator Tablet</span>
-          <button className="ml-auto text-[12px] px-3 py-1.5" style={{ border:"1px solid #e5e7eb", borderRadius:6, color:"#374151" }}
-            onClick={() => { setQueueIdx(0); setCompletedIds(new Set()); resetForNextJob() }}>Restart run</button>
-        </div>
-        <div className="flex flex-1 items-center justify-center p-8">
-          <div className="w-[340px] flex flex-col overflow-hidden" style={{ borderRadius:28, height:680, minHeight:680, maxHeight:680, border:`6px solid ${NAVY}` }}>
+    return shell(
+      <div className="w-[340px] flex flex-col overflow-hidden" style={{ borderRadius:28, height:680, minHeight:680, maxHeight:680, border:`6px solid ${NAVY}` }}>
             <div className="flex justify-center pt-3 pb-1 flex-none" style={{ background:AMBER }}><div style={{ width:100, height:22, background:NAVY, borderRadius:12 }} /></div>
             <PhoneAmberHeader initials={initials} name={jockeyName} badge={equipBadge} pending={0} done={completedIds.size} />
             <div className="flex-1 flex items-center justify-center px-6 py-8 bg-white">
@@ -717,23 +705,16 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+      </div>,
+      <button className="ml-auto text-[12px] px-3 py-1.5" style={{ border:"1px solid #e5e7eb", borderRadius:6, color:"#374151" }}
+        onClick={() => { setQueueIdx(0); setCompletedIds(new Set()); resetForNextJob() }}>Restart run</button>
     )
   }
 
   // Fix #6 — Equipment reported: show "stand by" screen, remove from queue
   if (equipReported) {
-    const phoneFrame = "w-[340px] flex flex-col overflow-hidden"
-    const phoneStyle = { borderRadius:28, height:680, minHeight:680, maxHeight:680, border:`6px solid ${NAVY}` }
-    return (
-      <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
-        <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
-          <span className="font-semibold text-[15px] tracking-tight">Operator Tablet</span>
-        </div>
-        <div className="flex flex-1 items-center justify-center p-8">
-          <div className={phoneFrame} style={phoneStyle}>
+    return shell(
+      <div className={phoneFrame} style={phoneStyle}>
             <div className="flex justify-center pt-3 pb-1 flex-none" style={{ background:AMBER }}>
               <div style={{ width:100, height:22, background:NAVY, borderRadius:12 }} />
             </div>
@@ -757,8 +738,6 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
                 }
               </div>
             </div>
-          </div>
-        </div>
       </div>
     )
   }
@@ -772,10 +751,10 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
   // MAIN WIZARD RENDER
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900">
+    <div className={inModal ? "contents" : "flex flex-col h-full min-h-0 overflow-auto bg-[#f4f5f7] text-neutral-900"}>
 
       {/* ── Desktop toolbar ─────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
+      {!inModal && <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-[#e5e7eb] flex-none bg-white">
         <div className="flex flex-col gap-0.5">
           <span className="font-semibold text-[15px] tracking-tight">{t("operator.title")}</span>
           <span className="text-[11px] text-neutral-500">
@@ -800,12 +779,12 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
             </button>
           )}
         </div>
-      </div>
+      </div>}
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className={inModal ? "contents" : "flex flex-1 min-h-0 overflow-hidden"}>
 
         {/* ── Phone frame — centered in full area ─────────────────────────── */}
-        <div className="flex-1 py-8 px-6 flex justify-center items-center overflow-auto bg-[#eef0f4]">
+        <div className={inModal ? "contents" : "flex-1 py-8 px-6 flex justify-center items-center overflow-auto bg-[#eef0f4]"}>
           <div className={phoneFrame} style={phoneStyle}>
 
             {/* Notch */}
