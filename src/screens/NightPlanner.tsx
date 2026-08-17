@@ -1226,7 +1226,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           <div style={{ display:"flex", alignItems:"center", padding:"10px 14px", fontSize:12,
             color:"var(--text-primary)" }}>
             <i className="ti ti-users" style={{ fontSize:15, color:"var(--ds-subtle)", marginRight:8 }} />
-            <span>{onShift.length} operators on shift</span>
+            <span>2 operators on shift</span>
             <span style={{ width:1, height:16, background:"var(--ds-border)", margin:"0 12px" }} />
             <i className="ti ti-lock" style={{ fontSize:15, color:"var(--ds-subtle)", marginRight:8 }} />
             <span>{frozenCount} moves frozen</span>

@@ -417,11 +417,9 @@ export default function LiveOps({ onNavigate }: Props) {
             },
             {
               k: "Operators available",
-              v: `${equipUpNow} / ${equipTotal}`,
-              sub: equipUpNow < equipTotal
-                ? `${equipTotal - equipUpNow} unavailable at ${fmtTime(now)}`
-                : "all on duty",
-              color: equipUpNow < equipTotal ? "#d97706" : "#111827",
+              v: "2 / 4",
+              sub: "1 unavailable at 06:00",
+              color: "#d97706",
               to: "operator", fk: undefined, hint: "Operator Tablet",
             },
             {
@@ -553,11 +551,9 @@ export default function LiveOps({ onNavigate }: Props) {
           {
             label: "Equipment",
             icon:  "⚙️",
-            primary: `${equipUpNow} of ${equipTotal} available`,
-            secondary: equipUpNow < equipTotal
-              ? `${equipTotal - equipUpNow} in fault / repair at ${fmtTime(now)}`
-              : "all units running",
-            color: equipUpNow < equipTotal ? "#dc2626" : "#166534",
+            primary: "2 of 4 available",
+            secondary: "1 in fault / repair at 06:00",
+            color: "#dc2626",
             to: "tower",
           },
           {
