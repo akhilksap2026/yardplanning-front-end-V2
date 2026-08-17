@@ -5,37 +5,39 @@
  * Operators:   J-1 Alex Rivera (56 steps), J-3 George Burns (62 steps)
  * Shift:       20:00 → 05:30 (SHIFT_START_MIN=1200, SHIFT_DURATION_MIN=570)
  *
- * Bar phase is driven by an internal AS-OF clock (click hour ticks to advance).
- * A live now-line advances every second and is clamped to the shift window.
+ * Bar phase driven by an internal AS-OF state (click hour ticks to advance).
+ * Live now-line advances every second, clamped to the shift window.
  *
- * Bar states:
- *   ahead    → type-tinted fill + color border (planned, not started)
+ * Phase states:
+ *   ahead    → type-tinted fill + color border (planned, 80 % opacity)
  *   crossing → solid type-color fill            (in progress)
  *   passed   → thin centred sliver             (done trail)
  *
+ * Horizontal 2 px gap between adjacent segments (1 px each side via calc).
+ * Gridlines: 0.5 px, --ds-border-lt — subordinate to the data bars.
  * Transitions respect prefers-reduced-motion.
  */
 
 import { useEffect, useMemo, useState } from "react"
 import {
-  stepsForOperator, type PlanningStep,
+  stepsForOperator,
   SHIFT_START_MIN, SHIFT_DURATION_MIN, GANTT_HOURS,
 } from "@/data/planningData"
 
 // ── Two operator lanes — names exactly as stored in planningResults.json ──────
 const LANES = [
-  { key: "J-1 Alex Rivera",  label: "J-1 Alex Rivera",  badge: "J-1", steps: 56 },
-  { key: "J-3 George Burns", label: "J-3 George Burns", badge: "J-3", steps: 62 },
+  { key: "J-1 Alex Rivera",  label: "J-1 Alex Rivera",  count: 56 },
+  { key: "J-3 George Burns", label: "J-3 George Burns", count: 62 },
 ] as const
 
-// ── Operation → DS palette (matches existing NightPlanner MOVE_TYPE_STYLE) ────
+// ── Operation → DS palette (mirrors NightPlanner MOVE_TYPE_STYLE) ─────────────
 interface OpCfg { color: string; tint: string; label: string }
 const OP_CFG: Record<string, OpCfg> = {
-  "Putaway":                            { color: "#2563eb", tint: "#dbeafe", label: "Putaway"           },
-  "Outbound staging and truck loading": { color: "#0d9488", tint: "#ccfbf1", label: "Retrieval/Stage"   },
-  "Premarshal ahead of retrieval":      { color: "#7c3aed", tint: "#ede9fe", label: "Pre-marshal"       },
-  "Digout to clear an overstow":        { color: "#ea580c", tint: "#ffedd5", label: "Extra Move"        },
-  "Discharge from vessel":              { color: "#0891b2", tint: "#cffafe", label: "Discharge"         },
+  "Putaway":                            { color: "#2563eb", tint: "#dbeafe", label: "Putaway"         },
+  "Outbound staging and truck loading": { color: "#0d9488", tint: "#ccfbf1", label: "Retrieval/Stage" },
+  "Premarshal ahead of retrieval":      { color: "#7c3aed", tint: "#ede9fe", label: "Pre-marshal"     },
+  "Digout to clear an overstow":        { color: "#ea580c", tint: "#ffedd5", label: "Extra Move"      },
+  "Discharge from vessel":              { color: "#0891b2", tint: "#cffafe", label: "Discharge"       },
 }
 const FALLBACK_CFG: OpCfg = { color: "#6b7280", tint: "#f3f4f6", label: "Move" }
 
@@ -46,37 +48,33 @@ const LEGEND_OPS = [
   "Digout to clear an overstow",
 ] as const
 
-// ── Layout constants ──────────────────────────────────────────────────────────
-const LABEL_W  = 156  // px – sticky left label column
-const ROW_H    = 32   // px – track / full-bar height
-const SLIVER_H = 8    // px – done-trail height (~25% of ROW_H)
-const AXIS_H   = 18   // px – hour axis strip
+// ── Layout ────────────────────────────────────────────────────────────────────
+const LABEL_W  = 144  // px – sticky left column
+const ROW_H    = 24   // px – track height (compact)
+const BAR_H    = 20   // px – bar height within track (2 px top/bottom inset)
+const SLIVER_H = 5    // px – done-trail height
+const AXIS_H   = 16   // px – hour axis strip
 
-// Shift bounds
-const SHIFT_END_MIN = SHIFT_START_MIN + SHIFT_DURATION_MIN  // 1200 + 570 = 1770
+const SHIFT_END_MIN = SHIFT_START_MIN + SHIFT_DURATION_MIN  // 1770
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Convert an ISO timestamp to minutes-from-midnight (handles midnight crossover). */
 function isoToMin(iso: string | null): number | null {
   if (!iso) return null
-  const d   = new Date(iso)
-  const h   = d.getUTCHours()
-  const m   = d.getUTCMinutes()
+  const d = new Date(iso)
+  const h = d.getUTCHours(), m = d.getUTCMinutes()
   const raw = h * 60 + m
-  // Times 00:00–07:59 are past midnight — add 1440 to put them after 20:00 on the axis
-  return h < 20 ? raw + 1440 : raw
+  return h < 20 ? raw + 1440 : raw   // midnight crossover
 }
 
-/** Position a shift-relative minute as a CSS percentage string. */
-function pct(min: number) {
-  return `${Math.max(0, Math.min(100, (min - SHIFT_START_MIN) / SHIFT_DURATION_MIN * 100)).toFixed(3)}%`
+/** Shift-relative percentage, as a plain number (for calc() usage). */
+function pctNum(min: number): number {
+  return Math.max(0, Math.min(100, (min - SHIFT_START_MIN) / SHIFT_DURATION_MIN * 100))
 }
 
 type Phase = "ahead" | "crossing" | "passed"
-function barPhase(startMin: number, endMin: number, asOf: number): Phase {
-  if (endMin   <= asOf) return "passed"
-  if (startMin <= asOf) return "crossing"
+function barPhase(s: number, e: number, asOf: number): Phase {
+  if (e  <= asOf) return "passed"
+  if (s  <= asOf) return "crossing"
   return "ahead"
 }
 
@@ -113,49 +111,39 @@ function useReducedMotion(): boolean {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 interface Props {
-  /** Optional: called when a lane-hour tick is clicked (passes shift minutes). */
   onHourClick?: (shiftMin: number) => void
 }
 
 export default function GanttTimeline({ onHourClick }: Props) {
   const liveMin  = useLiveMin()
   const noMotion = useReducedMotion()
-
-  // AS-OF state: starts at shift start; hour ticks advance it
   const [asOf, setAsOf] = useState(SHIFT_START_MIN)
 
   const clampedLive = Math.max(SHIFT_START_MIN, Math.min(SHIFT_END_MIN, liveMin))
-  const livePct = pct(clampedLive)
-  const asPct   = pct(asOf)
+  const livePctS  = `${pctNum(clampedLive).toFixed(3)}%`
+  const asPctS    = `${pctNum(asOf).toFixed(3)}%`
 
-  // ── Fetch and memoize steps for each lane ───────────────────────────────
   const laneSteps = useMemo(() =>
     LANES.map(lane => ({
       ...lane,
-      steps: stepsForOperator(lane.key).map(s => ({
-        id:       s.activity_id ?? `${s.operator}-${s.step_number}`,
-        op:       s.operation,
-        status:   s.step_status,
-        startMin: isoToMin(s.estimated_start),
-        endMin:   isoToMin(s.estimated_end),
-      })).filter(s => s.startMin !== null && s.endMin !== null) as Array<{
-        id: string; op: string; status: string; startMin: number; endMin: number
-      }>,
+      steps: stepsForOperator(lane.key)
+        .map(s => ({
+          id:       s.activity_id ?? `${s.operator}-${s.step_number}`,
+          op:       s.operation,
+          startMin: isoToMin(s.estimated_start),
+          endMin:   isoToMin(s.estimated_end),
+        }))
+        .filter((s): s is typeof s & { startMin: number; endMin: number } =>
+          s.startMin !== null && s.endMin !== null
+        ),
     })),
   [])
 
-  // DS token shortcuts
-  const BG   = "var(--ds-background)"
-  const SFC  = "var(--ds-surface)"
-  const BDR  = "1px solid var(--ds-border)"
-  const BDRL = "1px solid var(--ds-border-lt)"
-
-  // Parse GANTT_HOURS into shift-relative minutes for positioning
   const hourTicks = useMemo(() =>
     GANTT_HOURS.map(h => {
       const hNum = parseInt(h, 10)
       const min  = hNum < 20 ? hNum * 60 + 1440 : hNum * 60
-      return { label: h, min }
+      return { label: h, min, pctS: `${pctNum(min).toFixed(3)}%` }
     }),
   [])
 
@@ -163,41 +151,50 @@ export default function GanttTimeline({ onHourClick }: Props) {
     <div
       role="region"
       aria-label="Operator Gantt — shift 20:00 to 05:30"
-      style={{ overflowX: "auto", background: BG }}
+      style={{ overflowX: "auto", background: "var(--ds-background)" }}
     >
-      <div style={{ minWidth: LABEL_W + 560, position: "relative" }}>
+      <div style={{ minWidth: LABEL_W + 520, position: "relative" }}>
 
-        {/* ── Legend / title strip ─────────────────────────────────────────── */}
+        {/* ── Header: type legend + affordance ────────────────────────────── */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-          padding: `4px 10px`, paddingLeft: LABEL_W + 10,
-          borderBottom: BDRL, background: BG,
+          display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+          padding: "3px 8px", paddingLeft: LABEL_W + 8,
+          borderBottom: "1px solid var(--ds-border-lt)",
+          background: "var(--ds-background)",
         }}>
-          <span className="ds-label" style={{ color: "var(--ds-subtle)", marginRight: 2 }}>
+          {/* Section label */}
+          <span className="ds-label" style={{ color: "var(--ds-subtle)", marginRight: 4 }}>
             Operator schedule · 20:00–05:30
           </span>
+
+          {/* Operation type swatches */}
           {LEGEND_OPS.map(op => {
-            const cfg = OP_CFG[op] ?? FALLBACK_CFG
+            const cfg = OP_CFG[op]
             return (
-              <span key={op} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span key={op} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
                 <span aria-hidden="true" style={{
-                  display: "inline-block", width: 10, height: 10,
-                  borderRadius: 2, flexShrink: 0,
-                  background: cfg.color,
+                  display: "inline-block", width: 8, height: 8,
+                  borderRadius: 2, background: cfg.color, flexShrink: 0,
                 }} />
-                <span style={{ fontSize: 10, fontWeight: 500, color: "var(--ds-subtle)" }}>
+                <span className="ds-label" style={{ color: "var(--ds-subtle)", textTransform: "none" }}>
                   {cfg.label}
                 </span>
               </span>
             )
           })}
-          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5 }}>
+
+          {/* Click affordance */}
+          <span style={{
+            marginLeft: "auto",
+            display: "inline-flex", alignItems: "center", gap: 4,
+            color: "var(--ds-decorative)",
+          }}>
             <span aria-hidden="true" style={{
-              display: "inline-block", width: 2, height: 11,
+              display: "inline-block", width: 1.5, height: 10,
               background: "var(--ds-accent)", borderRadius: 1, flexShrink: 0,
             }} />
-            <span style={{ fontSize: 10, fontWeight: 500, color: "var(--ds-subtle)" }}>
-              Click hour to advance AS-OF
+            <span className="ds-label" style={{ color: "var(--ds-decorative)", textTransform: "none" }}>
+              click hour · advance AS-OF
             </span>
           </span>
         </div>
@@ -206,18 +203,20 @@ export default function GanttTimeline({ onHourClick }: Props) {
         <div style={{
           display: "flex", height: AXIS_H,
           position: "sticky", top: 0, zIndex: 4,
-          background: BG, borderBottom: BDR,
+          background: "var(--ds-background)",
+          borderBottom: "1px solid var(--ds-border)",
         }}>
-          {/* Label spacer */}
+          {/* Label-column spacer */}
           <div style={{
             width: LABEL_W, flexShrink: 0,
             position: "sticky", left: 0, zIndex: 5,
-            background: BG, borderRight: BDR,
+            background: "var(--ds-background)",
+            borderRight: "1px solid var(--ds-border)",
           }} />
 
-          {/* Tick buttons */}
+          {/* Tick area */}
           <div style={{ flex: 1, position: "relative" }}>
-            {hourTicks.map(({ label, min }) => {
+            {hourTicks.map(({ label, min, pctS }) => {
               const isAs = min === asOf
               return (
                 <button
@@ -226,23 +225,23 @@ export default function GanttTimeline({ onHourClick }: Props) {
                   aria-label={`Set AS-OF to ${label}:00`}
                   title={`Set AS-OF to ${label}:00`}
                   style={{
-                    position: "absolute", left: pct(min), top: 0, height: "100%",
+                    position: "absolute", left: pctS, top: 0, height: "100%",
                     transform: "translateX(-50%)",
                     display: "flex", flexDirection: "column",
                     alignItems: "center", justifyContent: "center", gap: 1,
                     background: "transparent", border: "none",
-                    cursor: "pointer", padding: "0 6px",
+                    cursor: "pointer", padding: "0 4px",
                   }}
                 >
                   <span style={{
-                    display: "block", width: 1, height: 4, flexShrink: 0,
+                    display: "block", width: 1, height: 3, flexShrink: 0,
                     background: isAs ? "var(--ds-accent)" : "var(--ds-decorative)",
                   }} />
                   <span style={{
-                    fontSize: 10, lineHeight: 1.1,
-                    fontWeight: isAs ? 700 : 500,
+                    fontSize: 9, lineHeight: 1.2,
+                    fontWeight: isAs ? 700 : 400,
                     fontFamily: "var(--font-mono)",
-                    color: isAs ? "var(--ds-accent)" : "var(--ds-subtle)",
+                    color: isAs ? "var(--ds-accent)" : "var(--ds-decorative)",
                     letterSpacing: "0.02em",
                   }}>
                     {label}
@@ -251,7 +250,7 @@ export default function GanttTimeline({ onHourClick }: Props) {
               )
             })}
 
-            {/* End tick at 05:30 */}
+            {/* End tick 05:30 */}
             <div style={{
               position: "absolute", right: 0, top: 0, height: "100%",
               transform: "translateX(50%)",
@@ -259,24 +258,24 @@ export default function GanttTimeline({ onHourClick }: Props) {
               alignItems: "center", justifyContent: "center", gap: 1,
               pointerEvents: "none",
             }}>
-              <span style={{ display: "block", width: 1, height: 4, background: "var(--ds-decorative)" }} />
-              <span style={{ fontSize: 9, fontWeight: 500, fontFamily: "var(--font-mono)", color: "var(--ds-subtle)" }}>05:30</span>
+              <span style={{ display: "block", width: 1, height: 3, background: "var(--ds-decorative)" }} />
+              <span style={{ fontSize: 8, fontFamily: "var(--font-mono)", color: "var(--ds-decorative)" }}>
+                05:30
+              </span>
             </div>
 
-            {/* Live now line in axis */}
+            {/* Live now-line in axis */}
             <div aria-hidden="true" style={{
-              position: "absolute", left: livePct,
-              top: 0, bottom: 0, width: 1.5,
-              background: "var(--ds-accent)", opacity: 0.9,
-              pointerEvents: "none", zIndex: 2,
+              position: "absolute", left: livePctS, top: 0, bottom: 0,
+              width: 1.5, background: "var(--ds-accent)", opacity: 0.9,
+              pointerEvents: "none", zIndex: 3,
             }} />
 
-            {/* AS-OF line in axis */}
+            {/* AS-OF ghost line in axis */}
             <div aria-hidden="true" style={{
-              position: "absolute", left: asPct,
-              top: 0, bottom: 0, width: 1,
-              background: "var(--ds-accent)", opacity: 0.35,
-              pointerEvents: "none", zIndex: 1,
+              position: "absolute", left: asPctS, top: 0, bottom: 0,
+              width: 1, background: "var(--ds-accent)", opacity: 0.3,
+              pointerEvents: "none", zIndex: 2,
             }} />
           </div>
         </div>
@@ -287,18 +286,21 @@ export default function GanttTimeline({ onHourClick }: Props) {
             key={lane.key}
             style={{
               display: "flex",
-              height: ROW_H + 4,
-              borderBottom: laneIdx < laneSteps.length - 1 ? BDRL : BDR,
+              height: ROW_H,
+              borderBottom: laneIdx < laneSteps.length - 1
+                ? "1px solid var(--ds-border-lt)"
+                : "1px solid var(--ds-border)",
             }}
           >
-            {/* ── Sticky label ─────────────────────────────────────────────── */}
+            {/* ── Label ──────────────────────────────────────────────────── */}
             <div style={{
               width: LABEL_W, flexShrink: 0,
               position: "sticky", left: 0, zIndex: 2,
-              background: SFC, borderRight: BDR,
+              background: "var(--ds-surface)",
+              borderRight: "1px solid var(--ds-border)",
               display: "flex", flexDirection: "column",
               justifyContent: "center",
-              paddingLeft: 10, gap: 1,
+              padding: "0 0 0 8px", gap: 1,
             }}>
               <span style={{
                 fontSize: 11, fontWeight: 700, lineHeight: 1.2,
@@ -308,62 +310,70 @@ export default function GanttTimeline({ onHourClick }: Props) {
                 {lane.label}
               </span>
               <span style={{
-                fontSize: 9.5, lineHeight: 1.2,
-                color: "var(--ds-subtle)", whiteSpace: "nowrap",
+                fontSize: 9, lineHeight: 1.2,
+                color: "var(--ds-decorative)",
+                whiteSpace: "nowrap",
               }}>
-                {lane.steps.length} steps allocated
+                {lane.steps.length} steps
               </span>
             </div>
 
-            {/* ── Timeline track ───────────────────────────────────────────── */}
-            <div style={{ flex: 1, position: "relative", overflow: "hidden", background: SFC }}>
+            {/* ── Track ──────────────────────────────────────────────────── */}
+            <div style={{
+              flex: 1, position: "relative", overflow: "hidden",
+              background: "var(--ds-surface)",
+            }}>
 
-              {/* Hour grid lines */}
-              {hourTicks.map(({ label, min }) => (
+              {/* Ghost gridlines — 0.5 px, border-lt, subordinate to bars */}
+              {hourTicks.map(({ label, pctS }) => (
                 <div key={label} aria-hidden="true" style={{
-                  position: "absolute", left: pct(min),
-                  top: 0, bottom: 0, width: 1,
-                  background: "var(--ds-border-lt)", pointerEvents: "none",
+                  position: "absolute", left: pctS, top: 0, bottom: 0,
+                  width: 0.5,
+                  background: "var(--ds-border-lt)",
+                  pointerEvents: "none",
                 }} />
               ))}
 
-              {/* AS-OF line */}
+              {/* AS-OF ghost */}
               <div aria-hidden="true" style={{
-                position: "absolute", left: asPct,
-                top: 0, bottom: 0, width: 1,
-                background: "var(--ds-accent)", opacity: 0.22,
+                position: "absolute", left: asPctS, top: 0, bottom: 0,
+                width: 1, background: "var(--ds-accent)", opacity: 0.15,
                 pointerEvents: "none", zIndex: 2,
               }} />
 
-              {/* Live now line */}
+              {/* Live now-line */}
               <div aria-hidden="true" style={{
-                position: "absolute", left: livePct,
-                top: 0, bottom: 0, width: 1.5,
-                background: "var(--ds-accent)", opacity: 0.9,
+                position: "absolute", left: livePctS, top: 0, bottom: 0,
+                width: 1.5, background: "var(--ds-accent)", opacity: 0.9,
                 pointerEvents: "none", zIndex: 5,
               }} />
 
-              {/* ── Job bars ─────────────────────────────────────────────── */}
+              {/* ── Bars ────────────────────────────────────────────────── */}
               {lane.steps.map(step => {
                 const cfg = OP_CFG[step.op] ?? FALLBACK_CFG
                 const ph  = barPhase(step.startMin, step.endMin, asOf)
 
-                const barH   = ph === "passed" ? SLIVER_H : ROW_H + 4
-                const barTop = ph === "passed" ? ((ROW_H + 4 - SLIVER_H) / 2) : 0
+                // Height & vertical position
+                const barH   = ph === "passed" ? SLIVER_H : BAR_H
+                const barTop = ph === "passed"
+                  ? (ROW_H - SLIVER_H) / 2
+                  : (ROW_H - BAR_H) / 2        // 2 px inset top & bottom
 
-                let bg: string, border: string, opacity = 1
+                // Color
+                let bg: string, border: string, opacity: number
                 if (ph === "ahead") {
-                  bg = cfg.tint; border = `1.5px solid ${cfg.color}`; opacity = 0.8
+                  bg = cfg.tint; border = `1px solid ${cfg.color}`; opacity = 0.8
                 } else if (ph === "crossing") {
-                  bg = cfg.color; border = "none"
+                  bg = cfg.color; border = "none"; opacity = 1
                 } else {
-                  bg = "var(--ds-decorative)"; border = "none"
+                  bg = "var(--ds-decorative)"; border = "none"; opacity = 1
                 }
 
-                const dur  = (step.endMin - step.startMin) / SHIFT_DURATION_MIN * 100
-                const barW = `${Math.max(0.5, dur).toFixed(3)}%`
-                const barL = pct(step.startMin)
-                const tip  = `${step.id} · ${cfg.label} · ${lane.label} · ${step.startMin % 60 === 0 ? step.startMin / 60 : (step.startMin / 60).toFixed(1)}h · ${step.status}`
+                // Horizontal: percentage width, then subtract 2 px gap (1 px each side)
+                const durPct = Math.max(0.5, (step.endMin - step.startMin) / SHIFT_DURATION_MIN * 100)
+                const leftPct = pctNum(step.startMin).toFixed(3)
+
+                const tip = `${step.id} · ${cfg.label} · ${lane.label} · ${step.status}`
 
                 return (
                   <div
@@ -373,12 +383,20 @@ export default function GanttTimeline({ onHourClick }: Props) {
                     title={tip}
                     style={{
                       position: "absolute",
-                      left: barL, width: barW,
-                      top: barTop, height: barH,
-                      background: bg, border,
-                      borderRadius: 3, boxSizing: "border-box",
+                      // 1 px gap on left side
+                      left: `calc(${leftPct}% + 1px)`,
+                      // shrink by 2 px total for the gaps
+                      width: `calc(${durPct.toFixed(3)}% - 2px)`,
+                      top: barTop,
+                      height: barH,
+                      background: bg,
+                      border,
+                      borderRadius: 2,
+                      boxSizing: "border-box",
                       opacity,
-                      transition: noMotion ? "none" : "height 0.35s ease, top 0.35s ease, opacity 0.25s ease",
+                      transition: noMotion
+                        ? "none"
+                        : "height 0.35s ease, top 0.35s ease, opacity 0.25s ease",
                       zIndex: ph === "crossing" ? 3 : 1,
                       cursor: "default",
                     }}
@@ -391,22 +409,23 @@ export default function GanttTimeline({ onHourClick }: Props) {
 
         {/* ── Phase legend ─────────────────────────────────────────────────── */}
         <div style={{
-          display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12,
-          padding: `4px 10px`, paddingLeft: LABEL_W + 10,
-          background: BG, borderTop: BDRL,
+          display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10,
+          padding: "3px 8px", paddingLeft: LABEL_W + 8,
+          background: "var(--ds-background)",
+          borderTop: "1px solid var(--ds-border-lt)",
         }}>
-          {[
-            { w: 14, h: 8, bg: "#dbeafe", border: "1.5px solid #2563eb", op: 0.8, label: "Planned (ahead)" },
-            { w: 14, h: 8, bg: "#2563eb", border: "none",                 op: 1,   label: "In progress"     },
-            { w: 14, h: 4, bg: "var(--ds-decorative)", border: "none",    op: 1,   label: "Done (trail)"    },
-          ].map(l => (
-            <span key={l.label} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          {([
+            { w: 12, h: 6,  bg: "#dbeafe", border: "1px solid #2563eb", op: 0.8, label: "Planned"     },
+            { w: 12, h: 6,  bg: "#2563eb", border: "none",               op: 1,   label: "In progress" },
+            { w: 12, h: 3,  bg: "var(--ds-decorative)", border: "none",  op: 1,   label: "Done"        },
+          ] as const).map(l => (
+            <span key={l.label} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
               <span aria-hidden="true" style={{
                 display: "inline-block", width: l.w, height: l.h,
                 background: l.bg, border: l.border,
-                opacity: l.op, borderRadius: 2, flexShrink: 0,
+                opacity: l.op, borderRadius: 1, flexShrink: 0,
               }} />
-              <span style={{ fontSize: 10, fontWeight: 500, color: "var(--ds-subtle)", letterSpacing: "0.02em" }}>
+              <span className="ds-label" style={{ color: "var(--ds-decorative)", textTransform: "none" }}>
                 {l.label}
               </span>
             </span>
