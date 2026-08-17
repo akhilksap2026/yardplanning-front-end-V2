@@ -10,7 +10,7 @@ import { adaptMoveForDisplay, REASON_LABELS } from "@/lib/backend-adapters"
 import { checkPlacementRules } from "@/lib/placement-rules"
 import { backendApi } from "@/lib/backend-api"
 import type { BackendPlanDetail } from "@/lib/backend-api"
-import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type PlanningStep } from "@/data/planningData"
+import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type PlanningStep, PLAN_CODE, SHIFT_HORIZON, GANTT_HOURS, SHIFT_START_MIN, SHIFT_DURATION_MIN } from "@/data/planningData"
 import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
 import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, isExtraMovement, getStatusStyle, getDisplayContainerId, isAnonymousContainer, generateWhyText } from "@/utils/displayLabels"
 import { useLang } from "@/lib/i18n"
@@ -29,7 +29,7 @@ const WEIGHTS = [
   { k: "Detention exposure",    v: "0.15", pct: 15 },
 ]
 
-const HOURS = ["06","07","08","09","10","11","12","13"]
+const HOURS = GANTT_HOURS
 
 const PLAN_STATUS_VARIANT: Record<string, "brand" | "muted" | "amber" | "green" | "red"> = {
   draft:       "muted",
@@ -183,7 +183,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
         id: "EV-PUB-" + String(Date.now()).slice(-6),
         time: `${hh}:${mm}`,
         type: "PLAN_PUBLISHED", severity: "low", state: "replanned", auto: "Manual",
-        title: `Plan P-2026-08-11 approved — ${allSteps.length} steps published`,
+        title: `Plan ${PLAN_CODE} approved — ${allSteps.length} steps published`,
         detail: `Yard Manager approved the planner. ${allSteps.filter(s=>s.step_status==="Blocked").length} blocked, ${allSteps.length} total.`,
         diff: { cancelled:0, added:0, reassigned:0, frozenKept:allSteps.filter(s=>s.step_status==="Blocked").length, deltaMin:0, adherence:0 },
       })
@@ -779,7 +779,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
             <div style={{ display:"flex", alignItems:"center", flexWrap:"wrap", gap:6, fontSize:11,
               color:"var(--ds-subtle)", marginBottom:10 }}>
               <code style={{ background:"var(--ds-border-lt)", borderRadius:3, padding:"2px 6px",
-                fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-primary)" }}>P-2026-08-11</code>
+                fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-primary)" }}>{PLAN_CODE}</code>
               <span style={{ color:"var(--ds-decorative)" }}>·</span>
               Generated <span style={{ fontFamily:"var(--font-mono)", marginLeft:3 }}>22:14</span>
               <span style={{ color:"var(--ds-decorative)" }}>·</span>
@@ -789,7 +789,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                 fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-primary)" }}>#a41f9c</code>
               <span style={{ color:"var(--ds-decorative)" }}>·</span>
               Horizon <code style={{ background:"var(--ds-border-lt)", borderRadius:3, padding:"2px 6px",
-                fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-primary)" }}>06:00–14:00</code>
+                fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-primary)" }}>{SHIFT_HORIZON}</code>
             </div>
           )}
           {planSource === "engine" && viewedPlan && (
@@ -1163,7 +1163,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
 
               {tab === "detail" && !selStep && (
                 <div style={{ padding:16, fontSize:12.5, color:"var(--ds-fg-secondary)", lineHeight:1.6 }}>
-                  {focus||q||"This container"} has no step in plan P-2026-08-11 — {allSteps.length} steps planned today.
+                  {focus||q||"This container"} has no step in plan {PLAN_CODE} — {allSteps.length} steps planned today.
                 </div>
               )}
 
@@ -1279,8 +1279,8 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                               onClick={()=>{setSel(sid);setTab("detail")}}
                               title={`${getDisplayContainerId(s)} · ${getDisplayOperation(s.operation)} · ${fmtIso(s.estimated_start)}–${fmtIso(s.estimated_end)}`}
                               style={{ position:"absolute", top:8, height:12, cursor:"pointer", borderRadius:2,
-                                left:(Math.max(0,startMin-360)/480*100).toFixed(2)+"%",
-                                width:Math.max(0.5,(endMin-startMin)/480*100).toFixed(2)+"%",
+                                left:(Math.max(0,startMin-SHIFT_START_MIN)/SHIFT_DURATION_MIN*100).toFixed(2)+"%",
+                                width:Math.max(0.5,(endMin-startMin)/SHIFT_DURATION_MIN*100).toFixed(2)+"%",
                                 background:sid===sel?"var(--ds-accent)":s.step_status==="Blocked"?"var(--ds-subtle)":"var(--ds-fg)" }}
                             />
                           )
@@ -1408,5 +1408,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
 function isoToMin(iso: string | null | undefined): number | null {
   if (!iso) return null
   const d = new Date(iso)
-  return d.getUTCHours() * 60 + d.getUTCMinutes()
+  const raw = d.getUTCHours() * 60 + d.getUTCMinutes()
+  // Shift crosses midnight: post-midnight hours (00:00–11:59) are "next day"
+  return raw < SHIFT_START_MIN ? raw + 1440 : raw
 }

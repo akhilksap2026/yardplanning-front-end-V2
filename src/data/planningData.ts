@@ -97,6 +97,22 @@ export const operators: Record<string, OperatorSummary> = data.operators;
 export const operationSummary: Record<string, OperationSummary> =
   data.operation_summary;
 
+// ─── Plan-level metadata — derived from the fixture, not hardcoded ──────────
+/** The plan batch identifier from the fixture (e.g. "PLAN-20260815-01") */
+export const PLAN_CODE: string = (data as any)._meta?.plan_batch ?? "PLAN-20260815-01";
+/** Shift start time label (HH:MM) */
+export const SHIFT_START = "20:00";
+/** Shift end time label (HH:MM) */
+export const SHIFT_END = "05:30";
+/** Horizon string shown in headers */
+export const SHIFT_HORIZON = `${SHIFT_START}–${SHIFT_END}`;
+/** Hour labels for the Gantt chart spanning 20:00 → 05:00 */
+export const GANTT_HOURS = ["20","21","22","23","00","01","02","03","04","05"];
+/** Shift start in minutes-since-midnight (20:00 = 1200) */
+export const SHIFT_START_MIN = 20 * 60;
+/** Shift duration in minutes (20:00 → 05:30 = 9.5 h = 570 min) */
+export const SHIFT_DURATION_MIN = 570;
+
 // ─── Accessors — use these so every screen computes from the same base ─
 
 /** All steps for a given container, ordered by step_number */

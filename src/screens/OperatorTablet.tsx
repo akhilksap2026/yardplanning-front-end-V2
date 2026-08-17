@@ -719,7 +719,7 @@ export default function OperatorTablet({ focus }: { focus?: string | null }) {
         <div className="flex flex-col gap-0.5">
           <span className="font-semibold text-[15px] tracking-tight">{t("operator.title")}</span>
           <span className="text-[11px] text-neutral-500">
-            {jockeyName} · {backendConnected ? "engine connected" : "shift 06:00–14:00"}
+            {jockeyName} · {backendConnected ? "engine connected" : "shift 20:00–05:30"}
           </span>
         </div>
         <div className="ml-auto flex gap-2">
