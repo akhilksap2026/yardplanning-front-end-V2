@@ -29,7 +29,7 @@ const PERSONAS_STATIC = [
   { id: "operator" as Persona, name: "Operator", sub: "Tablet · device-bound",         screens: ["operator"] as Screen[] },
 ]
 
-type NavGroupKey = "nav.group.todaysOps" | "nav.group.yard" | "nav.group.movement" | "nav.group.config"
+type NavGroupKey = "nav.group.todaysOps" | "nav.group.yard" | "nav.group.movement"
 
 const NAV_ITEMS: { id: Screen; groupKey: NavGroupKey; nameKey: string; alert?: boolean }[] = [
   { id: "liveops",  groupKey: "nav.group.todaysOps", nameKey: "nav.liveops",   alert: true },
@@ -38,11 +38,9 @@ const NAV_ITEMS: { id: Screen; groupKey: NavGroupKey; nameKey: string; alert?: b
   { id: "yard",     groupKey: "nav.group.yard",      nameKey: "nav.yard"                  },
   { id: "gate",     groupKey: "nav.group.movement",  nameKey: "nav.gate",      alert: true },
   { id: "operator", groupKey: "nav.group.movement",  nameKey: "nav.operator"              },
-
-  { id: "settings",   groupKey: "nav.group.config",    nameKey: "nav.settings"             },
 ]
 const NAV_GROUP_KEYS: NavGroupKey[] = [
-  "nav.group.todaysOps", "nav.group.yard", "nav.group.movement", "nav.group.config",
+  "nav.group.todaysOps", "nav.group.yard", "nav.group.movement",
 ]
 
 
@@ -486,20 +484,21 @@ function AppShell() {
               {refreshing ? t("app.syncing_btn") : t("app.refresh")}
             </button>
 
-            {/* Bell — navigates to Control Tower event list */}
+            {/* Gear — opens Settings */}
             <button
-              aria-label={t("app.notifications")}
-              onClick={() => navigate("tower")}
+              aria-label={t("nav.settings")}
+              onClick={() => navigate("settings")}
               className="flex items-center justify-center"
               style={{
                 width: 32, height: 32,
-                fontSize: 14, color: "var(--ds-subtle)",
-                background: "var(--ds-surface-hover)",
-                border: "1px solid var(--ds-border)",
+                fontSize: 16, lineHeight: 1,
+                color: screen === "settings" ? "var(--ds-accent)" : "var(--ds-subtle)",
+                background: screen === "settings" ? "var(--ds-accent-bg)" : "var(--ds-surface-hover)",
+                border: `1px solid ${screen === "settings" ? "var(--ds-accent)" : "var(--ds-border)"}`,
                 borderRadius: 6,
               }}
             >
-              🔔
+              ⚙
             </button>
           </div>
         </div>

@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react"
 import TabBar             from "@/components/ui/TabBar"
-import WeightFactorsTab   from "./settings/WeightFactorsTab"
-import PriorityFactorsTab from "./settings/PriorityFactorsTab"
 import AdapterHealthTab   from "./settings/AdapterHealthTab"
 import MasterDataTab      from "./settings/MasterDataTab"
 import RolesTab           from "./settings/RolesTab"
@@ -14,11 +12,10 @@ import { useLang }        from "@/lib/i18n"
 type EngineSubTab = "solver" | "optimizer"
 
 export default function SettingsScreen({ focus }: { focus?: string | null }) {
-  const [tab, setTab]           = useState("weights")
+  const [tab, setTab]           = useState("connections")
 
-  // Demo story hint: step 4 — show weights tab
   useEffect(() => {
-    if (focus === "demo:weights") setTab("weights")
+    if (focus === "demo:weights") setTab("connections")
   }, [focus])
   const { backendConnected }    = useData()
   const [engineSub, setEngineSub] = useState<EngineSubTab>("solver")
@@ -28,7 +25,6 @@ export default function SettingsScreen({ focus }: { focus?: string | null }) {
   const { t, lang, setLang } = useLang()
 
   const TABS = [
-    { id: "weights",    label: t("settings.tab.weights"),     desc: t("settings.tab.weights.desc")     },
     { id: "connections",label: t("settings.tab.connections"), desc: t("settings.tab.connections.desc") },
     { id: "yard",       label: t("settings.tab.yard"),        desc: t("settings.tab.yard.desc")        },
     { id: "roles",      label: t("settings.tab.roles"),       desc: t("settings.tab.roles.desc")       },
@@ -65,22 +61,6 @@ export default function SettingsScreen({ focus }: { focus?: string | null }) {
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-
-        {(tab === "weights" || tab === "weights-seed" || tab === "weights-live") && (
-          <>
-            {/* Sub-tabs: seed weights vs live backend weights */}
-            <TabBar
-              variant="compact"
-              active={tab === "weights-live" ? "live" : "seed"}
-              onChange={id => setTab(id === "seed" ? "weights-seed" : "weights-live")}
-              items={[
-                { id: "seed", label: t("settings.demoWeights") },
-                { id: "live", label: t("settings.liveWeights") + (!backendConnected ? ` (${t("common.offline")})` : "") },
-              ]}
-            />
-            {tab === "weights-live" ? <PriorityFactorsTab /> : <WeightFactorsTab />}
-          </>
-        )}
 
         {tab === "connections" && <AdapterHealthTab />}
         {tab === "yard"        && <MasterDataTab />}
