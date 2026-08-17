@@ -48,6 +48,8 @@ export const es: Record<string, string> = {
   "nav.yard":                "Mapa del Patio",
   "nav.gate":                "Puerta & Turnos",
   "nav.operator":            "Tablet del Operador",
+  "nav.optimizer":           "Calidad del Plan",
+  "nav.scorecard":           "Cuadro de Turno",
   "nav.settings":            "Configuración",
 
   // ── Language picker ───────────────────────────────────────────────────────

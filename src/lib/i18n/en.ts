@@ -48,6 +48,8 @@ export const en: Record<string, string> = {
   "nav.yard":                "Yard Map",
   "nav.gate":                "Gate & Appointments",
   "nav.operator":            "Operator Tablet",
+  "nav.optimizer":           "Plan Quality",
+  "nav.scorecard":           "Scorecard",
   "nav.settings":            "Settings",
 
   // ── Language picker ───────────────────────────────────────────────────────
