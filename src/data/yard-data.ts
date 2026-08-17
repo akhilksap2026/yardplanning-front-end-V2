@@ -331,7 +331,7 @@ function buildMoves(): Move[] {
   const out: Move[] = [];
   let t = 6 * 60;
   const onShift = _OPERATORS_BASE.filter(o => o.status === "on shift");
-  for (let i = 1; i <= 96; i++) {
+  for (let i = 1; i <= 172; i++) {
     const type = pick(MOVE_TYPES);
     const c = pick(_CONTAINERS_BASE);
     const op = pick(onShift);
@@ -366,7 +366,7 @@ const _builtMoves = buildMoves()
 // Remove or replace with a real move before using in production.
 const _demoContainer = _CONTAINERS_BASE.find(c => c.zone === "A" && !c.empty && c.grossKg > 20000) ?? _CONTAINERS_BASE[0]
 const DEMO_ILLEGAL_MOVE: Move = {
-  id: "MV-9001", seq: 97, type: "RESHUFFLE",
+  id: "MV-9001", seq: 173, type: "RESHUFFLE",
   containerId: _demoContainer.id,
   from: _demoContainer.address,
   to: "A-03-2-5-4",   // tier=4, row=2 → Rule B: tier 4 not permitted beyond row 1
@@ -384,7 +384,7 @@ const _40gpBelow = _CONTAINERS_BASE.find(c => c.size === "40GP" && c.tier === 1 
 const _20gpMover = _CONTAINERS_BASE.find(c => c.size === "20GP" && !c.empty && c.id !== _40gpBelow?.id)
 const DEMO_SIZE_MISMATCH_MOVE: Move | undefined = _40gpBelow && _20gpMover
   ? {
-      id: "MV-9002", seq: 98, type: "RESHUFFLE",
+      id: "MV-9002", seq: 174, type: "RESHUFFLE",
       containerId: _20gpMover.id,
       from: _20gpMover.address,
       // Destination: one tier above the 40GP container → Rule C fires

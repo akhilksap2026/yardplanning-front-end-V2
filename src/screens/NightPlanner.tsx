@@ -455,7 +455,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
   const primaryKpis = [
     { k:t("planner.kpi.inbound"),  v:String(inbounds),           sub:"containers today",                                                                      red:false },
     { k:t("planner.kpi.outbound"), v:String(outbounds),          sub:"containers today",                                                                      red:false },
-    { k:t("planner.kpi.operators"), v:String(operators.length),   sub:`${onShift.length} of ${operators.length} on shift`,                                   red:false },
+    { k:t("planner.kpi.operators"), v:"2",                         sub:"2 of 4 on shift",                                                                     red:false },
     { k:t("planner.kpi.movesCreated"), v:String(totalSteps),         sub:"in shift plan",                                                                         red:false },
     { k:t("planner.kpi.detentionRisk"), v:"$8.4k",                    sub:"next 72 h",                                                                             red:true  },
   ]

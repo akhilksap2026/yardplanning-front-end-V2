@@ -165,7 +165,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
     } finally { setPatchingMove(null) }
   }
 
-  const activeDiffRows  = engineDiffRows ?? diffRows
+  const activeDiffRows  = engineDiffRows ?? (selEvent?.diffRows ?? [])
   const activeDiffStats = engineDiffStats ?? (selEvent ? selEvent.diff : null)
 
   if (!selEvent) return (
@@ -297,7 +297,7 @@ export default function ControlTower({ focus, onNavigate }: Props) {
           </div>
 
           {/* ── Main grid ──────────────────────────────────────────────────── */}
-          <div className="grid flex-1 min-h-0 overflow-hidden" style={{ gridTemplateColumns: "clamp(260px,28vw,360px) minmax(340px,1fr)" }}>
+          <div className="grid flex-1 min-h-0 overflow-hidden" style={{ gridTemplateColumns: "clamp(340px,38vw,480px) minmax(340px,1fr)" }}>
 
             {/* ── Left: event list ─────────────────────────────────────────── */}
             <div className="border-r border-[var(--ds-border)] flex flex-col overflow-hidden bg-white">

@@ -97,21 +97,104 @@ export const APPOINTMENTS = Array.from({ length: 16 }, (_, i) => {
   return { window: String(hour).padStart(2,"0") + ":" + half, capacity: cap, booked, noShow: i===5?1:0, over: booked>cap };
 });
 
+export type DiffRowEntry = { moveId: string; action: string; type?: string; before: string; after: string; note: string }
+
 export interface Event {
   id: string; time: string; type: string; severity: string; state: string; auto: string;
   title: string; detail: string;
   diff: { cancelled: number; added: number; reassigned: number; frozenKept: number; deltaMin: number; adherence: number };
+  diffRows?: DiffRowEntry[];
 }
 
 const _EVENTS_BASE: Event[] = [
-  { id:"EV-7741", time:"06:07", type:"EQUIPMENT_FAILURE", severity:"high", state:"replanned", auto:"Partial", title:"RS-03 hydraulic fault — out of service", detail:"Hyster RS46 reported a hydraulic fault at row C-02. 14 assigned moves redistributed across RS-01 and RS-02; one IMDG retrieval escalated because OP-114 is the sole certified operator on shift.", diff:{cancelled:0,added:2,reassigned:14,frozenKept:5,deltaMin:26,adherence:-4} },
-  { id:"EV-7742", time:"06:19", type:"CUSTOMS_CHANNEL_ASSIGNED", severity:"high", state:"replanned", auto:"Auto", title:"MSCU4419307 assigned orange channel", detail:"ARCA selectivity returned Sea channel. Container routed to inspection bay, reserved staging slot released and backfilled with the next LFD-critical unit. Dwell forecast extended 4.1 days, which re-tiers its slot assignment to deep-and-low.", diff:{cancelled:1,added:3,reassigned:2,frozenKept:0,deltaMin:11,adherence:-1} },
-  { id:"EV-7743", time:"06:24", type:"SHIP_DELAY", severity:"medium", state:"suppressed", auto:"Auto", title:"MSC LUCIA V.412E ETA slipped 45 min", detail:"Projected saving from resequencing is 3.2 machine-minutes, below the 8-minute minimum improvement threshold. Replan suppressed by the stability controller; the baseline holds and operators see no change.", diff:{cancelled:0,added:0,reassigned:0,frozenKept:12,deltaMin:3.2,adherence:0} },
-  { id:"EV-7744", time:"06:31", type:"DEPOT_REDIRECTION", severity:"medium", state:"replanned", auto:"Auto, notify", title:"CMAU9963816 redirected to Pilar Interior", detail:"CMA CGM redirected the empty return from Dock Sud Depot to Pilar Interior, window 07:30–16:00. Empty-return sequence replanned, driver notified by WhatsApp, depot appointment rebooked.", diff:{cancelled:1,added:1,reassigned:1,frozenKept:0,deltaMin:4,adherence:0} },
-  { id:"EV-7745", time:"06:38", type:"CONTAINER_NOT_FOUND", severity:"medium", state:"replanned", auto:"Manual", title:"HLXU7959453 found at B-04-2-5-2 — map corrected", detail:"OP-207 reported the original slot empty. Guided search found the container two positions forward at B-04-2-5-2. WMS map updated; retrieval order reinstated and replanned for 08:30. No free-time impact.", diff:{cancelled:0,added:1,reassigned:1,frozenKept:0,deltaMin:9,adherence:-1} },
-  { id:"EV-7746", time:"06:44", type:"APPOINTMENT_NO_SHOW", severity:"low", state:"replanned", auto:"Auto", title:"V-2038 no-show at 06:15 window", detail:"Slot released back to the appointment engine and offered to the 07:00 waitlist. Carrier no-show rate now 6.2% over 30 days.", diff:{cancelled:1,added:0,reassigned:0,frozenKept:0,deltaMin:5,adherence:0} },
-  { id:"EV-7747", time:"05:58", type:"DETENTION_BREACH", severity:"medium", state:"replanned", auto:"Auto", title:"MSCU4419307 last-free-day passed 2 h ago — retrieval sequenced", detail:"Tariff moved into Tier 2 at $90/day; $180 accrued. Retrieval sequenced for 07:10 with the reserved staging slot released to backfill. Empty return window at Depósito Zárate is 07:00–15:00; on track to close within shift.", diff:{cancelled:0,added:1,reassigned:3,frozenKept:4,deltaMin:6,adherence:-1} },
-  { id:"EV-7748", time:"06:38", type:"AUDIT_DISCREPANCY", severity:"medium", state:"awaiting", auto:"Manual", title:"HLXU7959453 not at B-04-2-7-2", detail:"Cycle-count task YA-311 raised. Guided search issued to OP-231 with four ranked candidates. Linked order is held and the retrieval move is cancelled until the map is corrected.", diff:{cancelled:2,added:1,reassigned:0,frozenKept:0,deltaMin:0,adherence:-3} }
+  {
+    id:"EV-7741", time:"06:07", type:"EQUIPMENT_FAILURE", severity:"high", state:"replanned", auto:"Partial",
+    title:"RS-03 hydraulic fault — out of service",
+    detail:"Hyster RS46 reported a hydraulic fault at row C-02. 14 assigned moves redistributed across RS-01 and RS-02; one IMDG retrieval escalated because OP-114 is the sole certified operator on shift.",
+    diff:{cancelled:0,added:2,reassigned:14,frozenKept:5,deltaMin:26,adherence:-4},
+    diffRows:[
+      { moveId:"MV-1032", action:"REASSIGNED", type:"Retrieve",            before:"RS-03 · L. Duarte · 06:42",  after:"RS-01 · R. Giménez · 06:48", note:"Nearest capable machine; sequence continuity kept." },
+      { moveId:"MV-1034", action:"REASSIGNED", type:"Rehandle",            before:"RS-03 · L. Duarte · 06:51",  after:"RS-02 · M. Sosa · 06:55",    note:"Within reassignment cap (2/hour) for this operator." },
+      { moveId:"MV-1039", action:"ADDED",      type:"Move to inspection",  before:"—",                          after:"RS-01 · R. Giménez · 07:10",  note:"Orange channel: inspection bay booked 10:00." },
+      { moveId:"MV-1041", action:"CANCELLED",  type:"Retrieve",            before:"RS-02 · M. Sosa · 07:04",   after:"—",                           note:"Reserved staging slot released, order re-promised." },
+      { moveId:"MV-1044", action:"HELD",       type:"Load out",            before:"RS-01 · R. Giménez · 06:22", after:"unchanged",                  note:"In progress on the spreader — never cancelled." },
+      { moveId:"MV-1047", action:"ADDED",      type:"Pre-marshal",         before:"—",                          after:"RS-02 · M. Sosa · 07:22",    note:"Idle window absorbs the redistributed load." },
+    ],
+  },
+  {
+    id:"EV-7742", time:"06:19", type:"CUSTOMS_CHANNEL_ASSIGNED", severity:"high", state:"replanned", auto:"Auto",
+    title:"MSCU4419307 assigned orange channel",
+    detail:"ARCA selectivity returned Sea channel. Container routed to inspection bay, reserved staging slot released and backfilled with the next LFD-critical unit. Dwell forecast extended 4.1 days, which re-tiers its slot assignment to deep-and-low.",
+    diff:{cancelled:1,added:3,reassigned:2,frozenKept:0,deltaMin:11,adherence:-1},
+    diffRows:[
+      { moveId:"MV-1041", action:"CANCELLED",  type:"Retrieve",   before:"RS-02 · M. Sosa · 07:04",    after:"—",                            note:"Staging slot for MSCU4419307 released; backfilled with LFD-critical unit." },
+      { moveId:"MV-1053", action:"ADDED",      type:"Inspection", before:"—",                           after:"RS-01 · R. Giménez · 07:15",   note:"Orange channel: inspection bay booked for 10:00 window." },
+      { moveId:"MV-1056", action:"ADDED",      type:"Pre-marshal",before:"—",                           after:"RS-02 · M. Sosa · 08:10",      note:"Backfill pre-marshal for released staging slot." },
+      { moveId:"MV-1058", action:"ADDED",      type:"Retrieve",   before:"—",                           after:"RS-01 · R. Giménez · 09:30",   note:"Post-inspection retrieval sequenced after clearance." },
+      { moveId:"MV-1032", action:"REASSIGNED", type:"Retrieve",   before:"RS-03 · L. Duarte · 06:42",  after:"RS-01 · R. Giménez · 06:50",   note:"Slot re-tiered to deep-and-low; operator shifted." },
+      { moveId:"MV-1044", action:"REASSIGNED", type:"Load out",   before:"RS-01 · R. Giménez · 06:22", after:"RS-02 · M. Sosa · 06:30",      note:"Load-out priority bumped to accommodate inspection hold." },
+    ],
+  },
+  {
+    id:"EV-7743", time:"06:24", type:"SHIP_DELAY", severity:"medium", state:"suppressed", auto:"Auto",
+    title:"MSC LUCIA V.412E ETA slipped 45 min",
+    detail:"Projected saving from resequencing is 3.2 machine-minutes, below the 8-minute minimum improvement threshold. Replan suppressed by the stability controller; the baseline holds and operators see no change.",
+    diff:{cancelled:0,added:0,reassigned:0,frozenKept:12,deltaMin:3.2,adherence:0},
+    // suppressed — detail panel shows "No replan published" copy; no rows needed
+  },
+  {
+    id:"EV-7744", time:"06:31", type:"DEPOT_REDIRECTION", severity:"medium", state:"replanned", auto:"Auto, notify",
+    title:"CMAU9963816 redirected to Pilar Interior",
+    detail:"CMA CGM redirected the empty return from Dock Sud Depot to Pilar Interior, window 07:30–16:00. Empty-return sequence replanned, driver notified by WhatsApp, depot appointment rebooked.",
+    diff:{cancelled:1,added:1,reassigned:1,frozenKept:0,deltaMin:4,adherence:0},
+    diffRows:[
+      { moveId:"MV-1036", action:"CANCELLED",  type:"Empty return", before:"RS-02 · M. Sosa · 06:55",   after:"—",                          note:"Dock Sud Depot return cancelled; order redirected to Pilar Interior." },
+      { moveId:"MV-1059", action:"ADDED",      type:"Empty return", before:"—",                          after:"RS-02 · M. Sosa · 07:35",   note:"Pilar Interior appointment rebooked for 07:30 window; driver notified via WhatsApp." },
+      { moveId:"MV-1034", action:"REASSIGNED", type:"Rehandle",     before:"RS-03 · L. Duarte · 06:51", after:"RS-02 · M. Sosa · 07:50",   note:"Sequence adjusted to meet Pilar Interior depot window 07:30–16:00." },
+    ],
+  },
+  {
+    id:"EV-7745", time:"06:38", type:"CONTAINER_NOT_FOUND", severity:"medium", state:"replanned", auto:"Manual",
+    title:"HLXU7959453 found at B-04-2-5-2 — map corrected",
+    detail:"OP-207 reported the original slot empty. Guided search found the container two positions forward at B-04-2-5-2. WMS map updated; retrieval order reinstated and replanned for 08:30. No free-time impact.",
+    diff:{cancelled:0,added:1,reassigned:1,frozenKept:0,deltaMin:9,adherence:-1},
+    diffRows:[
+      { moveId:"MV-1045", action:"REASSIGNED", type:"Retrieve", before:"B-04-2-7-2 · 08:00", after:"B-04-2-5-2 · 08:30", note:"WMS map corrected; retrieval order reinstated to confirmed address." },
+      { moveId:"MV-1046", action:"ADDED",      type:"Verify",   before:"—",                  after:"OP-207 · 06:40",      note:"Guided-search confirmation dispatch; no free-time impact." },
+    ],
+  },
+  {
+    id:"EV-7746", time:"06:44", type:"APPOINTMENT_NO_SHOW", severity:"low", state:"replanned", auto:"Auto",
+    title:"V-2038 no-show at 06:15 window",
+    detail:"Slot released back to the appointment engine and offered to the 07:00 waitlist. Carrier no-show rate now 6.2% over 30 days.",
+    diff:{cancelled:1,added:0,reassigned:0,frozenKept:0,deltaMin:5,adherence:0},
+    diffRows:[
+      { moveId:"MV-1038", action:"CANCELLED", type:"Gate in", before:"Lane S-02 · 06:15", after:"—", note:"No-show slot released to 07:00 waitlist; carrier no-show rate updated to 6.2%." },
+    ],
+  },
+  {
+    id:"EV-7747", time:"05:58", type:"DETENTION_BREACH", severity:"medium", state:"replanned", auto:"Auto",
+    title:"MSCU4419307 last-free-day passed 2 h ago — retrieval sequenced",
+    detail:"Tariff moved into Tier 2 at $90/day; $180 accrued. Retrieval sequenced for 07:10 with the reserved staging slot released to backfill. Empty return window at Depósito Zárate is 07:00–15:00; on track to close within shift.",
+    diff:{cancelled:0,added:1,reassigned:3,frozenKept:4,deltaMin:6,adherence:-1},
+    diffRows:[
+      { moveId:"MV-1039", action:"ADDED",      type:"Retrieve", before:"—",                           after:"RS-01 · R. Giménez · 07:10",  note:"LFD retrieval sequenced; staging slot S-02-1-3-1 reserved." },
+      { moveId:"MV-1032", action:"REASSIGNED", type:"Retrieve", before:"RS-03 · L. Duarte · 06:42",  after:"RS-01 · R. Giménez · 06:50",  note:"LFD breach elevated retrieval priority above standard sequence." },
+      { moveId:"MV-1034", action:"REASSIGNED", type:"Rehandle", before:"RS-03 · L. Duarte · 06:51",  after:"RS-02 · M. Sosa · 07:00",    note:"Sequence shift to open staging window for LFD retrieval." },
+      { moveId:"MV-1047", action:"REASSIGNED", type:"Pre-marshal",before:"RS-02 · M. Sosa · 07:22", after:"RS-02 · M. Sosa · 07:35",    note:"Bumped back 13 min to absorb LFD-priority retrieval." },
+    ],
+  },
+  {
+    id:"EV-7748", time:"06:38", type:"AUDIT_DISCREPANCY", severity:"medium", state:"awaiting", auto:"Manual",
+    title:"HLXU7959453 not at B-04-2-7-2",
+    detail:"Cycle-count task YA-311 raised. Guided search issued to OP-231 with four ranked candidates. Linked order is held and the retrieval move is cancelled until the map is corrected.",
+    diff:{cancelled:2,added:1,reassigned:0,frozenKept:0,deltaMin:0,adherence:-3},
+    diffRows:[
+      { moveId:"MV-1045", action:"CANCELLED", type:"Retrieve", before:"B-04-2-7-2 · 08:00", after:"—",              note:"Retrieval cancelled — map address unverified; cycle-count YA-311 raised." },
+      { moveId:"MV-1046", action:"CANCELLED", type:"Load out", before:"RS-01 · R. Giménez · 08:15", after:"—",      note:"Linked outbound order held until location confirmed." },
+      { moveId:"MV-1047", action:"ADDED",     type:"Search",   before:"—",                  after:"OP-231 · 06:40", note:"Guided search task issued; four ranked candidates provided." },
+    ],
+  },
 ];
 
 export const DIFF_ROWS = [

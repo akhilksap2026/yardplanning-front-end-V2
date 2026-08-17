@@ -44,16 +44,20 @@ const EQUIP_SEEDS: EquipSeed[] = [
     subDefault: "A. Peña · shift 06:00–14:00",
     plannedStart: 360, plannedEnd: 840,
     owner: "Maint · A. Peña", nextDefault: "Return to Zone C moves after 07:15",
-    blockingFrom: 398, blockingUntil: 435,          // 06:38 – 07:15
-    blockingCause:  "Hydraulic fault — maintenance dispatched 06:38",
-    blockingImpact: "Zone C moves paused",
-    blockingNext:   "ETA back 07:15 · 14 moves redistributed",
+    blockingFrom: 360, blockingUntil: 840,          // 06:00 – 14:00 (off-site repair, full shift out)
+    blockingCause:  "Hydraulic fault — unit sent off-site for repair",
+    blockingImpact: "Zone C moves redistributed for shift",
+    blockingNext:   "Unit unavailable this shift · 14 moves redistributed",
   },
   {
     id: "RS-04", what: "Reach-stacker · Zone D",
     subDefault: "F. Ríos · shift 06:00–14:00",
     plannedStart: 360, plannedEnd: 840,
-    owner: "Ops · F. Ríos", nextDefault: "EH-01 load lane assigned",
+    owner: "Maint · F. Ríos", nextDefault: "Resume Zone D ops after 07:00",
+    blockingFrom: 360, blockingUntil: 840,          // 06:00 – 14:00 (extended maintenance window)
+    blockingCause:  "Scheduled maintenance — full-shift service window",
+    blockingImpact: "Zone D moves held for shift",
+    blockingNext:   "Unit unavailable this shift · Zone D loads redistributed",
   },
 ]
 
