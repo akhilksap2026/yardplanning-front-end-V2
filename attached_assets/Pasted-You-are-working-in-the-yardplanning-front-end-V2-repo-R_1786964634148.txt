@@ -1,0 +1,63 @@
+You are working in the yardplanning-front-end-V2 repo (React + TypeScript + Vite + Tailwind).
+
+GOAL: Replace the planning fixture with a new plan result from my planning engine —
+174 tasks, 72 containers, batch PLAN-20260815-01 — so every screen renders THIS plan.
+The data is already transformed into the app's exact schema. Your job is to swap it in
+cleanly and verify nothing breaks.
+
+═══════════════════════════════════════════════════════════════
+PHASE 1 — DISCOVERY (read only, change NOTHING)
+═══════════════════════════════════════════════════════════════
+1. Open src/data/planningData.ts and src/data/planningResults.json. Confirm the fixture
+   shape: { _meta, steps[], containers{}, operators{}, operation_summary{} } and the
+   PlanningStep interface. The attached file follows this schema EXACTLY — same field
+   names, same enum values.
+2. Find every place that hardcodes the old plan size or plan-specific values and list
+   them. Known candidates to check: dashboardCounts() consumers (total steps was 154,
+   will become 174), any screen that hardcodes operator names (old fixture: Aaliyah
+   Thompson, Tomas Silva, Deshawn Carter, Priya Nair, Marcus Reyes, Kayla Nguyen — new
+   plan: "J-1 Alex Rivera", "J-3 George Burns"), any hardcoded bay lists (old bays were
+   numeric 1–17 with lat/lng; new bays are string block codes like "DRY-A-B01" plus
+   "GATE / OFF-YARD" and "STAGING", lat/lng null), and src/data/demo-metrics.ts if it
+   exists (it references 154 moves — update its optimized "Moves" value to 174 and leave
+   everything else).
+3. Run `npm run build` and `npm run test` on the UNTOUCHED repo. If either fails, STOP
+   and report before changing anything.
+Then STOP and show me the Phase 1 report.
+
+═══════════════════════════════════════════════════════════════
+PHASE 2 — IMPLEMENTATION (after I approve the Phase 1 report)
+═══════════════════════════════════════════════════════════════
+GOLDEN RULES: the attached planningResults.json replaces src/data/planningResults.json
+VERBATIM — do not edit its contents, do not regenerate it, do not "fix" values in it.
+Run `npm run build` after each step; revert any step that breaks.
+
+STEP 1 — Swap the fixture
+  Replace src/data/planningResults.json with the attached file (174 steps, 72 containers,
+  2 operators). Do not touch planningData.ts — the schema is identical. Run `npm run build`.
+
+STEP 2 — Fix hardcoded references found in Phase 1
+  Update ONLY the hardcoded spots you listed (counts, operator names, bay assumptions,
+  demo-metrics.ts move count). Every screen that reads through planningData.ts accessors
+  (allSteps, containers, operators, operationSummary, dashboardCounts, stepsForContainer,
+  stepsForOperator, stepsByOperation) needs NO change — verify this is true and say so.
+  Run `npm run build` after each fix.
+
+STEP 3 — Verify
+  Run `npm run build` AND `npm run test` — both must pass. Then confirm:
+  □ Dashboard counts show 174 steps / 72 containers / 2 operators.
+  □ Operation summary shows: Putaway 116, Premarshal ahead of retrieval 36,
+    Digout to clear an overstow 15, Outbound staging and truck loading 7.
+  □ Move methods render: Crane lift 44, Yard-truck haul 60, Inspection 68,
+    Move to staging 2.
+  □ Every step has estimated_start/estimated_end (serial schedule per resource from
+    2026-08-15T20:00Z shift start) — timeline views must not show blanks.
+  □ All steps are status "Planned"; all steps carry plan_code "PLAN-20260815-01".
+  □ Yard map handles string bays ("DRY-A-B01" style) and lat/lng = null gracefully —
+    steps with null coordinates must not crash geo rendering (geoSteps() already filters
+    these; confirm no other map code path assumes coordinates).
+  □ Container journey views order by step_number (1..n per container, max 5).
+
+Give me a final report: files changed, build+test status, checklist green.
+
+THROUGHOUT: fixture swap is verbatim; no data-model changes; build after every step.
