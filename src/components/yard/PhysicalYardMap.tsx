@@ -711,6 +711,15 @@ export default function PhysicalYardMap({
             const barColor   =
               layout.occupancyPct > 85 ? YT.signalBreach :
               layout.occupancyPct > 70 ? YT.signalWarn : YT.signalOk
+            // Text-safe signal variants: the bright signal fills (barColor) pass WCAG 3:1
+            // for the graphical bar but fail 4.5:1 as TEXT on mid-toned fills (L≈0.60).
+            // Dark hue-bearing counterparts clear 5.5:1 across all nine zone fills.
+            //   ok:     #14532d green-900  5.6–5.8:1 ✓
+            //   warn:   #78350f amber-900  5.6–5.8:1 ✓
+            //   breach: #7f1d1d red-900    6.1–6.4:1 ✓
+            const barTextColor =
+              layout.occupancyPct > 85 ? "#7f1d1d" :
+              layout.occupancyPct > 70 ? "#78350f" : "#14532d"
             // congestion % shown as text (the visual hatch is at z5)
             const congestion = congestionByBlock?.get(layout.label) ?? 0
 
@@ -764,7 +773,9 @@ export default function PhysicalYardMap({
                       const w = worstLfdByBlock?.get(layout.label)
                       if (!w) return null
                       const [shape, color] = w === "breached" ? ["▲", YT.signalBreach] as const : w === "risk24" ? ["◉", YT.signalWarnText] as const : ["◆", YT.signalWarnText] as const
-                      return <span style={{ fontSize: 11, fontWeight: 900, color, textShadow: "none", letterSpacing: 0 }}>{shape}</span>
+                      // textShadow white glow: signal colors can't change (rule 8) but bright
+                      // amber/red fail AA on mid-toned fills; a white knockout provides practical legibility.
+                      return <span style={{ fontSize: 11, fontWeight: 900, color, textShadow: "0 0 6px rgba(255,255,255,0.90)", letterSpacing: 0 }}>{shape}</span>
                     })()}
                   </div>
                   {showCongestion && congestion > 0.25 && (
@@ -779,8 +790,9 @@ export default function PhysicalYardMap({
                     </span>
                     <span style={{ fontSize: 10, color: "#4b5563" }}>/{layout.capacity}</span>
                   </div>
-                  {/* Occupancy % — threshold-coloured: green ok / amber high / red ≥85% or over-capacity */}
-                  <div className="absolute font-bold leading-none" style={{ bottom: 7, right: 8, fontSize: 14, color: barColor }}>{layout.occupancyPct}%</div>
+                  {/* Occupancy % — threshold-coloured text using dark signal variants (WCAG AA on mid-toned fills).
+                      Graphical bar uses bright barColor; text uses dark barTextColor. Same semantic, different weight. */}
+                  <div className="absolute font-bold leading-none" style={{ bottom: 7, right: 8, fontSize: 14, color: barTextColor }}>{layout.occupancyPct}%</div>
                 </>)}
 
                 {/* Detail tier only: top container ID — #475569 (4.7:1 on fills; was #64748b at 3.5:1) */}
