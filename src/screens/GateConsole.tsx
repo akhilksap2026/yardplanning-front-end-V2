@@ -282,7 +282,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
     const ch  = gsRow?.channel ?? (containers.find(c => c.id === v.container)?.channel ?? "road")
     const dir = dirFromPurpose(v.purpose)
     // For GATE_OUT visits the stored turn is 0; compute it from timestamps instead
-    const actualTurn = v.turn > 0 ? v.turn : calcTurn(v.queueIn, v.gateOut)
+    const actualTurn = Number(v.turn) > 0 ? Number(v.turn) : calcTurn(v.queueIn, v.gateOut)
     return { visit:v, cont: containers.find(c=>c.id===v.container), ch, dir, gsRow, actualTurn }
   }).sort((a,b) => {
     const ta = a.visit.gateOut??a.visit.served??a.visit.atPosition??a.visit.checkIn??a.visit.queueIn??""
@@ -497,7 +497,6 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           { id: "inbound",   label: t("gate.tab.inbound",   inboundRows.length)  },
           { id: "outbound",  label: t("gate.tab.outbound",  outboundRows.length) },
           { id: "gtx",       label: t("gate.tab.transactions")                 },
-          { id: "appts",     label: t("gate.tab.appointments")                 },
           { id: "inspection",label: t("gate.tab.inspection")                   },
         ]}
         active={tab}
@@ -1253,61 +1252,6 @@ export default function GateConsole({ focus, onNavigate }: Props) {
       )}
 
       {/* ════════════════════ APPOINTMENTS TAB ════════════════════ */}
-      {tab==="appts" && (
-        <div className="grid flex-1 min-h-0 overflow-auto" style={{ gridTemplateColumns:"minmax(360px,1fr) clamp(260px,26vw,360px)" }}>
-          <div className="overflow-auto bg-white" style={{ borderRight:"1px solid #e5e7eb" }}>
-            <div className="px-4 pt-3 pb-1.5 ds-label text-neutral-500 font-bold">Bookable time slots · Sun 16 Aug · capacity from machine-hours, not lanes</div>
-            {appointments.map(a=>(
-              <button key={a.window} onClick={()=>setApptSel(a.window)}
-                className="block w-full text-left px-4 py-2 border-b border-[#f3f4f6] hover:bg-[#f9fafb] transition-colors"
-                style={{ borderLeft:`3px solid ${a.window===apptSel?"#dc2626":a.over?"#d97706":"transparent"}`, background:a.window===apptSel?"#fef2f2":undefined }}>
-                <div className="flex items-center gap-3">
-                  <span className="text-[12.5px] font-bold font-mono w-12">{a.window}</span>
-                  <div className="flex gap-0.5 flex-1">
-                    {Array.from({length:Math.max(a.capacity,a.booked)},(_,i)=>(
-                      <span key={i} className="w-6 h-4 border inline-block"
-                        style={{ background:i<a.booked?(i>=a.capacity?"#dc2626":"#111827"):"transparent", borderColor:i>=a.capacity?"#dc2626":"#6b7280" }} />
-                    ))}
-                  </div>
-                  <span className={`text-[11px] font-mono w-32 text-right ${a.over?"text-[#dc2626]":"text-neutral-500"}`}>
-                    {a.booked}/{a.capacity}{a.noShow?" · "+a.noShow+" no-show":""}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-          {apptData && (
-            <div className="overflow-auto bg-white">
-              <div className="px-4 pt-4 pb-2">
-                <div className="text-[9.5px] font-semibold tracking-wide text-neutral-400 mb-1">ASN — advance ship notice</div>
-                <div className="ds-label text-neutral-500">{t("gate.appts.window")} <span className="font-mono">{apptData.window}</span></div>
-                <div className="font-semibold text-[16px] mt-1"><span className="font-mono">{apptData.booked}</span> {t("gate.appts.booked")} of <span className="font-mono">{apptData.capacity}</span> {t("gate.appts.capacity")}</div>
-              </div>
-              {[
-                {k:"Capacity basis",           v:"3 RS + 1 EH · 11.4 moves/h"},
-                {k:"Machine minutes committed",v:(apptData.booked*4.8).toFixed(1)+"′"},
-                {k:"Purpose mix",              v:"2 pickup · 1 empty · 1 drop"},
-                {k:"Overbooking policy",       v:apptData.over?"1 over — accepted with queue risk":"within capacity",red:apptData.over},
-                {k:"No-show handling",         v:apptData.noShow?"slot released to waitlist":"n/a"},
-              ].map(d=>(
-                <div key={d.k} className="flex justify-between gap-3 px-4 py-1.5 border-b border-[#f3f4f6] text-[11.5px]">
-                  <span className="text-neutral-500">{d.k}</span>
-                  <span className={`font-semibold text-right font-mono ${d.red?"text-[#dc2626]":""}`}>{d.v}</span>
-                </div>
-              ))}
-              <div className="px-4 pt-3 pb-1.5 ds-label text-neutral-500 font-bold">Smoothing recommendation</div>
-              <div className="px-4 pb-4 text-[12px] leading-relaxed text-neutral-700">
-                {smoothed?"Applied: three 07:30 bookings moved to 10:00–11:00. Projected P90 in the peak improves 3.4 minutes.":"Move three bookings out of 07:30 into the 10:00–11:00 trough. The peak consumes 62% of arrivals against 41% of machine capacity."}
-              </div>
-              <button className="mx-4 mb-4 text-[11.5px] text-left px-3 py-2 font-semibold"
-                style={{ background:"white", color:"#374151", border:"1px solid #e5e7eb", borderRadius:5 }}
-                onClick={()=>setSmoothed(true)}>
-                {smoothed?"Smoothing applied · 3 time slots retimed":"Apply smoothing"}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ════════════════════ INBOUND / OUTBOUND SHARED RENDERER ════════════════════ */}
       {(tab === "inbound" || tab === "outbound") && (() => {
