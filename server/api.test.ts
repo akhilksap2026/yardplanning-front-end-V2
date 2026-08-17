@@ -726,3 +726,85 @@ describe('PATCH /api/lanes/:id', () => {
     expect(res.body).toHaveProperty('id', lanes[0].id)
   })
 })
+
+// ── DB round-trip persistence — visits & lanes ────────────────────────────────
+
+describe('PATCH /api/visits/:id — DB round-trip', () => {
+  it('persists state and lane_id so a subsequent GET reflects both fields', async () => {
+    // Fetch a visit to patch
+    const visitList = await request(app).get('/api/visits')
+    expect(visitList.status).toBe(200)
+    type Visit = { id: string; state: string; lane: string | null }
+    const visits = visitList.body as Visit[]
+    if (visits.length === 0) return // no seed data — skip
+
+    // Fetch a lane whose id we can assign
+    const laneList = await request(app).get('/api/lanes')
+    expect(laneList.status).toBe(200)
+    type Lane = { id: string; state: string; visit: string | null }
+    const lanes = laneList.body as Lane[]
+    if (lanes.length === 0) return
+
+    const target = visits[0]
+    const laneId = lanes[0].id
+
+    // Choose a state distinct from the current one to confirm the write
+    const newState = target.state === 'IN_QUEUE' ? 'CHECKED_IN' : 'IN_QUEUE'
+
+    const patchRes = await request(app)
+      .patch(`/api/visits/${target.id}`)
+      .send({ state: newState, lane_id: laneId })
+    expect(patchRes.status).toBe(200)
+    // The PATCH response itself must reflect both fields
+    expect(patchRes.body.state).toBe(newState)
+    expect(patchRes.body.lane).toBe(laneId)
+
+    // Re-read visits from DB via GET and verify both fields survived the round-trip
+    const afterList = await request(app).get('/api/visits')
+    expect(afterList.status).toBe(200)
+    const afterVisit = (afterList.body as Visit[]).find(v => v.id === target.id)
+    expect(afterVisit).toBeDefined()
+    expect(afterVisit!.state).toBe(newState)
+    expect(afterVisit!.lane).toBe(laneId)
+  })
+})
+
+describe('PATCH /api/lanes/:id — DB round-trip', () => {
+  it('persists state and visit_id so a subsequent GET reflects both fields', async () => {
+    // Fetch a lane to patch
+    const laneList = await request(app).get('/api/lanes')
+    expect(laneList.status).toBe(200)
+    type Lane = { id: string; state: string; visit: string | null }
+    const lanes = laneList.body as Lane[]
+    if (lanes.length === 0) return // no seed data — skip
+
+    // Fetch a visit id to assign to the lane
+    const visitList = await request(app).get('/api/visits')
+    expect(visitList.status).toBe(200)
+    type Visit = { id: string }
+    const visits = visitList.body as Visit[]
+    if (visits.length === 0) return
+
+    const target = lanes[0]
+    const visitId = visits[0].id
+
+    // Choose a state distinct from the current one to confirm the write
+    const newState = target.state === 'free' ? 'occupied' : 'free'
+
+    const patchRes = await request(app)
+      .patch(`/api/lanes/${target.id}`)
+      .send({ state: newState, visit_id: visitId })
+    expect(patchRes.status).toBe(200)
+    // The PATCH response itself must reflect both fields
+    expect(patchRes.body.state).toBe(newState)
+    expect(patchRes.body.visit).toBe(visitId)
+
+    // Re-read lanes from DB via GET and verify both fields survived the round-trip
+    const afterList = await request(app).get('/api/lanes')
+    expect(afterList.status).toBe(200)
+    const afterLane = (afterList.body as Lane[]).find(l => l.id === target.id)
+    expect(afterLane).toBeDefined()
+    expect(afterLane!.state).toBe(newState)
+    expect(afterLane!.visit).toBe(visitId)
+  })
+})
