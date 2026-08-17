@@ -1,0 +1,6568 @@
+{
+  "_meta": {
+    "generated_from": "Book1.xlsx (planning-engine plan result, gap-resolved)",
+    "generated_at": "2026-08-15T18:06:54Z",
+    "total_steps": 174,
+    "plan_batch": "PLAN-20260815-01",
+    "shift_start": "2026-08-15T20:00:00Z",
+    "usage": "Import this file as the single source of truth. All screens derive their view from this data."
+  },
+  "steps": [
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0001",
+      "container_id": "HLBU8100060",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 1,
+      "estimated_start": "2026-08-15T20:00:00Z",
+      "estimated_end": "2026-08-15T20:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0002",
+      "container_id": "HLBU8100060",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 2,
+      "estimated_start": "2026-08-15T20:03:00Z",
+      "estimated_end": "2026-08-15T20:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0003",
+      "container_id": "CMAU8100052",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 3,
+      "estimated_start": "2026-08-15T20:15:00Z",
+      "estimated_end": "2026-08-15T20:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0004",
+      "container_id": "CMAU8100052",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 4,
+      "estimated_start": "2026-08-15T20:18:00Z",
+      "estimated_end": "2026-08-15T20:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0005",
+      "container_id": "MEDU8100023",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 5,
+      "estimated_start": "2026-08-15T20:30:00Z",
+      "estimated_end": "2026-08-15T20:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0006",
+      "container_id": "MEDU8100023",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 6,
+      "estimated_start": "2026-08-15T20:33:00Z",
+      "estimated_end": "2026-08-15T20:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0007",
+      "container_id": "CMAU8100042",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 7,
+      "estimated_start": "2026-08-15T20:45:00Z",
+      "estimated_end": "2026-08-15T20:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0008",
+      "container_id": "CMAU8100042",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 8,
+      "estimated_start": "2026-08-15T20:48:00Z",
+      "estimated_end": "2026-08-15T21:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0009",
+      "container_id": "SUDU8100054",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 9,
+      "estimated_start": "2026-08-15T21:00:00Z",
+      "estimated_end": "2026-08-15T21:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0010",
+      "container_id": "SUDU8100054",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 10,
+      "estimated_start": "2026-08-15T21:03:00Z",
+      "estimated_end": "2026-08-15T21:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0011",
+      "container_id": "HLBU8100010",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 11,
+      "estimated_start": "2026-08-15T21:15:00Z",
+      "estimated_end": "2026-08-15T21:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0012",
+      "container_id": "HLBU8100010",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 12,
+      "estimated_start": "2026-08-15T21:18:00Z",
+      "estimated_end": "2026-08-15T21:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0013",
+      "container_id": "SUDU8100044",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 13,
+      "estimated_start": "2026-08-15T21:30:00Z",
+      "estimated_end": "2026-08-15T21:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0014",
+      "container_id": "SUDU8100044",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 14,
+      "estimated_start": "2026-08-15T21:33:00Z",
+      "estimated_end": "2026-08-15T21:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0015",
+      "container_id": "SUDU8100024",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 15,
+      "estimated_start": "2026-08-15T21:45:00Z",
+      "estimated_end": "2026-08-15T21:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0016",
+      "container_id": "SUDU8100024",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 16,
+      "estimated_start": "2026-08-15T21:48:00Z",
+      "estimated_end": "2026-08-15T22:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0017",
+      "container_id": "MSCU8100051",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 17,
+      "estimated_start": "2026-08-15T22:00:00Z",
+      "estimated_end": "2026-08-15T22:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0018",
+      "container_id": "MSCU8100051",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 18,
+      "estimated_start": "2026-08-15T22:03:00Z",
+      "estimated_end": "2026-08-15T22:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0019",
+      "container_id": "CMAU8100017",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 19,
+      "estimated_start": "2026-08-15T22:15:00Z",
+      "estimated_end": "2026-08-15T22:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0020",
+      "container_id": "CMAU8100017",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 20,
+      "estimated_start": "2026-08-15T22:18:00Z",
+      "estimated_end": "2026-08-15T22:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0021",
+      "container_id": "CMAU8100022",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 21,
+      "estimated_start": "2026-08-15T22:30:00Z",
+      "estimated_end": "2026-08-15T22:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0022",
+      "container_id": "CMAU8100022",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 22,
+      "estimated_start": "2026-08-15T22:33:00Z",
+      "estimated_end": "2026-08-15T22:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0023",
+      "container_id": "MEDU8100003",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 23,
+      "estimated_start": "2026-08-15T22:45:00Z",
+      "estimated_end": "2026-08-15T22:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0024",
+      "container_id": "MEDU8100003",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 24,
+      "estimated_start": "2026-08-15T22:48:00Z",
+      "estimated_end": "2026-08-15T23:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0025",
+      "container_id": "MEDU8100033",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 25,
+      "estimated_start": "2026-08-15T23:00:00Z",
+      "estimated_end": "2026-08-15T23:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0026",
+      "container_id": "MEDU8100033",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 26,
+      "estimated_start": "2026-08-15T23:03:00Z",
+      "estimated_end": "2026-08-15T23:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0027",
+      "container_id": "CMAU8100002",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 27,
+      "estimated_start": "2026-08-15T23:15:00Z",
+      "estimated_end": "2026-08-15T23:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0028",
+      "container_id": "CMAU8100002",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 28,
+      "estimated_start": "2026-08-15T23:18:00Z",
+      "estimated_end": "2026-08-15T23:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0029",
+      "container_id": "HLBU8100035",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 29,
+      "estimated_start": "2026-08-15T23:30:00Z",
+      "estimated_end": "2026-08-15T23:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0030",
+      "container_id": "HLBU8100035",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 30,
+      "estimated_start": "2026-08-15T23:33:00Z",
+      "estimated_end": "2026-08-15T23:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0031",
+      "container_id": "SUDU8100034",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 31,
+      "estimated_start": "2026-08-15T23:45:00Z",
+      "estimated_end": "2026-08-15T23:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0032",
+      "container_id": "SUDU8100034",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 5,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 32,
+      "estimated_start": "2026-08-15T23:48:00Z",
+      "estimated_end": "2026-08-16T00:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0033",
+      "container_id": "MEDU8100043",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 33,
+      "estimated_start": "2026-08-16T00:00:00Z",
+      "estimated_end": "2026-08-16T00:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0034",
+      "container_id": "MEDU8100043",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 34,
+      "estimated_start": "2026-08-16T00:03:00Z",
+      "estimated_end": "2026-08-16T00:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0035",
+      "container_id": "SUDU8100009",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 35,
+      "estimated_start": "2026-08-16T00:15:00Z",
+      "estimated_end": "2026-08-16T00:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0036",
+      "container_id": "SUDU8100009",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 36,
+      "estimated_start": "2026-08-16T00:18:00Z",
+      "estimated_end": "2026-08-16T00:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0037",
+      "container_id": "SUDU8100004",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 37,
+      "estimated_start": "2026-08-16T00:30:00Z",
+      "estimated_end": "2026-08-16T00:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0038",
+      "container_id": "SUDU8100004",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 38,
+      "estimated_start": "2026-08-16T00:33:00Z",
+      "estimated_end": "2026-08-16T00:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0039",
+      "container_id": "MSCU8100026",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 39,
+      "estimated_start": "2026-08-16T00:45:00Z",
+      "estimated_end": "2026-08-16T00:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0040",
+      "container_id": "MSCU8100026",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 40,
+      "estimated_start": "2026-08-16T00:48:00Z",
+      "estimated_end": "2026-08-16T01:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0041",
+      "container_id": "MSCU8100006",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 41,
+      "estimated_start": "2026-08-16T01:00:00Z",
+      "estimated_end": "2026-08-16T01:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0042",
+      "container_id": "MSCU8100006",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 42,
+      "estimated_start": "2026-08-16T01:03:00Z",
+      "estimated_end": "2026-08-16T01:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0043",
+      "container_id": "CMAU8100047",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 43,
+      "estimated_start": "2026-08-16T01:15:00Z",
+      "estimated_end": "2026-08-16T01:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0044",
+      "container_id": "CMAU8100047",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 44,
+      "estimated_start": "2026-08-16T01:18:00Z",
+      "estimated_end": "2026-08-16T01:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0045",
+      "container_id": "MSCU8100061",
+      "operation": "Outbound staging and truck loading",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "STAGING",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 45,
+      "estimated_start": "2026-08-15T20:00:00Z",
+      "estimated_end": "2026-08-15T20:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0046",
+      "container_id": "HLBU8100065",
+      "operation": "Outbound staging and truck loading",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "STAGING",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 46,
+      "estimated_start": "2026-08-15T20:15:00Z",
+      "estimated_end": "2026-08-15T20:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0047",
+      "container_id": "HLBU8100030",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 47,
+      "estimated_start": "2026-08-15T20:30:00Z",
+      "estimated_end": "2026-08-15T20:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0048",
+      "container_id": "HLBU8100030",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 48,
+      "estimated_start": "2026-08-15T20:33:00Z",
+      "estimated_end": "2026-08-15T20:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0049",
+      "container_id": "CMAU8100032",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 49,
+      "estimated_start": "2026-08-15T20:45:00Z",
+      "estimated_end": "2026-08-15T20:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0050",
+      "container_id": "CMAU8100032",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 50,
+      "estimated_start": "2026-08-15T20:48:00Z",
+      "estimated_end": "2026-08-15T21:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0051",
+      "container_id": "MEDU8100013",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 51,
+      "estimated_start": "2026-08-15T21:00:00Z",
+      "estimated_end": "2026-08-15T21:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0052",
+      "container_id": "MEDU8100013",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 52,
+      "estimated_start": "2026-08-15T21:03:00Z",
+      "estimated_end": "2026-08-15T21:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0053",
+      "container_id": "SUDU8100059",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 53,
+      "estimated_start": "2026-08-15T21:15:00Z",
+      "estimated_end": "2026-08-15T21:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0054",
+      "container_id": "SUDU8100059",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 54,
+      "estimated_start": "2026-08-15T21:18:00Z",
+      "estimated_end": "2026-08-15T21:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0055",
+      "container_id": "MSCU8100046",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 55,
+      "estimated_start": "2026-08-15T21:30:00Z",
+      "estimated_end": "2026-08-15T21:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0056",
+      "container_id": "MSCU8100046",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 56,
+      "estimated_start": "2026-08-15T21:33:00Z",
+      "estimated_end": "2026-08-15T21:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0057",
+      "container_id": "CMAU8100037",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 57,
+      "estimated_start": "2026-08-15T21:45:00Z",
+      "estimated_end": "2026-08-15T21:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0058",
+      "container_id": "CMAU8100037",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 58,
+      "estimated_start": "2026-08-15T21:48:00Z",
+      "estimated_end": "2026-08-15T22:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0059",
+      "container_id": "HLBU8100015",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 59,
+      "estimated_start": "2026-08-15T22:00:00Z",
+      "estimated_end": "2026-08-15T22:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0060",
+      "container_id": "HLBU8100015",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 60,
+      "estimated_start": "2026-08-15T22:03:00Z",
+      "estimated_end": "2026-08-15T22:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0061",
+      "container_id": "HLBU8100025",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 61,
+      "estimated_start": "2026-08-15T22:15:00Z",
+      "estimated_end": "2026-08-15T22:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0062",
+      "container_id": "HLBU8100025",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 62,
+      "estimated_start": "2026-08-15T22:18:00Z",
+      "estimated_end": "2026-08-15T22:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0063",
+      "container_id": "MEDU8100058",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 63,
+      "estimated_start": "2026-08-15T22:30:00Z",
+      "estimated_end": "2026-08-15T22:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0064",
+      "container_id": "MEDU8100058",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 64,
+      "estimated_start": "2026-08-15T22:33:00Z",
+      "estimated_end": "2026-08-15T22:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0065",
+      "container_id": "MEDU8100028",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 65,
+      "estimated_start": "2026-08-15T22:45:00Z",
+      "estimated_end": "2026-08-15T22:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0066",
+      "container_id": "MEDU8100028",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 66,
+      "estimated_start": "2026-08-15T22:48:00Z",
+      "estimated_end": "2026-08-15T23:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0067",
+      "container_id": "CMAU8100027",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 67,
+      "estimated_start": "2026-08-15T23:00:00Z",
+      "estimated_end": "2026-08-15T23:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0068",
+      "container_id": "CMAU8100027",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 68,
+      "estimated_start": "2026-08-15T23:03:00Z",
+      "estimated_end": "2026-08-15T23:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0069",
+      "container_id": "HLBU8100045",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 69,
+      "estimated_start": "2026-08-15T23:15:00Z",
+      "estimated_end": "2026-08-15T23:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0070",
+      "container_id": "HLBU8100045",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 70,
+      "estimated_start": "2026-08-15T23:18:00Z",
+      "estimated_end": "2026-08-15T23:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0071",
+      "container_id": "SUDU8100049",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 71,
+      "estimated_start": "2026-08-15T23:30:00Z",
+      "estimated_end": "2026-08-15T23:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0072",
+      "container_id": "SUDU8100049",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 72,
+      "estimated_start": "2026-08-15T23:33:00Z",
+      "estimated_end": "2026-08-15T23:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0073",
+      "container_id": "MSCU8100041",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 73,
+      "estimated_start": "2026-08-15T23:45:00Z",
+      "estimated_end": "2026-08-15T23:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0074",
+      "container_id": "MSCU8100041",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 74,
+      "estimated_start": "2026-08-15T23:48:00Z",
+      "estimated_end": "2026-08-16T00:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0075",
+      "container_id": "CMAU8100057",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 75,
+      "estimated_start": "2026-08-16T00:00:00Z",
+      "estimated_end": "2026-08-16T00:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0076",
+      "container_id": "CMAU8100057",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 76,
+      "estimated_start": "2026-08-16T00:03:00Z",
+      "estimated_end": "2026-08-16T00:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0077",
+      "container_id": "MSCU8100021",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 77,
+      "estimated_start": "2026-08-16T00:15:00Z",
+      "estimated_end": "2026-08-16T00:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0078",
+      "container_id": "MSCU8100021",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 78,
+      "estimated_start": "2026-08-16T00:18:00Z",
+      "estimated_end": "2026-08-16T00:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0079",
+      "container_id": "HLBU8100005",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 79,
+      "estimated_start": "2026-08-16T00:30:00Z",
+      "estimated_end": "2026-08-16T00:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0080",
+      "container_id": "HLBU8100005",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 80,
+      "estimated_start": "2026-08-16T00:33:00Z",
+      "estimated_end": "2026-08-16T00:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0081",
+      "container_id": "SUDU8100029",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 81,
+      "estimated_start": "2026-08-16T00:45:00Z",
+      "estimated_end": "2026-08-16T00:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0082",
+      "container_id": "SUDU8100029",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 82,
+      "estimated_start": "2026-08-16T00:48:00Z",
+      "estimated_end": "2026-08-16T01:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0083",
+      "container_id": "MEDU8100018",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 83,
+      "estimated_start": "2026-08-16T01:00:00Z",
+      "estimated_end": "2026-08-16T01:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0084",
+      "container_id": "MEDU8100018",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 84,
+      "estimated_start": "2026-08-16T01:03:00Z",
+      "estimated_end": "2026-08-16T01:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0085",
+      "container_id": "CMAU8100007",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 85,
+      "estimated_start": "2026-08-16T01:15:00Z",
+      "estimated_end": "2026-08-16T01:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0086",
+      "container_id": "CMAU8100007",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 86,
+      "estimated_start": "2026-08-16T01:18:00Z",
+      "estimated_end": "2026-08-16T01:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0087",
+      "container_id": "MEDU8100008",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 87,
+      "estimated_start": "2026-08-16T01:30:00Z",
+      "estimated_end": "2026-08-16T01:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0088",
+      "container_id": "MEDU8100008",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 88,
+      "estimated_start": "2026-08-16T01:33:00Z",
+      "estimated_end": "2026-08-16T01:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0089",
+      "container_id": "MSCU8100036",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 89,
+      "estimated_start": "2026-08-16T01:45:00Z",
+      "estimated_end": "2026-08-16T01:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0090",
+      "container_id": "MSCU8100036",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 90,
+      "estimated_start": "2026-08-16T01:48:00Z",
+      "estimated_end": "2026-08-16T02:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0091",
+      "container_id": "HLBU8100050",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 91,
+      "estimated_start": "2026-08-16T02:00:00Z",
+      "estimated_end": "2026-08-16T02:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0092",
+      "container_id": "HLBU8100050",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 92,
+      "estimated_start": "2026-08-16T02:03:00Z",
+      "estimated_end": "2026-08-16T02:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0093",
+      "container_id": "MEDU8100048",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 93,
+      "estimated_start": "2026-08-16T02:15:00Z",
+      "estimated_end": "2026-08-16T02:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0094",
+      "container_id": "MEDU8100048",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 94,
+      "estimated_start": "2026-08-16T02:18:00Z",
+      "estimated_end": "2026-08-16T02:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0095",
+      "container_id": "SUDU8100019",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 95,
+      "estimated_start": "2026-08-16T02:30:00Z",
+      "estimated_end": "2026-08-16T02:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0096",
+      "container_id": "SUDU8100019",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 96,
+      "estimated_start": "2026-08-16T02:33:00Z",
+      "estimated_end": "2026-08-16T02:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0097",
+      "container_id": "MSCU8100001",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 97,
+      "estimated_start": "2026-08-16T02:45:00Z",
+      "estimated_end": "2026-08-16T02:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0098",
+      "container_id": "MSCU8100001",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 98,
+      "estimated_start": "2026-08-16T02:48:00Z",
+      "estimated_end": "2026-08-16T03:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0099",
+      "container_id": "HLBU8100055",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 99,
+      "estimated_start": "2026-08-16T03:00:00Z",
+      "estimated_end": "2026-08-16T03:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0100",
+      "container_id": "HLBU8100055",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 100,
+      "estimated_start": "2026-08-16T03:03:00Z",
+      "estimated_end": "2026-08-16T03:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0101",
+      "container_id": "MEDU8100053",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 101,
+      "estimated_start": "2026-08-16T03:15:00Z",
+      "estimated_end": "2026-08-16T03:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0102",
+      "container_id": "MEDU8100053",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 102,
+      "estimated_start": "2026-08-16T03:18:00Z",
+      "estimated_end": "2026-08-16T03:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0103",
+      "container_id": "MSCU8100031",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 103,
+      "estimated_start": "2026-08-16T03:30:00Z",
+      "estimated_end": "2026-08-16T03:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0104",
+      "container_id": "MSCU8100031",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 104,
+      "estimated_start": "2026-08-16T03:33:00Z",
+      "estimated_end": "2026-08-16T03:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0105",
+      "container_id": "MSCU8100016",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 105,
+      "estimated_start": "2026-08-16T03:45:00Z",
+      "estimated_end": "2026-08-16T03:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0106",
+      "container_id": "MSCU8100016",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-3 George Burns",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 106,
+      "estimated_start": "2026-08-16T03:48:00Z",
+      "estimated_end": "2026-08-16T04:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0107",
+      "container_id": "MSCU8100011",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 107,
+      "estimated_start": "2026-08-16T04:00:00Z",
+      "estimated_end": "2026-08-16T04:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0108",
+      "container_id": "MSCU8100011",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 108,
+      "estimated_start": "2026-08-16T04:03:00Z",
+      "estimated_end": "2026-08-16T04:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0109",
+      "container_id": "SUDU8100039",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 109,
+      "estimated_start": "2026-08-16T04:15:00Z",
+      "estimated_end": "2026-08-16T04:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0110",
+      "container_id": "SUDU8100039",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 110,
+      "estimated_start": "2026-08-16T04:18:00Z",
+      "estimated_end": "2026-08-16T04:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0111",
+      "container_id": "MSCU8100056",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 111,
+      "estimated_start": "2026-08-16T04:30:00Z",
+      "estimated_end": "2026-08-16T04:33:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0112",
+      "container_id": "MSCU8100056",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 112,
+      "estimated_start": "2026-08-16T04:33:00Z",
+      "estimated_end": "2026-08-16T04:45:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0113",
+      "container_id": "SUDU8100014",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 113,
+      "estimated_start": "2026-08-16T04:45:00Z",
+      "estimated_end": "2026-08-16T04:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0114",
+      "container_id": "SUDU8100014",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 114,
+      "estimated_start": "2026-08-16T04:48:00Z",
+      "estimated_end": "2026-08-16T05:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0115",
+      "container_id": "CMAU8100012",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 115,
+      "estimated_start": "2026-08-16T05:00:00Z",
+      "estimated_end": "2026-08-16T05:03:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0116",
+      "container_id": "CMAU8100012",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 116,
+      "estimated_start": "2026-08-16T05:03:00Z",
+      "estimated_end": "2026-08-16T05:15:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0117",
+      "container_id": "MEDU8100038",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 117,
+      "estimated_start": "2026-08-16T05:15:00Z",
+      "estimated_end": "2026-08-16T05:18:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0118",
+      "container_id": "MEDU8100038",
+      "operation": "Putaway",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Yard-truck haul",
+      "step_status": "Planned",
+      "operator": "J-1 Alex Rivera",
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 118,
+      "estimated_start": "2026-08-16T05:18:00Z",
+      "estimated_end": "2026-08-16T05:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0119",
+      "container_id": "SUDU8100049",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "OUTBOUND-STG-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 119,
+      "estimated_start": "2026-08-15T20:00:00Z",
+      "estimated_end": "2026-08-15T20:08:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0120",
+      "container_id": "SUDU8100029",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "INBOUND-XFER-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 120,
+      "estimated_start": "2026-08-15T20:08:00Z",
+      "estimated_end": "2026-08-15T20:16:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0121",
+      "container_id": "MEDU8100058",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 121,
+      "estimated_start": "2026-08-15T20:16:00Z",
+      "estimated_end": "2026-08-15T20:24:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0122",
+      "container_id": "SUDU8100019",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "REEFER-01-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 122,
+      "estimated_start": "2026-08-15T20:24:00Z",
+      "estimated_end": "2026-08-15T20:32:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0123",
+      "container_id": "MEDU8100038",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 123,
+      "estimated_start": "2026-08-15T20:32:00Z",
+      "estimated_end": "2026-08-15T20:40:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0124",
+      "container_id": "MSCU8100026",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "OUTBOUND-STG-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 124,
+      "estimated_start": "2026-08-15T20:40:00Z",
+      "estimated_end": "2026-08-15T20:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0125",
+      "container_id": "SUDU8100059",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "OUTBOUND-STG-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 125,
+      "estimated_start": "2026-08-15T20:48:00Z",
+      "estimated_end": "2026-08-15T20:56:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0126",
+      "container_id": "CMAU8100047",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 126,
+      "estimated_start": "2026-08-15T20:56:00Z",
+      "estimated_end": "2026-08-15T21:04:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0127",
+      "container_id": "CMAU8100037",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "INBOUND-XFER-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 127,
+      "estimated_start": "2026-08-15T21:04:00Z",
+      "estimated_end": "2026-08-15T21:12:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0128",
+      "container_id": "HLBU8100055",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "REEFER-01-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 128,
+      "estimated_start": "2026-08-15T21:12:00Z",
+      "estimated_end": "2026-08-15T21:20:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0129",
+      "container_id": "CMAU8100062",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "INBOUND-XFER-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 129,
+      "estimated_start": "2026-08-15T21:20:00Z",
+      "estimated_end": "2026-08-15T21:28:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0130",
+      "container_id": "MSCU8100011",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 130,
+      "estimated_start": "2026-08-15T21:28:00Z",
+      "estimated_end": "2026-08-15T21:36:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0131",
+      "container_id": "MEDU8100053",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "REEFER-01-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 131,
+      "estimated_start": "2026-08-15T21:36:00Z",
+      "estimated_end": "2026-08-15T21:44:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0132",
+      "container_id": "MEDU8100033",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "OUTBOUND-STG-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 132,
+      "estimated_start": "2026-08-15T21:44:00Z",
+      "estimated_end": "2026-08-15T21:52:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0133",
+      "container_id": "MSCU8100046",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "OUTBOUND-STG-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 133,
+      "estimated_start": "2026-08-15T21:52:00Z",
+      "estimated_end": "2026-08-15T22:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0134",
+      "container_id": "SUDU8100039",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 134,
+      "estimated_start": "2026-08-15T22:00:00Z",
+      "estimated_end": "2026-08-15T22:08:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0135",
+      "container_id": "MEDU8100048",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "INBOUND-XFER-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 135,
+      "estimated_start": "2026-08-15T22:08:00Z",
+      "estimated_end": "2026-08-15T22:16:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0136",
+      "container_id": "SUDU8100034",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "REEFER-01-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 136,
+      "estimated_start": "2026-08-15T22:16:00Z",
+      "estimated_end": "2026-08-15T22:24:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0137",
+      "container_id": "HLBU8100005",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 137,
+      "estimated_start": "2026-08-15T22:24:00Z",
+      "estimated_end": "2026-08-15T22:32:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0138",
+      "container_id": "MSCU8100061",
+      "operation": "Outbound staging and truck loading",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Move to staging",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "STAGING",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 138,
+      "estimated_start": "2026-08-15T22:32:00Z",
+      "estimated_end": "2026-08-15T22:40:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0139",
+      "container_id": "HLBU8100070",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 139,
+      "estimated_start": "2026-08-15T22:40:00Z",
+      "estimated_end": "2026-08-15T22:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0140",
+      "container_id": "CMAU8100082",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 140,
+      "estimated_start": "2026-08-15T22:48:00Z",
+      "estimated_end": "2026-08-15T22:56:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0141",
+      "container_id": "CMAU8100072",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 141,
+      "estimated_start": "2026-08-15T22:56:00Z",
+      "estimated_end": "2026-08-15T23:04:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0142",
+      "container_id": "MSCU8100071",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 142,
+      "estimated_start": "2026-08-15T23:04:00Z",
+      "estimated_end": "2026-08-15T23:12:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0143",
+      "container_id": "HLBU8100090",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 143,
+      "estimated_start": "2026-08-15T23:12:00Z",
+      "estimated_end": "2026-08-15T23:20:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0144",
+      "container_id": "HLBU8100080",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 144,
+      "estimated_start": "2026-08-15T23:20:00Z",
+      "estimated_end": "2026-08-15T23:28:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0145",
+      "container_id": "HLBU8100080",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 145,
+      "estimated_start": "2026-08-15T23:28:00Z",
+      "estimated_end": "2026-08-15T23:36:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0146",
+      "container_id": "MEDU8100083",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 146,
+      "estimated_start": "2026-08-15T23:36:00Z",
+      "estimated_end": "2026-08-15T23:44:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0147",
+      "container_id": "SUDU8100049",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 147,
+      "estimated_start": "2026-08-15T23:44:00Z",
+      "estimated_end": "2026-08-15T23:52:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0148",
+      "container_id": "MSCU8100026",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 148,
+      "estimated_start": "2026-08-15T23:52:00Z",
+      "estimated_end": "2026-08-16T00:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0149",
+      "container_id": "SUDU8100059",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 149,
+      "estimated_start": "2026-08-16T00:00:00Z",
+      "estimated_end": "2026-08-16T00:08:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0150",
+      "container_id": "MEDU8100058",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 150,
+      "estimated_start": "2026-08-16T00:08:00Z",
+      "estimated_end": "2026-08-16T00:16:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0151",
+      "container_id": "CMAU8100047",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 151,
+      "estimated_start": "2026-08-16T00:16:00Z",
+      "estimated_end": "2026-08-16T00:24:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0152",
+      "container_id": "CMAU8100062",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 152,
+      "estimated_start": "2026-08-16T00:24:00Z",
+      "estimated_end": "2026-08-16T00:32:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0153",
+      "container_id": "SUDU8100039",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 153,
+      "estimated_start": "2026-08-16T00:32:00Z",
+      "estimated_end": "2026-08-16T00:40:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0154",
+      "container_id": "MEDU8100048",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 154,
+      "estimated_start": "2026-08-16T00:40:00Z",
+      "estimated_end": "2026-08-16T00:48:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0155",
+      "container_id": "SUDU8100034",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 155,
+      "estimated_start": "2026-08-16T00:48:00Z",
+      "estimated_end": "2026-08-16T00:56:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0156",
+      "container_id": "HLBU8100065",
+      "operation": "Outbound staging and truck loading",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Move to staging",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "STAGING",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 156,
+      "estimated_start": "2026-08-16T00:56:00Z",
+      "estimated_end": "2026-08-16T01:04:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0157",
+      "container_id": "SUDU8100089",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "INBOUND-XFER-B02",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 157,
+      "estimated_start": "2026-08-16T01:04:00Z",
+      "estimated_end": "2026-08-16T01:12:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0158",
+      "container_id": "MSCU8100086",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 158,
+      "estimated_start": "2026-08-16T01:12:00Z",
+      "estimated_end": "2026-08-16T01:20:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0159",
+      "container_id": "SUDU8100029",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 159,
+      "estimated_start": "2026-08-16T01:20:00Z",
+      "estimated_end": "2026-08-16T01:28:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0160",
+      "container_id": "HLBU8100090",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "INBOUND-XFER-B01",
+        "row": 2,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 160,
+      "estimated_start": "2026-08-16T01:28:00Z",
+      "estimated_end": "2026-08-16T01:36:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0161",
+      "container_id": "MEDU8100063",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 161,
+      "estimated_start": "2026-08-16T01:36:00Z",
+      "estimated_end": "2026-08-16T01:44:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0162",
+      "container_id": "CMAU8100092",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "REEFER-01-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "REEFER-01-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 162,
+      "estimated_start": "2026-08-16T01:44:00Z",
+      "estimated_end": "2026-08-16T01:52:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0163",
+      "container_id": "SUDU8100089",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 3,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 163,
+      "estimated_start": "2026-08-16T01:52:00Z",
+      "estimated_end": "2026-08-16T02:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0164",
+      "container_id": "CMAU8100092",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Crane lift",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "REEFER-01-B01",
+        "row": 1,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "REEFER-01-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 164,
+      "estimated_start": "2026-08-16T02:00:00Z",
+      "estimated_end": "2026-08-16T02:08:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0165",
+      "container_id": "CMAU8100092",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "REEFER-01-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "REEFER-01-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 165,
+      "estimated_start": "2026-08-15T20:00:00Z",
+      "estimated_end": "2026-08-15T20:10:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0166",
+      "container_id": "CMAU8100092",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "REEFER-01-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "REEFER-01-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 166,
+      "estimated_start": "2026-08-15T20:10:00Z",
+      "estimated_end": "2026-08-15T20:20:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0167",
+      "container_id": "HLBU8100005",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 167,
+      "estimated_start": "2026-08-15T20:20:00Z",
+      "estimated_end": "2026-08-15T20:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0168",
+      "container_id": "SUDU8100089",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 168,
+      "estimated_start": "2026-08-15T20:30:00Z",
+      "estimated_end": "2026-08-15T20:40:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0169",
+      "container_id": "MSCU8100061",
+      "operation": "Outbound staging and truck loading",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 1,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 1,
+        "tier": 1,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 169,
+      "estimated_start": "2026-08-15T20:40:00Z",
+      "estimated_end": "2026-08-15T20:50:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0170",
+      "container_id": "MSCU8100061",
+      "operation": "Outbound staging and truck loading",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 4,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 170,
+      "estimated_start": "2026-08-15T20:50:00Z",
+      "estimated_end": "2026-08-15T21:00:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0171",
+      "container_id": "MEDU8100083",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B01",
+        "row": 2,
+        "tier": 4,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 171,
+      "estimated_start": "2026-08-15T21:00:00Z",
+      "estimated_end": "2026-08-15T21:10:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0172",
+      "container_id": "SUDU8100034",
+      "operation": "Digout to clear an overstow",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-A-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 172,
+      "estimated_start": "2026-08-15T21:10:00Z",
+      "estimated_end": "2026-08-15T21:20:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0173",
+      "container_id": "HLBU8100065",
+      "operation": "Outbound staging and truck loading",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 3,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "GATE / OFF-YARD",
+        "row": null,
+        "tier": null,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 173,
+      "estimated_start": "2026-08-15T21:20:00Z",
+      "estimated_end": "2026-08-15T21:30:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    },
+    {
+      "source_sheet": "PLAN-20260815-01",
+      "activity_id": "MV-0174",
+      "container_id": "MSCU8100086",
+      "operation": "Premarshal ahead of retrieval",
+      "activity_status": "Planned",
+      "planning_score": null,
+      "step_number": 2,
+      "move_method": "Inspection",
+      "step_status": "Planned",
+      "operator": null,
+      "operator_pickup": null,
+      "operator_dropoff": null,
+      "origin": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "destination": {
+        "bay": "DRY-B-B02",
+        "row": 2,
+        "tier": 2,
+        "lat": null,
+        "lng": null
+      },
+      "planned_step": 174,
+      "estimated_start": "2026-08-15T21:30:00Z",
+      "estimated_end": "2026-08-15T21:40:00Z",
+      "actual_start": null,
+      "actual_end": null,
+      "plan_code": "PLAN-20260815-01"
+    }
+  ],
+  "containers": {
+    "HLBU8100060": {
+      "container_id": "HLBU8100060",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100052": {
+      "container_id": "CMAU8100052",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100023": {
+      "container_id": "MEDU8100023",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100042": {
+      "container_id": "CMAU8100042",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100054": {
+      "container_id": "SUDU8100054",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100010": {
+      "container_id": "HLBU8100010",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100044": {
+      "container_id": "SUDU8100044",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100024": {
+      "container_id": "SUDU8100024",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100051": {
+      "container_id": "MSCU8100051",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100017": {
+      "container_id": "CMAU8100017",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100022": {
+      "container_id": "CMAU8100022",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100003": {
+      "container_id": "MEDU8100003",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100033": {
+      "container_id": "MEDU8100033",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100002": {
+      "container_id": "CMAU8100002",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100035": {
+      "container_id": "HLBU8100035",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100034": {
+      "container_id": "SUDU8100034",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100043": {
+      "container_id": "MEDU8100043",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100009": {
+      "container_id": "SUDU8100009",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100004": {
+      "container_id": "SUDU8100004",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100026": {
+      "container_id": "MSCU8100026",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100006": {
+      "container_id": "MSCU8100006",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100047": {
+      "container_id": "CMAU8100047",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100061": {
+      "container_id": "MSCU8100061",
+      "operations": [
+        "Outbound staging and truck loading"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100065": {
+      "container_id": "HLBU8100065",
+      "operations": [
+        "Outbound staging and truck loading"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100030": {
+      "container_id": "HLBU8100030",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100032": {
+      "container_id": "CMAU8100032",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100013": {
+      "container_id": "MEDU8100013",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100059": {
+      "container_id": "SUDU8100059",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100046": {
+      "container_id": "MSCU8100046",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100037": {
+      "container_id": "CMAU8100037",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100015": {
+      "container_id": "HLBU8100015",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100025": {
+      "container_id": "HLBU8100025",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100058": {
+      "container_id": "MEDU8100058",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100028": {
+      "container_id": "MEDU8100028",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100027": {
+      "container_id": "CMAU8100027",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100045": {
+      "container_id": "HLBU8100045",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100049": {
+      "container_id": "SUDU8100049",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100041": {
+      "container_id": "MSCU8100041",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100057": {
+      "container_id": "CMAU8100057",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100021": {
+      "container_id": "MSCU8100021",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100005": {
+      "container_id": "HLBU8100005",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100029": {
+      "container_id": "SUDU8100029",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100018": {
+      "container_id": "MEDU8100018",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100007": {
+      "container_id": "CMAU8100007",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100008": {
+      "container_id": "MEDU8100008",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100036": {
+      "container_id": "MSCU8100036",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100050": {
+      "container_id": "HLBU8100050",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100048": {
+      "container_id": "MEDU8100048",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100019": {
+      "container_id": "SUDU8100019",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100001": {
+      "container_id": "MSCU8100001",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100055": {
+      "container_id": "HLBU8100055",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100053": {
+      "container_id": "MEDU8100053",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100031": {
+      "container_id": "MSCU8100031",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100016": {
+      "container_id": "MSCU8100016",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100011": {
+      "container_id": "MSCU8100011",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100039": {
+      "container_id": "SUDU8100039",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100056": {
+      "container_id": "MSCU8100056",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100014": {
+      "container_id": "SUDU8100014",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100012": {
+      "container_id": "CMAU8100012",
+      "operations": [
+        "Putaway"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100038": {
+      "container_id": "MEDU8100038",
+      "operations": [
+        "Putaway",
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100062": {
+      "container_id": "CMAU8100062",
+      "operations": [
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100070": {
+      "container_id": "HLBU8100070",
+      "operations": [
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100082": {
+      "container_id": "CMAU8100082",
+      "operations": [
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100072": {
+      "container_id": "CMAU8100072",
+      "operations": [
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100071": {
+      "container_id": "MSCU8100071",
+      "operations": [
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100090": {
+      "container_id": "HLBU8100090",
+      "operations": [
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "HLBU8100080": {
+      "container_id": "HLBU8100080",
+      "operations": [
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100083": {
+      "container_id": "MEDU8100083",
+      "operations": [
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "SUDU8100089": {
+      "container_id": "SUDU8100089",
+      "operations": [
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    },
+    "MSCU8100086": {
+      "container_id": "MSCU8100086",
+      "operations": [
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "MEDU8100063": {
+      "container_id": "MEDU8100063",
+      "operations": [
+        "Premarshal ahead of retrieval"
+      ],
+      "current_status": "Planned"
+    },
+    "CMAU8100092": {
+      "container_id": "CMAU8100092",
+      "operations": [
+        "Premarshal ahead of retrieval",
+        "Digout to clear an overstow"
+      ],
+      "current_status": "Planned"
+    }
+  },
+  "operators": {
+    "J-1 Alex Rivera": {
+      "name": "J-1 Alex Rivera",
+      "assigned_steps": 56,
+      "containers_touched": [
+        "HLBU8100060",
+        "CMAU8100052",
+        "MEDU8100023",
+        "CMAU8100042",
+        "SUDU8100054",
+        "HLBU8100010",
+        "SUDU8100044",
+        "SUDU8100024",
+        "MSCU8100051",
+        "CMAU8100017",
+        "CMAU8100022",
+        "MEDU8100003",
+        "MEDU8100033",
+        "CMAU8100002",
+        "HLBU8100035",
+        "SUDU8100034",
+        "MEDU8100043",
+        "SUDU8100009",
+        "SUDU8100004",
+        "MSCU8100026",
+        "MSCU8100006",
+        "CMAU8100047",
+        "MSCU8100011",
+        "SUDU8100039",
+        "MSCU8100056",
+        "SUDU8100014",
+        "CMAU8100012",
+        "MEDU8100038"
+      ]
+    },
+    "J-3 George Burns": {
+      "name": "J-3 George Burns",
+      "assigned_steps": 62,
+      "containers_touched": [
+        "MSCU8100061",
+        "HLBU8100065",
+        "HLBU8100030",
+        "CMAU8100032",
+        "MEDU8100013",
+        "SUDU8100059",
+        "MSCU8100046",
+        "CMAU8100037",
+        "HLBU8100015",
+        "HLBU8100025",
+        "MEDU8100058",
+        "MEDU8100028",
+        "CMAU8100027",
+        "HLBU8100045",
+        "SUDU8100049",
+        "MSCU8100041",
+        "CMAU8100057",
+        "MSCU8100021",
+        "HLBU8100005",
+        "SUDU8100029",
+        "MEDU8100018",
+        "CMAU8100007",
+        "MEDU8100008",
+        "MSCU8100036",
+        "HLBU8100050",
+        "MEDU8100048",
+        "SUDU8100019",
+        "MSCU8100001",
+        "HLBU8100055",
+        "MEDU8100053",
+        "MSCU8100031",
+        "MSCU8100016"
+      ]
+    }
+  },
+  "operation_summary": {
+    "Putaway": {
+      "operation": "Putaway",
+      "total_steps": 116,
+      "planned": 116,
+      "completed": 0,
+      "blocked": 0
+    },
+    "Outbound staging and truck loading": {
+      "operation": "Outbound staging and truck loading",
+      "total_steps": 7,
+      "planned": 7,
+      "completed": 0,
+      "blocked": 0
+    },
+    "Premarshal ahead of retrieval": {
+      "operation": "Premarshal ahead of retrieval",
+      "total_steps": 36,
+      "planned": 36,
+      "completed": 0,
+      "blocked": 0
+    },
+    "Digout to clear an overstow": {
+      "operation": "Digout to clear an overstow",
+      "total_steps": 15,
+      "planned": 15,
+      "completed": 0,
+      "blocked": 0
+    }
+  }
+}
