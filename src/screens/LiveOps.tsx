@@ -4,6 +4,7 @@ import type { Visit } from "@/data/yard-ops"
 import { CONTAINERS, OPERATORS, EQUIPMENT } from "@/data/yard-data"
 import { fmtTime } from "@/utils/time"
 import Skeleton from "@/components/ui/Skeleton"
+import GanttTimeline from "@/components/GanttTimeline"
 
 interface Props {
   onNavigate?: (target: string, focus?: string) => void
@@ -490,38 +491,15 @@ export default function LiveOps({ onNavigate }: Props) {
         )}
       </div>
 
-      {/* ── Hour chart ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col px-5 py-3 border-b-2 border-[#e5e7eb] flex-none bg-[#f9fafb]">
-        <div className="flex items-baseline gap-3 mb-2">
-          <span className="ds-label text-neutral-500">Shift throughput · planned vs moves done</span>
-          <span className="text-[11px] text-neutral-500">as of {fmtTime(now)}</span>
-        </div>
-        <div className="flex gap-1.5 items-end h-16">
-          {hourBars.map(h => (
-            <button key={h.hour}
-              title={`Jump to ${h.hour}:00 · planned ${h.planned} moves`}
-              onClick={() => { setNow(parseInt(h.hour, 10) * 60); setFocus(null) }}
-              className="flex-1 flex flex-col justify-end gap-0.5 relative hover:opacity-75 transition-opacity"
-              style={{ minWidth: 28, cursor: "pointer", background: "transparent", padding: 0 }}>
-              {h.isNow && (
-                <div className="absolute left-1/2 -translate-x-1/2"
-                  style={{ top: -4, bottom: 14, width: 2, background: "#4f46e5" }} />
-              )}
-              {/* Planned bar (outline) */}
-              <div style={{ height: h.plannedH, background: "#e5e7eb", border: "1px solid #d1d5db" }} />
-              {/* Actual bar (solid, overlaps bottom of planned bar) */}
-              <div style={{ height: h.actualH, background: h.color, marginTop: -2 }} className="relative z-10" />
-              <span className="text-center tabular-nums"
-                style={{ fontSize: 9.5, color: h.labelColor, fontWeight: h.labelWeight }}>
-                {h.hour}
-              </span>
-            </button>
-          ))}
-        </div>
-        <div className="text-[10.5px] text-neutral-500 mt-1.5">
-          Grey outline = planned · solid = moves completed that hour ·{" "}
-          <span style={{ color: "#4f46e5" }}>bar</span> = current time · click to jump
-        </div>
+      {/* ── Operator Gantt ───────────────────────────────────────────────────── */}
+      <div className="flex-none">
+        <GanttTimeline
+          moves={moves}
+          now={now}
+          shiftStart={shiftStart}
+          shiftEnd={shiftEnd}
+          onHourClick={min => { setNow(min); setFocus(null) }}
+        />
       </div>
 
       {/* ── Live state summary — fully derived from enriched entities + now ── */}

@@ -1,0 +1,13 @@
+In src/screens/LiveOps.tsx, find the "SHIFT THROUGHPUT · PLANNED VS MOVES DONE" block — the hourly strip (06–13) with the blue "now" marker and the grey/solid legend. Replace it entirely with a Gantt chart in the same spot.
+
+Requirements:
+
+Structure — two operator lanes — Render exactly one row per yard operator (two rows total), with each operator's allocated jobs for the day shown as bars on their lane. Sticky row labels on the left showing operator name + job/step count (e.g. "J-1 Alex Rivera · 56 steps"). Each bar is one allocated job, positioned by start time + duration across a shared axis spanning the shift (~06–13). Pull the operators and their job allocations from the data LiveOps already uses; if two distinct operators aren't directly available there, derive them from the operator/task grouping already in the app. Use existing index.css palette tokens and .ds-* classes — no new colors or inline styles. Color-code job bars by move type/status from the existing palette, with a small legend.
+Hour axis — 40% shorter — Keep the 06–13 axis and its "click to jump" behavior, but shrink the grey axis bar's height by 40%. Keep hour labels legible (--text-micro if needed), short tick marks, labels vertically centered.
+Dynamic with the clock (key behavior) — A live "now" line advances in real time (drive from the app's existing refresh clock if available, else a setInterval cleared on unmount). Each operator's job bars change state by position relative to now:
+Ahead → full-height grey outline (planned)
+Crossing now → full-height solid (in progress)
+Passed → collapses into a thin solid sliver (~25–30% row height, centered) as a compact done-trail, so each operator's remaining workload visually reduces as the shift progresses.
+Smooth height transition on collapse, with prefers-reduced-motion snapping instantly.
+Polish & a11y — Hover tooltip per job bar (job/move ID, operator, start–end, status) reusing existing patterns; aria-label on each bar; AA contrast; horizontal scroll with pinned operator labels if it overflows.
+Constraints — Touch only this block, not the rest of LiveOps or the app-shell grid. Match current radii, surfaces, and 4px spacing. Extract a GanttTimeline.tsx subcomponent if it keeps the file clean.
