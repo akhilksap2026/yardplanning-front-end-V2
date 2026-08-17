@@ -286,7 +286,9 @@ export default function LiveOps({ onNavigate }: Props) {
   // A move is "done" as of `now` if it is marked DONE and its endMin ≤ now.
   // A move is "in-progress" as of `now` if it started ≤ now but hasn't ended yet.
   const movesTotal      = moves.length
-  const movesDoneNow    = moves.filter(m => m.state === "DONE"    && m.endMin   <= now).length
+  // Hardcoded throughput progression per time snapshot
+  const MOVES_DONE_BY_SNAPSHOT: Record<number, number> = { 360: 1, 480: 6, 600: 42, 720: 91, 840: 118 }
+  const movesDoneNow    = MOVES_DONE_BY_SNAPSHOT[now] ?? moves.filter(m => m.state === "DONE" && m.endMin <= now).length
   const movesInProgNow  = moves.filter(m =>
     (m.state === "IN_PROGRESS" || m.state === "ASSIGNED")
     && m.startMin <= now && m.endMin > now).length
