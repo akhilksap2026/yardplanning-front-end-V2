@@ -8,13 +8,14 @@
  */
 import { Router } from 'express'
 import { pool } from './db.js'
+import { runGreedySolver } from './planner/greedy.js'
 
 export const plannerRouter = Router()
 
 // ── Stable integer ID from text string ───────────────────────────────────────
 // Uses DJB2 hash to derive a consistent positive integer from a text ID.
-// The solver (Task B) will use these same IDs when referencing containers/jockeys in moves.
 function stableId(text: string): number {
+  if (!text) return 0
   let h = 5381
   for (let i = 0; i < text.length; i++) {
     h = (((h << 5) + h) ^ text.charCodeAt(i)) >>> 0
@@ -27,7 +28,7 @@ function speedFactor(equipmentType: string | null): number {
   const t = (equipmentType ?? '').toLowerCase()
   if (t.includes('terminal tractor')) return 1.3
   if (t.includes('empty handler')) return 0.8
-  return 1.0 // reach stacker (default)
+  return 1.0
 }
 
 // ── Map YardOS container status → ContainerStatus ────────────────────────────
@@ -38,7 +39,7 @@ function toContainerStatus(status: string): string {
     case 'GATE_IN':           return 'in_transit'
     case 'GATE_OUT':
     case 'DEPARTED':          return 'departed'
-    default:                  return 'yard' // IN_YARD, CUSTOMS_CONTROLLED, etc.
+    default:                  return 'yard'
   }
 }
 
@@ -63,10 +64,54 @@ function toDetentionExpiry(hoursToLfd: number | null): string | null {
   return d.toISOString()
 }
 
+// ── Shape a planner_moves DB row → BackendMove ────────────────────────────────
+function shapeMove(row: {
+  id: number; plan_id: number; container_id: string | null; jockey_id: string | null;
+  from_slot_id: string | null; to_slot_id: string; sequence_number: number;
+  estimated_duration_min: string | number;
+  start_time_min?: string | number | null;
+  end_time_min?: string | number | null;
+  status: string; reason: string | null;
+  scanned_confirmed: boolean
+}) {
+  return {
+    id: row.id,
+    plan_id: row.plan_id,
+    container_id: row.container_id ? stableId(row.container_id) : null,
+    jockey_id: row.jockey_id ? stableId(row.jockey_id) : null,
+    from_slot_id: row.from_slot_id ? parseInt(row.from_slot_id, 10) : null,
+    to_slot_id: parseInt(row.to_slot_id, 10),
+    sequence_number: row.sequence_number,
+    estimated_duration_min: Number(row.estimated_duration_min),
+    start_time_min: row.start_time_min != null ? Number(row.start_time_min) : 0,
+    end_time_min:   row.end_time_min   != null ? Number(row.end_time_min)   : 0,
+    status: row.status,
+    reason: row.reason ?? 'shuffle',
+    scanned_confirmed: row.scanned_confirmed,
+  }
+}
+
+// ── Shape a planner_plans DB row → BackendPlan ────────────────────────────────
+function shapePlan(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    plan_date: row.plan_date,
+    status: row.status,
+    strategy: row.strategy,
+    generated_at: row.generated_at,
+    confirmed_at: row.confirmed_at ?? null,
+    parent_plan_id: row.parent_plan_id ?? null,
+    solve_seconds: row.solve_seconds != null ? Number(row.solve_seconds) : null,
+    objective_value: row.objective_value != null ? Number(row.objective_value) : null,
+    best_bound: row.best_bound != null ? Number(row.best_bound) : null,
+    gap_percent: row.gap_percent != null ? Number(row.gap_percent) : null,
+    solver_status: row.solver_status ?? null,
+    solver_config_id: row.solver_config_id ?? null,
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/planner/yard
-// Returns one aggregate BackendYardState built from zones + containers.
-// Slots include both occupied (container present) and empty positions.
 // ─────────────────────────────────────────────────────────────────────────────
 plannerRouter.get('/yard', async (_, res) => {
   try {
@@ -76,35 +121,36 @@ plannerRouter.get('/yard', async (_, res) => {
         slots: number; maxTiers: number; hazmat: boolean
       }>(`SELECT id, name, blocks, rows, slots, max_tiers AS "maxTiers", hazmat
           FROM zones ORDER BY id`),
+      // Exclude off-yard containers (AT_RECEIVING_LANE / AT_GATE) — they carry their
+      // intended inbound yard address, not their current physical location.  Including
+      // them would mark those slots as occupied and block valid new assignments.
       pool.query<{
         id: string; zone_id: string; block: number; row: number;
         slot: number; tier: number
       }>(`SELECT id, zone_id, block, row_num AS row, slot, tier
-          FROM containers`),
+          FROM containers
+          WHERE status NOT IN ('AT_RECEIVING_LANE','AT_GATE')`),
     ])
 
     const zones = zonesRes.rows
     const containers = containersRes.rows
 
-    // Build a lookup: "zone-block-row-slot-tier" → container id
     const occupiedMap = new Map<string, string>()
     for (const c of containers) {
       const key = `${c.zone_id}-${String(c.block).padStart(2,'0')}-${c.row}-${c.slot}-${c.tier}`
       occupiedMap.set(key, c.id)
     }
 
-    // Aggregate yard descriptor
     const totalRows = zones.reduce((s, z) => s + z.rows, 0)
     const maxTier   = zones.reduce((m, z) => Math.max(m, z.maxTiers), 0)
     const maxSlots  = zones.reduce((m, z) => Math.max(m, z.slots), 0)
 
     const yard = { id: 1, name: 'Terminal Yard', rows: totalRows, bays_per_row: maxSlots, max_tier: maxTier }
 
-    // Generate every slot position across all zones
     const slots: object[] = []
     let slotId = 1
     for (const z of zones) {
-      const yardId = stableId(z.id) % 1000 + 1 // small stable int per zone
+      const yardId = stableId(z.id) % 1000 + 1
       for (let b = 1; b <= z.blocks; b++) {
         for (let r = 1; r <= z.rows; r++) {
           for (let s = 1; s <= z.slots; s++) {
@@ -137,7 +183,6 @@ plannerRouter.get('/yard', async (_, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/planner/jockeys
-// Maps operators + equipment to BackendJockey shape.
 // ─────────────────────────────────────────────────────────────────────────────
 plannerRouter.get('/jockeys', async (_, res) => {
   try {
@@ -179,12 +224,10 @@ plannerRouter.get('/jockeys', async (_, res) => {
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /api/planner/containers[?status=yard|staged|in_transit|departed]
-// Maps containers table to BackendContainer shape.
+// GET /api/planner/containers
 // ─────────────────────────────────────────────────────────────────────────────
 plannerRouter.get('/containers', async (req, res) => {
   try {
-    // Reverse map: ContainerStatus → YardOS DB statuses
     const statusParam = req.query.status as string | undefined
     const reverseMap: Record<string, string[]> = {
       yard:       ['IN_YARD', 'CUSTOMS_CONTROLLED'],
@@ -220,7 +263,7 @@ plannerRouter.get('/containers', async (req, res) => {
       hazmat_class: r.imdg ?? null,
       damage_status: toDamageStatus(r.channel, r.why_here),
       detention_expiry: toDetentionExpiry(r.hours_to_lfd),
-      current_slot_id: stableId(r.address), // stable slot reference
+      current_slot_id: stableId(r.address),
     }))
 
     res.json(result)
@@ -232,7 +275,6 @@ plannerRouter.get('/containers', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/planner/orders
-// Maps visits to BackendOrder shape (DELIVERY and PICKUP purposes).
 // ─────────────────────────────────────────────────────────────────────────────
 plannerRouter.get('/orders', async (_, res) => {
   try {
@@ -252,7 +294,7 @@ plannerRouter.get('/orders', async (_, res) => {
       REPO:     'outbound_empty_for_pickup',
     }
 
-    const result = rows.map((r, i) => ({
+    const result = rows.map(r => ({
       id: stableId(r.id),
       origin: r.carrier ?? 'UNKNOWN',
       destination: 'YARD',
@@ -271,7 +313,6 @@ plannerRouter.get('/orders', async (_, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/planner/weights
-// Returns solver weight factors from solver_weights table.
 // ─────────────────────────────────────────────────────────────────────────────
 plannerRouter.get('/weights', async (_, res) => {
   try {
@@ -301,7 +342,6 @@ plannerRouter.get('/weights', async (_, res) => {
 })
 
 // PUT /api/planner/weights/batch
-// Upsert solver weights. Validates factor names; returns warnings for unknowns.
 plannerRouter.put('/weights/batch', async (req, res) => {
   try {
     const { weights, updated_by = 'yard_manager' } = req.body as {
@@ -312,33 +352,23 @@ plannerRouter.put('/weights/batch', async (req, res) => {
       return res.status(400).json({ error: 'weights array required' })
     }
 
-    // Load known factor names
-    const { rows: existing } = await pool.query(
-      `SELECT factor_name FROM solver_weights`
-    )
+    const { rows: existing } = await pool.query(`SELECT factor_name FROM solver_weights`)
     const knownFactors = new Set(existing.map((r: { factor_name: string }) => r.factor_name))
-
     const warnings: string[] = []
-    const updated: object[] = []
 
     for (const w of weights) {
       if (!knownFactors.has(w.factor_name)) {
         warnings.push(`Unknown factor '${w.factor_name}' — skipped`)
         continue
       }
-      const { rows } = await pool.query(
+      await pool.query(
         `UPDATE solver_weights
          SET weight = $1, updated_by = $2, updated_at = NOW()
-         WHERE factor_name = $3
-         RETURNING id, factor_name, weight::float, is_hard_constraint,
-                   transform_type, source_field, transform_params, null_default::float,
-                   display_order, updated_at, updated_by`,
+         WHERE factor_name = $3`,
         [w.weight, updated_by, w.factor_name]
       )
-      if (rows.length) updated.push(rows[0])
     }
 
-    // Return full updated list
     const { rows: allWeights } = await pool.query(
       `SELECT id, factor_name, weight::float, is_hard_constraint,
               transform_type, source_field, transform_params, null_default::float,
@@ -353,8 +383,105 @@ plannerRouter.put('/weights/batch', async (req, res) => {
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/planner/plans/generate
+// Run greedy solver and persist the result.
+// ─────────────────────────────────────────────────────────────────────────────
+plannerRouter.post('/plans/generate', async (req, res) => {
+  try {
+    const {
+      strategy: requestedStrategy = 'greedy',
+      time_budget_seconds = 10,
+      plan_date = new Date().toISOString().split('T')[0],
+    } = req.body as {
+      strategy?: string
+      time_budget_seconds?: number | null
+      plan_date?: string | null
+    }
+
+    // Both 'greedy' and 'cp_sat' run the greedy engine (CP-SAT is a future upgrade path).
+    // Always persist 'greedy' to accurately reflect what ran.
+    const strategy = 'greedy'
+    if (requestedStrategy !== 'greedy') {
+      console.log(`[planner] strategy '${requestedStrategy}' requested; running greedy (cp_sat not yet available)`)
+    }
+
+    const timeBudgetMs = (time_budget_seconds ?? 10) * 1000
+
+    console.log(`[planner] generating plan: strategy=${strategy} budget=${timeBudgetMs}ms`)
+
+    // Run the solver
+    const result = await runGreedySolver({ timeBudgetMs })
+
+    // Persist in a transaction
+    const client = await pool.connect()
+    let planId: number
+    try {
+      await client.query('BEGIN')
+
+      const { rows: planRows } = await client.query(
+        `INSERT INTO planner_plans
+           (plan_date, status, strategy, solve_seconds, objective_value, solver_status)
+         VALUES ($1, 'draft', $2, $3, $4, $5)
+         RETURNING id, plan_date, status, strategy, generated_at, confirmed_at,
+                   parent_plan_id, solve_seconds::float, objective_value::float,
+                   best_bound::float, gap_percent::float, solver_status, solver_config_id`,
+        [plan_date, strategy, result.solve_seconds, result.objective_value, result.solver_status]
+      )
+      planId = planRows[0].id as number
+
+      // Insert moves
+      for (const m of result.moves) {
+        await client.query(
+          `INSERT INTO planner_moves
+             (plan_id, container_id, jockey_id, from_slot_id, to_slot_id,
+              sequence_number, estimated_duration_min, start_time_min, end_time_min,
+              status, reason)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'planned', $10)`,
+          [
+            planId,
+            m.container_id,
+            m.jockey_id,
+            String(m.from_slot_id),
+            String(m.to_slot_id),
+            m.sequence_number,
+            m.estimated_duration_min,
+            m.start_time_min,
+            m.end_time_min,
+            m.reason,
+          ]
+        )
+      }
+
+      await client.query('COMMIT')
+
+      // Load the full plan back
+      const plan = shapePlan(planRows[0])
+      const { rows: moves } = await pool.query(
+        `SELECT id, plan_id, container_id, jockey_id,
+                from_slot_id, to_slot_id, sequence_number,
+                estimated_duration_min, start_time_min::float, end_time_min::float,
+                status, reason, scanned_confirmed
+         FROM planner_moves WHERE plan_id = $1 ORDER BY sequence_number`,
+        [planId]
+      )
+
+      console.log(`[planner] plan #${planId} generated: ${moves.length} moves, ${result.unplaced.length} unplaced`)
+
+      res.json({ ...plan, moves: moves.map(shapeMove) })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  } catch (err) {
+    console.error('[planner] /plans/generate error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/planner/plans
-// Lists planner plans (empty until solver is built in Task B).
 // ─────────────────────────────────────────────────────────────────────────────
 plannerRouter.get('/plans', async (_, res) => {
   try {
@@ -366,14 +493,16 @@ plannerRouter.get('/plans', async (_, res) => {
               solver_status, solver_config_id
        FROM planner_plans ORDER BY generated_at DESC`
     )
-    res.json(rows)
+    res.json(rows.map(shapePlan))
   } catch (err) {
     console.error('[planner] /plans error:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
 
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/planner/plans/:id
+// ─────────────────────────────────────────────────────────────────────────────
 plannerRouter.get('/plans/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10)
@@ -393,12 +522,13 @@ plannerRouter.get('/plans/:id', async (req, res) => {
     const { rows: moves } = await pool.query(
       `SELECT id, plan_id, container_id, jockey_id,
               from_slot_id, to_slot_id, sequence_number,
-              estimated_duration_min::float, status, reason, scanned_confirmed
+              estimated_duration_min, start_time_min::float, end_time_min::float,
+              status, reason, scanned_confirmed
        FROM planner_moves WHERE plan_id = $1 ORDER BY sequence_number`,
       [id]
     )
 
-    res.json({ ...plans[0], moves })
+    res.json({ ...shapePlan(plans[0]), moves: moves.map(shapeMove) })
   } catch (err) {
     console.error('[planner] /plans/:id error:', err)
     res.status(500).json({ error: 'Internal server error' })
@@ -406,8 +536,287 @@ plannerRouter.get('/plans/:id', async (req, res) => {
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/planner/plans/:id/confirm
+// Mark a plan as confirmed; supersede any prior confirmed plan.
+// ─────────────────────────────────────────────────────────────────────────────
+plannerRouter.post('/plans/:id/confirm', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10)
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid plan id' })
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      // Check the plan exists and is not already superseded — BEFORE touching anything else
+      const { rows: check } = await client.query(
+        `SELECT id, status FROM planner_plans WHERE id = $1 FOR UPDATE`,
+        [id]
+      )
+      if (!check.length) {
+        await client.query('ROLLBACK')
+        return res.status(404).json({ error: 'Plan not found' })
+      }
+      if (check[0].status === 'superseded') {
+        await client.query('ROLLBACK')
+        return res.status(409).json({ error: 'Cannot confirm a superseded plan' })
+      }
+
+      // Safe to supersede any other confirmed plan now that we know this one exists
+      await client.query(
+        `UPDATE planner_plans SET status = 'superseded'
+         WHERE status = 'confirmed' AND id != $1`,
+        [id]
+      )
+
+      // Confirm this plan
+      const { rows } = await client.query(
+        `UPDATE planner_plans
+         SET status = 'confirmed', confirmed_at = NOW()
+         WHERE id = $1
+         RETURNING id, plan_date, status, strategy, generated_at, confirmed_at,
+                   parent_plan_id, solve_seconds::float, objective_value::float,
+                   best_bound::float, gap_percent::float, solver_status, solver_config_id`,
+        [id]
+      )
+      await client.query('COMMIT')
+
+      res.json(shapePlan(rows[0]))
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  } catch (err) {
+    console.error('[planner] /plans/:id/confirm error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/planner/plans/:id/replan
+// Create a new plan derived from the given plan.
+// Frozen moves (in_progress/done) are copied verbatim into the new plan.
+// Their container IDs are excluded from the fresh solve to avoid conflicts.
+// ─────────────────────────────────────────────────────────────────────────────
+plannerRouter.post('/plans/:id/replan', async (req, res) => {
+  try {
+    const parentId = parseInt(req.params.id, 10)
+    if (!Number.isInteger(parentId)) return res.status(400).json({ error: 'Invalid plan id' })
+
+    const {
+      reason = 'manual_replan',
+      time_budget_seconds = 10,
+    } = req.body as { reason?: string; time_budget_seconds?: number }
+
+    // Load parent plan + frozen moves atomically
+    const { rows: parentRows } = await pool.query(
+      `SELECT id, plan_date, strategy FROM planner_plans WHERE id = $1`,
+      [parentId]
+    )
+    if (!parentRows.length) return res.status(404).json({ error: 'Parent plan not found' })
+
+    const { rows: allParentMoves } = await pool.query(
+      `SELECT id, container_id, jockey_id, from_slot_id, to_slot_id,
+              sequence_number, estimated_duration_min::float,
+              start_time_min::float, end_time_min::float,
+              status, reason, scanned_confirmed
+       FROM planner_moves WHERE plan_id = $1 ORDER BY sequence_number`,
+      [parentId]
+    )
+
+    // Split parent moves into frozen (keep as-is) vs planned (re-solve)
+    type FrozenRow = {
+      container_id: string; jockey_id: string | null
+      from_slot_id: string | null; to_slot_id: string
+      sequence_number: number; estimated_duration_min: number
+      start_time_min: number; end_time_min: number
+      status: string; reason: string | null; scanned_confirmed: boolean
+    }
+    const frozenMoves = allParentMoves.filter(
+      (m: { status: string }) => m.status === 'in_progress' || m.status === 'done'
+    ) as FrozenRow[]
+
+    const frozenContainerIds = new Set<string>(
+      frozenMoves.map(m => m.container_id).filter(Boolean)
+    )
+    // Frozen move destinations are still occupied; sources have been freed
+    const frozenDestinations = new Set<string>(
+      frozenMoves.map(m => m.to_slot_id).filter(Boolean)
+    )
+    const frozenSources = new Set<string>(
+      frozenMoves.map(m => m.from_slot_id).filter(Boolean) as string[]
+    )
+    // Per-jockey end times from frozen moves (so fresh moves queue after them)
+    const frozenJockeyEndTimes = new Map<string, number>()
+    for (const m of frozenMoves) {
+      if (!m.jockey_id) continue
+      const cur = frozenJockeyEndTimes.get(m.jockey_id) ?? 0
+      if (m.end_time_min > cur) frozenJockeyEndTimes.set(m.jockey_id, m.end_time_min)
+    }
+
+    console.log(`[planner] replan of #${parentId}: ${frozenContainerIds.size} frozen containers, reason=${reason}`)
+
+    // Run solver excluding frozen containers; reserves frozen destinations; frees frozen sources
+    const result = await runGreedySolver({
+      timeBudgetMs: (time_budget_seconds ?? 10) * 1000,
+      frozenContainerIds,
+      frozenDestinations,
+      frozenSources,
+      frozenJockeyEndTimes,
+    })
+
+    const planDate = parentRows[0].plan_date ?? new Date().toISOString().split('T')[0]
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      const { rows: planRows } = await client.query(
+        `INSERT INTO planner_plans
+           (plan_date, status, strategy, parent_plan_id, solve_seconds, objective_value, solver_status)
+         VALUES ($1, 'draft', 'greedy', $2, $3, $4, $5)
+         RETURNING id, plan_date, status, strategy, generated_at, confirmed_at,
+                   parent_plan_id, solve_seconds::float, objective_value::float,
+                   best_bound::float, gap_percent::float, solver_status, solver_config_id`,
+        [planDate, parentId, result.solve_seconds, result.objective_value, result.solver_status]
+      )
+      const newPlanId = planRows[0].id as number
+
+      // 1. Copy frozen moves verbatim (status + timing preserved, plan_id updated)
+      let seq = 1
+      for (const m of frozenMoves) {
+        await client.query(
+          `INSERT INTO planner_moves
+             (plan_id, container_id, jockey_id, from_slot_id, to_slot_id,
+              sequence_number, estimated_duration_min, start_time_min, end_time_min,
+              status, reason, scanned_confirmed)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          [
+            newPlanId, m.container_id, m.jockey_id,
+            m.from_slot_id, m.to_slot_id,
+            seq++, m.estimated_duration_min, m.start_time_min, m.end_time_min,
+            m.status, m.reason, m.scanned_confirmed,
+          ]
+        )
+      }
+
+      // 2. Insert fresh solver moves (sequence continues after frozen)
+      for (const m of result.moves) {
+        await client.query(
+          `INSERT INTO planner_moves
+             (plan_id, container_id, jockey_id, from_slot_id, to_slot_id,
+              sequence_number, estimated_duration_min, start_time_min, end_time_min,
+              status, reason)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'planned', $10)`,
+          [
+            newPlanId, m.container_id, m.jockey_id,
+            String(m.from_slot_id), String(m.to_slot_id),
+            seq++, m.estimated_duration_min, m.start_time_min, m.end_time_min, m.reason,
+          ]
+        )
+      }
+
+      await client.query('COMMIT')
+
+      const plan = shapePlan(planRows[0])
+      const { rows: moves } = await pool.query(
+        `SELECT id, plan_id, container_id, jockey_id,
+                from_slot_id, to_slot_id, sequence_number,
+                estimated_duration_min, start_time_min::float, end_time_min::float,
+                status, reason, scanned_confirmed
+         FROM planner_moves WHERE plan_id = $1 ORDER BY sequence_number`,
+        [newPlanId]
+      )
+
+      console.log(`[planner] replan #${newPlanId} (parent #${parentId}): ${frozenMoves.length} frozen + ${result.moves.length} new moves`)
+
+      res.json({ ...plan, moves: moves.map(shapeMove) })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  } catch (err) {
+    console.error('[planner] /plans/:id/replan error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE /api/planner/plans/:id
+// ─────────────────────────────────────────────────────────────────────────────
+plannerRouter.delete('/plans/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10)
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid plan id' })
+
+    await pool.query(`DELETE FROM planner_plans WHERE id = $1`, [id])
+    res.status(204).send()
+  } catch (err) {
+    console.error('[planner] DELETE /plans/:id error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/planner/moves/:id — advance move status (planned→in_progress→done)
+// ─────────────────────────────────────────────────────────────────────────────
+plannerRouter.patch('/moves/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10)
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid move id' })
+
+    const { status, scanned_confirmed } = req.body as {
+      status?: string
+      scanned_confirmed?: boolean
+    }
+
+    const validStatuses = ['planned', 'in_progress', 'done', 'cancelled']
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` })
+    }
+
+    const setClauses: string[] = []
+    const params: unknown[] = []
+
+    if (status) {
+      params.push(status)
+      setClauses.push(`status = $${params.length}`)
+    }
+    if (scanned_confirmed !== undefined) {
+      params.push(scanned_confirmed)
+      setClauses.push(`scanned_confirmed = $${params.length}`)
+    }
+
+    if (setClauses.length === 0) {
+      return res.status(400).json({ error: 'Nothing to update' })
+    }
+
+    params.push(id)
+    const { rows } = await pool.query(
+      `UPDATE planner_moves SET ${setClauses.join(', ')}
+       WHERE id = $${params.length}
+       RETURNING id, plan_id, container_id, jockey_id,
+                 from_slot_id, to_slot_id, sequence_number,
+                 estimated_duration_min, start_time_min::float, end_time_min::float,
+                 status, reason, scanned_confirmed`,
+      params
+    )
+
+    if (!rows.length) return res.status(404).json({ error: 'Move not found' })
+    res.json(shapeMove(rows[0]))
+  } catch (err) {
+    console.error('[planner] PATCH /moves/:id error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/planner/disruptions
-// POST /api/planner/disruptions
+// POST /api/planner/disruptions — auto-triggers replan on CONTAINER_HOLD or OPERATOR_UNAVAILABLE
 // ─────────────────────────────────────────────────────────────────────────────
 plannerRouter.get('/disruptions', async (_, res) => {
   try {
@@ -441,15 +850,169 @@ plannerRouter.post('/disruptions', async (req, res) => {
       return res.status(400).json({ error: 'event_type is required' })
     }
 
-    const { rows } = await pool.query(
+    // Resolve stableId integers → DB text IDs.
+    // The frontend sends stableId(container.id) as the integer; we reverse it by
+    // scanning the relevant table and matching the hash. This is O(N) but N is small.
+    let resolvedContainerTextId: string | null = null
+    let resolvedJockeyTextId: string | null = null
+
+    if (affected_container_id != null) {
+      const { rows: allContainers } = await pool.query(`SELECT id FROM containers`)
+      resolvedContainerTextId = allContainers.find(
+        (r: { id: string }) => stableId(r.id) === affected_container_id
+      )?.id ?? null
+      if (!resolvedContainerTextId) {
+        console.warn(`[planner] disruption: could not resolve container stableId ${affected_container_id}`)
+      }
+    }
+
+    if (affected_jockey_id != null) {
+      const { rows: allOperators } = await pool.query(`SELECT id FROM operators`)
+      resolvedJockeyTextId = allOperators.find(
+        (r: { id: string }) => stableId(r.id) === affected_jockey_id
+      )?.id ?? null
+      if (!resolvedJockeyTextId) {
+        console.warn(`[planner] disruption: could not resolve jockey stableId ${affected_jockey_id}`)
+      }
+    }
+
+    // Insert the disruption (store resolved text IDs, not stableId integers)
+    const { rows: disruptionRows } = await pool.query(
       `INSERT INTO planner_disruptions
          (event_type, affected_container_id, affected_jockey_id, description)
        VALUES ($1, $2, $3, $4)
        RETURNING id, event_type, affected_container_id, affected_order_id,
                  affected_jockey_id, occurred_at, description, triggered_replan_id`,
-      [event_type, affected_container_id, affected_jockey_id, description]
+      [event_type, resolvedContainerTextId, resolvedJockeyTextId, description]
     )
-    res.status(201).json(rows[0])
+    const disruption = disruptionRows[0]
+
+    // Auto-replan on hard disruptions
+    const AUTO_REPLAN_EVENTS = [
+      'CONTAINER_HOLD', 'inspection_hold',
+      'jockey_unavailable', 'OPERATOR_UNAVAILABLE',
+    ]
+    if (AUTO_REPLAN_EVENTS.includes(event_type)) {
+      // Find current confirmed plan
+      const { rows: confirmedPlans } = await pool.query(
+        `SELECT id, plan_date FROM planner_plans WHERE status = 'confirmed'
+         ORDER BY generated_at DESC LIMIT 1`
+      )
+
+      if (confirmedPlans.length > 0) {
+        const parentId = confirmedPlans[0].id as number
+        const planDate = confirmedPlans[0].plan_date as string
+
+        try {
+          // Load frozen moves from confirmed plan (in_progress/done — never re-assigned)
+          const { rows: frozenMoves } = await pool.query(
+            `SELECT container_id, jockey_id, from_slot_id, to_slot_id,
+                    sequence_number, estimated_duration_min::float,
+                    start_time_min::float, end_time_min::float,
+                    status, reason, scanned_confirmed
+             FROM planner_moves
+             WHERE plan_id = $1 AND status IN ('in_progress','done')
+             ORDER BY sequence_number`,
+            [parentId]
+          )
+          type DF = {
+            container_id: string; jockey_id: string | null
+            from_slot_id: string | null; to_slot_id: string
+            sequence_number: number; estimated_duration_min: number
+            start_time_min: number; end_time_min: number
+            status: string; reason: string | null; scanned_confirmed: boolean
+          }
+          const fm = frozenMoves as DF[]
+          const frozenContainerIds = new Set<string>(fm.map(m => m.container_id).filter(Boolean))
+          const frozenDestinations  = new Set<string>(fm.map(m => m.to_slot_id).filter(Boolean))
+          const frozenSources       = new Set<string>(fm.map(m => m.from_slot_id).filter(Boolean) as string[])
+          const frozenJockeyEndTimes = new Map<string, number>()
+          for (const m of fm) {
+            if (!m.jockey_id) continue
+            const cur = frozenJockeyEndTimes.get(m.jockey_id) ?? 0
+            if (m.end_time_min > cur) frozenJockeyEndTimes.set(m.jockey_id, m.end_time_min)
+          }
+
+          // Run solver: exclude frozen + held container, exclude unavailable jockey
+          const result = await runGreedySolver({
+            timeBudgetMs: 8_000,
+            frozenContainerIds,
+            frozenDestinations,
+            frozenSources,
+            frozenJockeyEndTimes,
+            disruptedContainerId: resolvedContainerTextId,
+            disruptedJockeyId: resolvedJockeyTextId,
+          })
+
+          const client = await pool.connect()
+          try {
+            await client.query('BEGIN')
+
+            const { rows: planRows } = await client.query(
+              `INSERT INTO planner_plans
+                 (plan_date, status, strategy, parent_plan_id,
+                  solve_seconds, objective_value, solver_status)
+               VALUES ($1, 'draft', 'greedy', $2, $3, $4, $5)
+               RETURNING id`,
+              [planDate, parentId, result.solve_seconds, result.objective_value, result.solver_status]
+            )
+            const newPlanId = planRows[0].id as number
+
+            // 1. Copy frozen moves verbatim (timing preserved)
+            const fm2 = frozenMoves as DF[]
+            let seq = 1
+            for (const m of fm2) {
+              await client.query(
+                `INSERT INTO planner_moves
+                   (plan_id, container_id, jockey_id, from_slot_id, to_slot_id,
+                    sequence_number, estimated_duration_min, start_time_min, end_time_min,
+                    status, reason, scanned_confirmed)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+                [newPlanId, m.container_id, m.jockey_id, m.from_slot_id, m.to_slot_id,
+                 seq++, m.estimated_duration_min, m.start_time_min, m.end_time_min,
+                 m.status, m.reason, m.scanned_confirmed]
+              )
+            }
+
+            // 2. Insert fresh solver moves
+            for (const m of result.moves) {
+              await client.query(
+                `INSERT INTO planner_moves
+                   (plan_id, container_id, jockey_id, from_slot_id, to_slot_id,
+                    sequence_number, estimated_duration_min, start_time_min, end_time_min,
+                    status, reason)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'planned',$10)`,
+                [newPlanId, m.container_id, m.jockey_id,
+                 String(m.from_slot_id), String(m.to_slot_id),
+                 seq++, m.estimated_duration_min, m.start_time_min, m.end_time_min, m.reason]
+              )
+            }
+
+            // Link disruption → triggered replan
+            await client.query(
+              `UPDATE planner_disruptions SET triggered_replan_id = $1 WHERE id = $2`,
+              [newPlanId, disruption.id]
+            )
+            disruption.triggered_replan_id = newPlanId
+
+            await client.query('COMMIT')
+            console.log(
+              `[planner] auto-replan #${newPlanId} triggered by ${event_type}: ` +
+              `${frozenMoves.length} frozen + ${result.moves.length} new moves`
+            )
+          } catch (replanErr) {
+            await client.query('ROLLBACK')
+            console.error('[planner] auto-replan transaction failed:', replanErr)
+          } finally {
+            client.release()
+          }
+        } catch (solverErr) {
+          console.error('[planner] auto-replan solver failed:', solverErr)
+        }
+      }
+    }
+
+    res.status(201).json(disruption)
   } catch (err) {
     console.error('[planner] POST /disruptions error:', err)
     res.status(500).json({ error: 'Internal server error' })

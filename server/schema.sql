@@ -287,6 +287,8 @@ CREATE TABLE IF NOT EXISTS planner_moves (
   to_slot_id             TEXT NOT NULL,
   sequence_number        INTEGER NOT NULL DEFAULT 0,
   estimated_duration_min NUMERIC NOT NULL DEFAULT 0,
+  start_time_min         NUMERIC(7,2) NOT NULL DEFAULT 0,  -- shift-relative start (per-jockey queue)
+  end_time_min           NUMERIC(7,2) NOT NULL DEFAULT 0,  -- shift-relative end (non-overlapping)
   status                 TEXT NOT NULL DEFAULT 'planned',  -- planned|in_progress|done|cancelled
   reason                 TEXT,
   scanned_confirmed      BOOLEAN NOT NULL DEFAULT FALSE

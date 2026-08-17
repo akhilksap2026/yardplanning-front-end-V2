@@ -209,6 +209,12 @@ export const backendApi = {
     request<BackendPlanDetail>(`${P}/plans/${id}/replan`, { method: "POST", body: JSON.stringify({ reason, time_budget_seconds: timeBudget }) }),
   deletePlan: (id: number) => request<void>(`${P}/plans/${id}`, { method: "DELETE" }),
 
+  // Planner move status advancement (for planner_moves rows, not seed moves)
+  patchPlannerMove: (moveId: number, body: { status?: string; scanned_confirmed?: boolean }) =>
+    request<{ id: number; status: string; scanned_confirmed: boolean; start_time_min: number; end_time_min: number }>(
+      `${P}/moves/${moveId}`, { method: 'PATCH', body: JSON.stringify(body) }
+    ),
+
   // Disruptions
   disruptions: () => request<BackendDisruption[]>(`${P}/disruptions`),
   createDisruption: (body: { event_type: DisruptionType; affected_container_id?: number | null; affected_jockey_id?: number | null; description: string }) =>

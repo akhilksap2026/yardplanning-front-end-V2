@@ -19,6 +19,9 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { pool } from './db.js'
 import { plannerRouter } from './planner-routes.js'
+// Note: migrations are run in server/index.ts BEFORE app.listen() is called.
+// app.ts does not call migrations so that test imports (which don't listen)
+// work against whatever schema is already in place.
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
