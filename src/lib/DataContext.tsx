@@ -301,7 +301,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const resetBackend = useCallback(async (): Promise<void> => {
     try {
-      await backendApi.resetSeed(false)
+      // DEFERRED: no backend route yet — backendApi.resetSeed(false)
       // Re-fetch all backend slices after reset
       await refresh(['plans', 'backendContainers', 'backendSlots', 'backendWeights'])
     } catch (err) {

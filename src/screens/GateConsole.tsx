@@ -179,21 +179,17 @@ export default function GateConsole({ focus, onNavigate }: Props) {
 
   async function loadTransactions() {
     setTxLoading(true)
-    try { const data = await backendApi.gateTransactions(); setTransactions(data) }
-    catch (err) { console.error("[GateConsole] load transactions:", err) }
+    try {
+      // DEFERRED: no backend route yet — backendApi.gateTransactions()
+      setTransactions([])
+    } catch (err) { console.error("[GateConsole] load transactions:", err) }
     finally { setTxLoading(false) }
   }
 
   async function handleGateIn() {
     setSubmittingGateIn(true)
     try {
-      await backendApi.createGateTransaction({
-        gate_type: "in",
-        container_id: gateInContId !== "" ? Number(gateInContId) : undefined,
-        truck_license_plate: gateInPlate || undefined,
-        driver_ref: gateInDriver || undefined,
-        carrier_ref: gateInCarrier || undefined,
-      })
+      // DEFERRED: no backend route yet — backendApi.createGateTransaction({ gate_type: "in", ... })
       setShowGateInForm(false)
       setGateInContId(""); setGateInPlate(""); setGateInDriver(""); setGateInCarrier("")
       await loadTransactions()
@@ -204,15 +200,8 @@ export default function GateConsole({ focus, onNavigate }: Props) {
   async function handleGateOut(containerId: number, inTime: string | null) {
     setGateOutLoading(containerId)
     try {
-      const tx = await backendApi.createGateTransaction({ gate_type: "out", container_id: containerId })
+      // DEFERRED: no backend route yet — backendApi.createGateTransaction({ gate_type: "out", ... })
       await loadTransactions()
-      if (inTime && tx.actual_departure) {
-        const diffMs = new Date(tx.actual_departure).getTime() - new Date(inTime).getTime()
-        const msg = `Gate out confirmed · turnaround ${Math.round(diffMs/60_000)}′`
-        setTurnaroundToast(msg)
-        if (toastTimeout.current) clearTimeout(toastTimeout.current)
-        toastTimeout.current = setTimeout(() => setTurnaroundToast(null), 6000)
-      }
     } catch (err) { console.error("[GateConsole] gate out:", err) }
     finally { setGateOutLoading(null) }
   }

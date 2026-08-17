@@ -196,8 +196,9 @@ export default function YardMap({ focus, onNavigate }: Props) {
   async function loadForecast() {
     if (loadingFcast) return
     setLoadingFcast(true)
-    try { const f = await backendApi.forecast(3); setForecast(f) }
-    catch (err) { console.error("[YardMap] forecast:", err) }
+    try {
+      // DEFERRED: no backend route yet — backendApi.forecast(3)
+    } catch (err) { console.error("[YardMap] forecast:", err) }
     finally { setLoadingFcast(false) }
   }
 

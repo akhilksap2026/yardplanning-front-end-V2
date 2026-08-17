@@ -60,10 +60,8 @@ export default function SolverConfigTab() {
       return
     }
     setSolverLoading(true)
-    backendApi.getActiveSolverConfig()
-      .then(cfg => { setSolverConfig(cfg); setSolverEdits({}) })
-      .catch(err => console.error("[Settings] solver config fetch:", err))
-      .finally(() => setSolverLoading(false))
+    // DEFERRED: no backend route yet — backendApi.getActiveSolverConfig()
+    setSolverLoading(false)
   }, [backendConnected])
 
   function getSolverVal(key: keyof BackendSolverConfig): number {
@@ -88,8 +86,10 @@ export default function SolverConfigTab() {
     if (!solverConfig || Object.keys(solverEdits).length === 0) return
     setSolverSaveStatus("saving")
     try {
-      const updated = await backendApi.updateSolverConfig(solverEdits)
-      setSolverConfig(updated); setSolverEdits({}); setSolverSaveStatus("success")
+      // DEFERRED: no backend route yet — backendApi.updateSolverConfig(...)
+      // Apply edits locally (same as demo mode)
+      setSolverConfig(prev => prev ? { ...prev, ...solverEdits } : prev)
+      setSolverEdits({}); setSolverSaveStatus("success")
     } catch (err) {
       console.error("[Settings] solver save:", err); setSolverSaveStatus("error")
     }

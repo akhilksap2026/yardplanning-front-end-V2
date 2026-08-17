@@ -69,13 +69,10 @@ export default function ForecastTab() {
   async function runForecast() {
     setFcastLoading(true)
     try {
-      if (!backendConnected) {
-        await new Promise(r => setTimeout(r, 600)) // brief loading feel
-        setFcastResult(buildDemoForecast(fcastMonths, fcastCapacity))
-      } else {
-        const f = await backendApi.forecast(fcastMonths, fcastCapacity)
-        setFcastResult(f)
-      }
+      // DEFERRED: no backend route yet for forecast — always use demo forecast
+      // backendApi.forecast(fcastMonths, fcastCapacity) is not implemented server-side
+      await new Promise(r => setTimeout(r, 600)) // brief loading feel
+      setFcastResult(buildDemoForecast(fcastMonths, fcastCapacity))
     } catch (err) {
       console.error("[Settings] forecast:", err)
     } finally { setFcastLoading(false) }
@@ -84,7 +81,8 @@ export default function ForecastTab() {
   async function resetSeedData() {
     setResetStatus("resetting")
     try {
-      await backendApi.resetSeed(true); setResetStatus("done")
+      // DEFERRED: no backend route yet — backendApi.resetSeed(true)
+      setResetStatus("done")
     } catch (err) {
       console.error("[Settings] seed reset:", err); setResetStatus("error")
     }

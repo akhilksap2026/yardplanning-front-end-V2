@@ -39,13 +39,8 @@ export default function OptimizerRunsTab() {
       setRunHistory(DEMO_RUN_HISTORY)
       return
     }
-    backendApi.listOptimizerRuns()
-      .then(runs => {
-        setRunHistory(runs)
-        const live = runs.find(r => r.status === "pending" || r.status === "running")
-        if (live) setActiveRun(live)
-      })
-      .catch(err => console.error("[Settings] list optimizer runs:", err))
+    // DEFERRED: no backend route yet — backendApi.listOptimizerRuns()
+    // Demo history already set above via DEMO_RUN_HISTORY
   }, [backendConnected])
 
   // Poll active run (backend only)
@@ -57,12 +52,7 @@ export default function OptimizerRunsTab() {
     if (pollRef.current) clearInterval(pollRef.current)
     pollRef.current = setInterval(async () => {
       try {
-        const updated = await backendApi.getOptimizerRun(activeRun.id)
-        setActiveRun(updated)
-        if (updated.status !== "pending" && updated.status !== "running") {
-          clearInterval(pollRef.current!); pollRef.current = null
-          setRunHistory(prev => prev.map(r => r.id === updated.id ? updated : r))
-        }
+        // DEFERRED: no backend route yet — backendApi.getOptimizerRun(activeRun.id)
       } catch (err) { console.error("[Settings] poll optimizer run:", err) }
     }, 3000)
     return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null } }
@@ -86,8 +76,7 @@ export default function OptimizerRunsTab() {
       return
     }
     try {
-      const run = await backendApi.startOptimizerRun({ total_trials: trials })
-      setActiveRun(run); setRunHistory(prev => [run, ...prev])
+      // DEFERRED: no backend route yet — backendApi.startOptimizerRun({ total_trials: trials })
     } catch (err) {
       setOptimizerError(err instanceof Error ? err.message : "Failed to start optimizer run")
     } finally { setOptimizerBusy(false) }
@@ -103,7 +92,8 @@ export default function OptimizerRunsTab() {
       return
     }
     try {
-      await backendApi.applyOptimizerRun(id); setApplyStatus("success")
+      // DEFERRED: no backend route yet — backendApi.applyOptimizerRun(id)
+      setApplyStatus("success")
     } catch (err) {
       console.error("[Settings] apply optimizer run:", err); setApplyStatus("error")
     }

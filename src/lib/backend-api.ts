@@ -263,39 +263,49 @@ export const backendApi = {
   updateWeights: (weights: { factor_name: string; weight: number }[], updatedBy = "yard_manager") =>
     request<{ weights: BackendWeight[]; warnings: string[] }>(`${P}/weights/batch`, { method: "PUT", body: JSON.stringify({ weights, updated_by: updatedBy }) }),
 
-  // Forecast
-  forecast: (months = 3, capacity?: number) => {
-    const q = new URLSearchParams({ months: String(months) });
-    if (capacity) q.set("capacity", String(capacity));
-    return request<BackendForecast>(`/forecast?${q}`);
-  },
-
-  // Gate
-  gateTransactions: (containerId?: number) => {
-    const q = containerId ? `?container_id=${containerId}` : "";
-    return request<BackendGateTransaction[]>(`/gate/transactions${q}`);
-  },
-  createGateTransaction: (body: { gate_type: "in" | "out"; container_id?: number; truck_license_plate?: string; driver_ref?: string; carrier_ref?: string }) =>
-    request<BackendGateTransaction>("/gate/transactions", { method: "POST", body: JSON.stringify(body) }),
-
   // Gate containers — enriched with live carrier + trucker DB join
   fetchGateContainers: (type: "inbound" | "outbound") =>
     request<{ rows: LiveGateRow[]; fetchedAt: string }>(`/gate/containers?type=${type}`),
 
-  // Seed reset (demo) — requires --force on seed.ts server-side
-  resetSeed: (randomize = false) =>
-    request<{ status: string }>(`/seed/reset?randomize=${randomize}`, { method: "POST" }),
+  // DEFERRED: no backend route yet
+  // forecast: (months = 3, capacity?: number) => {
+  //   const q = new URLSearchParams({ months: String(months) });
+  //   if (capacity) q.set("capacity", String(capacity));
+  //   return request<BackendForecast>(`/forecast?${q}`);
+  // },
 
-  // Solver config
-  getActiveSolverConfig: () => request<BackendSolverConfig>("/solver-config/active"),
-  updateSolverConfig: (changes: Partial<BackendSolverConfig> & { updated_by?: string }) =>
-    request<BackendSolverConfig>("/solver-config", { method: "PUT", body: JSON.stringify(changes) }),
+  // DEFERRED: no backend route yet
+  // gateTransactions: (containerId?: number) => {
+  //   const q = containerId ? `?container_id=${containerId}` : "";
+  //   return request<BackendGateTransaction[]>(`/gate/transactions${q}`);
+  // },
 
-  // Optimizer runs
-  startOptimizerRun: (body: { total_trials?: number; batch_size?: number }) =>
-    request<BackendOptimizerRun>("/optimizer/runs", { method: "POST", body: JSON.stringify(body) }),
-  getOptimizerRun: (id: number) => request<BackendOptimizerRun>(`/optimizer/runs/${id}`),
-  listOptimizerRuns: () => request<BackendOptimizerRun[]>("/optimizer/runs"),
-  applyOptimizerRun: (id: number) =>
-    request<BackendSolverConfig>(`/optimizer/runs/${id}/apply`, { method: "POST" }),
+  // DEFERRED: no backend route yet
+  // createGateTransaction: (body: { gate_type: "in" | "out"; container_id?: number; truck_license_plate?: string; driver_ref?: string; carrier_ref?: string }) =>
+  //   request<BackendGateTransaction>("/gate/transactions", { method: "POST", body: JSON.stringify(body) }),
+
+  // DEFERRED: no backend route yet
+  // resetSeed: (randomize = false) =>
+  //   request<{ status: string }>(`/seed/reset?randomize=${randomize}`, { method: "POST" }),
+
+  // DEFERRED: no backend route yet
+  // getActiveSolverConfig: () => request<BackendSolverConfig>("/solver-config/active"),
+
+  // DEFERRED: no backend route yet
+  // updateSolverConfig: (changes: Partial<BackendSolverConfig> & { updated_by?: string }) =>
+  //   request<BackendSolverConfig>("/solver-config", { method: "PUT", body: JSON.stringify(changes) }),
+
+  // DEFERRED: no backend route yet
+  // startOptimizerRun: (body: { total_trials?: number; batch_size?: number }) =>
+  //   request<BackendOptimizerRun>("/optimizer/runs", { method: "POST", body: JSON.stringify(body) }),
+
+  // DEFERRED: no backend route yet
+  // getOptimizerRun: (id: number) => request<BackendOptimizerRun>(`/optimizer/runs/${id}`),
+
+  // DEFERRED: no backend route yet
+  // listOptimizerRuns: () => request<BackendOptimizerRun[]>("/optimizer/runs"),
+
+  // DEFERRED: no backend route yet
+  // applyOptimizerRun: (id: number) =>
+  //   request<BackendSolverConfig>(`/optimizer/runs/${id}/apply`, { method: "POST" }),
 };

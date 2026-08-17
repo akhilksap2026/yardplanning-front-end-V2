@@ -11,15 +11,7 @@ import { describe, it, expect } from 'vitest'
 import request from 'supertest'
 import { app } from './app.js'
 import { pool } from './db.js'
-
-/** DJB2 hash — mirrors stableId() in planner-routes to map text IDs → integers. */
-function stableId(text: string): number {
-  let h = 5381
-  for (let i = 0; i < text.length; i++) {
-    h = ((h * 33) ^ text.charCodeAt(i)) >>> 0
-  }
-  return h
-}
+import { stableId } from './utils/stableId.js'
 
 // ── Read routes ───────────────────────────────────────────────────────────────
 

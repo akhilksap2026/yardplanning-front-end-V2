@@ -27,6 +27,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export const app = express()
 
+// ── Async route wrapper ───────────────────────────────────────────────────────
+// Catches any unhandled promise rejection inside an async handler and forwards
+// it to the global error-handling middleware below. Route logic is unchanged.
+function asyncRoute(fn: express.RequestHandler): express.RequestHandler {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next)
+  }
+}
+
 // CORS — permissive within this loopback-only deployment.
 // In production the built frontend is served by the same process, so
 // CORS headers are not needed; they are added here for the Vite dev proxy.
@@ -44,56 +53,56 @@ app.use('/api/planner', plannerRouter)
 app.get('/api/health', (_, res) => res.json({ ok: true }))
 
 // ── Carriers ──────────────────────────────────────────────────────────────────
-app.get('/api/carriers', async (_, res) => {
+app.get('/api/carriers', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT code, name, free_days AS "freeDays", basis FROM carriers ORDER BY code`
   )
   res.json(rows)
-})
+}))
 
-app.get('/api/carrier-tiers', async (_, res) => {
+app.get('/api/carrier-tiers', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT carrier_code AS "carrierCode", day_from AS "dayFrom", day_to AS "dayTo", rate
      FROM carrier_tiers ORDER BY carrier_code, day_from`
   )
   res.json(rows)
-})
+}))
 
-app.get('/api/depots', async (_, res) => {
+app.get('/api/depots', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT id, name, carrier_code AS carrier, risk, time_window AS "window" FROM depots ORDER BY id`
   )
   res.json(rows)
-})
+}))
 
 // ── Yard structure ────────────────────────────────────────────────────────────
-app.get('/api/zones', async (_, res) => {
+app.get('/api/zones', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT id, name, blocks, rows, slots, max_tiers AS "maxTiers", ceiling::float, hazmat, customs
      FROM zones ORDER BY id`
   )
   res.json(rows)
-})
+}))
 
-app.get('/api/equipment', async (_, res) => {
+app.get('/api/equipment', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT id, type, model, max_row_depth AS "maxRowDepth", status, hour_meter AS "hourMeter",
             maintenance_due AS "maintenanceDue"
      FROM equipment ORDER BY id`
   )
   res.json(rows)
-})
+}))
 
-app.get('/api/operators', async (_, res) => {
+app.get('/api/operators', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT id, name, equipment_id AS equipment, certs, shift, status
      FROM operators ORDER BY id`
   )
   res.json(rows)
-})
+}))
 
 // ── Containers ────────────────────────────────────────────────────────────────
-app.get('/api/containers', async (_, res) => {
+app.get('/api/containers', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT id, zone_id AS zone, block, row_num AS row, slot, tier, address, size,
             gross_kg AS "grossKg", carrier_code AS carrier, carrier_name AS "carrierName",
@@ -103,10 +112,10 @@ app.get('/api/containers', async (_, res) => {
      FROM containers ORDER BY zone_id, block, row_num, slot, tier`
   )
   res.json(rows)
-})
+}))
 
 // ── Moves ─────────────────────────────────────────────────────────────────────
-app.get('/api/moves', async (_, res) => {
+app.get('/api/moves', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT id, seq, type, container_id AS "containerId",
             from_loc AS "from", to_loc AS "to",
@@ -117,21 +126,21 @@ app.get('/api/moves', async (_, res) => {
      FROM moves ORDER BY seq`
   )
   res.json(rows)
-})
+}))
 
 // ── Planning ──────────────────────────────────────────────────────────────────
-app.get('/api/exceptions', async (_, res) => {
+app.get('/api/exceptions', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(`SELECT * FROM exceptions ORDER BY id`)
   res.json(rows)
-})
+}))
 
-app.get('/api/assumptions', async (_, res) => {
+app.get('/api/assumptions', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(`SELECT k, v, note FROM assumptions`)
   res.json(rows)
-})
+}))
 
 // ── Gate containers (inbound / outbound with live carrier + trucker join) ─────
-app.get('/api/gate/containers', async (req, res) => {
+app.get('/api/gate/containers', asyncRoute(async (req, res) => {
   const type = req.query.type as string | undefined
   if (!type || !['inbound', 'outbound'].includes(type)) {
     return res.status(400).json({ error: 'query param ?type=inbound|outbound required' })
@@ -172,10 +181,10 @@ app.get('/api/gate/containers', async (req, res) => {
     [type]
   )
   res.json({ rows, fetchedAt: new Date().toISOString() })
-})
+}))
 
 // ── Gate ──────────────────────────────────────────────────────────────────────
-app.get('/api/visits', async (_, res) => {
+app.get('/api/visits', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT id, plate, carrier, driver, purpose,
             appt_time AS appt, queue_in AS "queueIn", check_in AS "checkIn",
@@ -184,43 +193,43 @@ app.get('/api/visits', async (_, res) => {
      FROM visits ORDER BY id`
   )
   res.json(rows)
-})
+}))
 
-app.get('/api/lanes', async (_, res) => {
+app.get('/api/lanes', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT id, type, state, visit_id AS visit, since FROM lanes ORDER BY id`
   )
   res.json(rows)
-})
+}))
 
-app.get('/api/appointments', async (_, res) => {
+app.get('/api/appointments', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT appt_window AS "window", capacity, booked, no_show AS "noShow", over
      FROM appointments ORDER BY appt_window`
   )
   res.json(rows)
-})
+}))
 
 // ── Control Tower ─────────────────────────────────────────────────────────────
-app.get('/api/events', async (_, res) => {
+app.get('/api/events', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT id, time, type, severity, state, auto, title, detail, diff
      FROM events ORDER BY time`
   )
   res.json(rows)
-})
+}))
 
-app.get('/api/diff-rows', async (_, res) => {
+app.get('/api/diff-rows', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT move_id AS "moveId", action, type,
             before_val AS before, after_val AS after, note
      FROM diff_rows ORDER BY id`
   )
   res.json(rows)
-})
+}))
 
 // ── Operator ──────────────────────────────────────────────────────────────────
-app.get('/api/operator-tasks', async (_, res) => {
+app.get('/api/operator-tasks', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT id, seq, type, container_id AS container,
             from_loc AS "from", to_loc AS "to",
@@ -228,29 +237,29 @@ app.get('/api/operator-tasks', async (_, res) => {
      FROM operator_tasks ORDER BY id`
   )
   res.json(rows)
-})
+}))
 
 // ── KPIs ──────────────────────────────────────────────────────────────────────
-app.get('/api/turn-by-hour', async (_, res) => {
+app.get('/api/turn-by-hour', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT hour, p50::float, p90::float, visits FROM turn_by_hour ORDER BY hour`
   )
   res.json(rows)
-})
+}))
 
-app.get('/api/cycle-by-type', async (_, res) => {
+app.get('/api/cycle-by-type', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT type, p50::float, p90::float, n FROM cycle_by_type`
   )
   res.json(rows)
-})
+}))
 
-app.get('/api/capacity', async (_, res) => {
+app.get('/api/capacity', asyncRoute(async (_, res) => {
   const { rows } = await pool.query(
     `SELECT month, volume, required::float, available::float, breach FROM capacity_forecast`
   )
   res.json(rows)
-})
+}))
 
 // ── Write paths ───────────────────────────────────────────────────────────────
 
@@ -259,7 +268,7 @@ app.get('/api/capacity', async (_, res) => {
 // Validates: move exists, is in an executable state, destination address is parseable,
 // and the container is still at from_loc (guards against stale / conflicting moves).
 // Only this endpoint may transition a move to DONE; the generic PATCH route refuses DONE.
-app.post('/api/moves/:id/complete', async (req, res) => {
+app.post('/api/moves/:id/complete', asyncRoute(async (req, res) => {
   const { id } = req.params
   const client = await pool.connect()
   try {
@@ -336,11 +345,11 @@ app.post('/api/moves/:id/complete', async (req, res) => {
   } finally {
     client.release()
   }
-})
+}))
 
 // PATCH /api/moves/:id  { state }
 // NOTE: 'DONE' is intentionally excluded — use POST /api/moves/:id/complete instead.
-app.patch('/api/moves/:id', async (req, res) => {
+app.patch('/api/moves/:id', asyncRoute(async (req, res) => {
   const { id } = req.params
   const { state } = req.body
   const VALID = ['PLANNED', 'ASSIGNED', 'IN_PROGRESS']
@@ -353,10 +362,10 @@ app.patch('/api/moves/:id', async (req, res) => {
   )
   if (!rows.length) return res.status(404).json({ error: 'Move not found' })
   res.json(rows[0])
-})
+}))
 
 // PATCH /api/containers/:id  { zone, block, row, slot, tier, address }
-app.patch('/api/containers/:id', async (req, res) => {
+app.patch('/api/containers/:id', asyncRoute(async (req, res) => {
   const { id } = req.params
   const { zone, block, row, slot, tier, address } = req.body
   if (!zone || block == null || row == null || slot == null || tier == null || !address) {
@@ -371,10 +380,10 @@ app.patch('/api/containers/:id', async (req, res) => {
   )
   if (!rows.length) return res.status(404).json({ error: 'Container not found' })
   res.json(rows[0])
-})
+}))
 
 // POST /api/events  — record a new tower event
-app.post('/api/events', async (req, res) => {
+app.post('/api/events', asyncRoute(async (req, res) => {
   const { id, time, type, severity, state, auto, title, detail, diff } = req.body
   if (!id || !title) return res.status(400).json({ error: 'id and title are required' })
   const { rows } = await pool.query(
@@ -388,10 +397,10 @@ app.post('/api/events', async (req, res) => {
      title, detail ?? '', JSON.stringify(diff ?? {})]
   )
   res.status(201).json(rows[0] ?? { id })
-})
+}))
 
 // PATCH /api/visits/:id  — update visit state / times / lane assignment
-app.patch('/api/visits/:id', async (req, res) => {
+app.patch('/api/visits/:id', asyncRoute(async (req, res) => {
   const { id } = req.params
   const { state, check_in, at_position, served, gate_out, lane_id } = req.body
   const { rows } = await pool.query(
@@ -410,10 +419,10 @@ app.patch('/api/visits/:id', async (req, res) => {
   )
   if (!rows.length) return res.status(404).json({ error: 'Visit not found' })
   res.json(rows[0])
-})
+}))
 
 // PATCH /api/lanes/:id  — update lane state / visit assignment
-app.patch('/api/lanes/:id', async (req, res) => {
+app.patch('/api/lanes/:id', asyncRoute(async (req, res) => {
   const { id } = req.params
   const { state, visit_id, since } = req.body
   const { rows } = await pool.query(
@@ -427,10 +436,10 @@ app.patch('/api/lanes/:id', async (req, res) => {
   )
   if (!rows.length) return res.status(404).json({ error: 'Lane not found' })
   res.json(rows[0])
-})
+}))
 
 // ── Settings (key-value store for UI preferences) ─────────────────────────────
-app.get('/api/settings/:k', async (req, res) => {
+app.get('/api/settings/:k', asyncRoute(async (req, res) => {
   const { k } = req.params
   const { rows } = await pool.query(
     `SELECT k, v AS value, note FROM settings WHERE k = $1`,
@@ -438,9 +447,9 @@ app.get('/api/settings/:k', async (req, res) => {
   )
   if (!rows.length) return res.status(404).json({ error: `Setting '${k}' not found` })
   res.json(rows[0])
-})
+}))
 
-app.patch('/api/settings/:k', async (req, res) => {
+app.patch('/api/settings/:k', asyncRoute(async (req, res) => {
   const { k } = req.params
   const { value } = req.body
   if (value === undefined) return res.status(400).json({ error: 'value is required' })
@@ -451,7 +460,7 @@ app.patch('/api/settings/:k', async (req, res) => {
     [k, String(value)]
   )
   res.json(rows[0])
-})
+}))
 
 // ── Catch-all ─────────────────────────────────────────────────────────────────
 // Unknown /api/* routes → JSON 404 (keeps DataContext error handling clean).
@@ -462,4 +471,15 @@ app.get('/{*path}', (req, res) => {
     return res.status(404).json({ error: `No route for ${req.method} ${req.path}` })
   }
   res.sendFile(path.join(distDir, 'index.html'))
+})
+
+// ── Global error-handling middleware ──────────────────────────────────────────
+// Must be registered last, after all routes. Express identifies this as an
+// error handler by its 4-argument signature (err, req, res, next).
+// asyncRoute() forwards any unhandled rejection here via next(err).
+// planner-routes.ts is excluded — it handles errors internally on every route.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err)
+  res.status(500).json({ error: 'Internal server error' })
 })

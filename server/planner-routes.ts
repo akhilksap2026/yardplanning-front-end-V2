@@ -12,19 +12,10 @@ import { runGreedySolver } from './planner/greedy.js'
 import { narratePlan } from './planner/narrate.js'
 import type { NarrationInput } from './planner/narrate.js'
 import type { SolverResult, MoveReason } from './planner/types.js'
+import { stableId } from './utils/stableId.js'
 
 export const plannerRouter = Router()
 
-// ── Stable integer ID from text string ───────────────────────────────────────
-// Uses DJB2 hash to derive a consistent positive integer from a text ID.
-function stableId(text: string): number {
-  if (!text) return 0
-  let h = 5381
-  for (let i = 0; i < text.length; i++) {
-    h = (((h << 5) + h) ^ text.charCodeAt(i)) >>> 0
-  }
-  return (h % 2_147_483_647) + 1
-}
 
 // ── Equipment type → jockey speed_factor ─────────────────────────────────────
 function speedFactor(equipmentType: string | null): number {

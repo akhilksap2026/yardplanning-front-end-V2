@@ -332,3 +332,13 @@ VALUES
   ('slot_tier',            0.5, FALSE, 'tier',            7, 'system'),
   ('operator_utilisation', 1.0, FALSE, 'status',          8, 'system')
 ON CONFLICT (factor_name) DO NOTHING;
+
+-- ── Indexes ───────────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_containers_zone        ON containers(zone_id);
+CREATE INDEX IF NOT EXISTS idx_containers_status      ON containers(status);
+CREATE INDEX IF NOT EXISTS idx_containers_address     ON containers(address);
+CREATE INDEX IF NOT EXISTS idx_planner_moves_plan     ON planner_moves(plan_id);
+CREATE INDEX IF NOT EXISTS idx_moves_container        ON moves(container_id);
+CREATE INDEX IF NOT EXISTS idx_gate_containers_type   ON gate_containers(type);
+CREATE INDEX IF NOT EXISTS idx_visits_purpose         ON visits(purpose);
+CREATE INDEX IF NOT EXISTS idx_planner_plans_status   ON planner_plans(status);
