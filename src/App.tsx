@@ -187,6 +187,31 @@ function AppShell() {
         onNavigate={(target, f) => { navigate(target, f); setPaletteOpen(false) }}
       />
 
+      {/* ── Operator Tablet modal ─────────────────────────────────────────── */}
+      {operatorOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(17,24,39,0.6)", backdropFilter: "blur(6px)" }}
+          onClick={e => { if (e.target === e.currentTarget) setOperatorOpen(false) }}
+        >
+          <div className="relative" style={{ borderRadius: 34 }}>
+            <button
+              onClick={() => setOperatorOpen(false)}
+              className="absolute flex items-center justify-center font-bold"
+              style={{
+                top: -12, right: -12, zIndex: 10,
+                width: 28, height: 28, borderRadius: "50%",
+                background: "#fff", color: "#374151",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.22)",
+                border: "1px solid #e5e7eb",
+                fontSize: 12,
+              }}
+            >✕</button>
+            <OperatorTablet focus={focus} inModal />
+          </div>
+        </div>
+      )}
+
       <div
         className="grid h-screen overflow-hidden"
         style={{
@@ -521,31 +546,6 @@ function AppShell() {
             </button>
           </div>
         </div>
-
-        {/* ── Operator Tablet modal ────────────────────────────────────────── */}
-        {operatorOpen && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            style={{ background: "rgba(17,24,39,0.6)", backdropFilter: "blur(6px)" }}
-            onClick={e => { if (e.target === e.currentTarget) setOperatorOpen(false) }}
-          >
-            <div className="relative" style={{ borderRadius: 34 }}>
-              <button
-                onClick={() => setOperatorOpen(false)}
-                className="absolute flex items-center justify-center font-bold"
-                style={{
-                  top: -12, right: -12, zIndex: 10,
-                  width: 28, height: 28, borderRadius: "50%",
-                  background: "#fff", color: "#374151",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.22)",
-                  border: "1px solid #e5e7eb",
-                  fontSize: 12,
-                }}
-              >✕</button>
-              <OperatorTablet focus={focus} inModal />
-            </div>
-          </div>
-        )}
 
         {/* ── Main content ──────────────────────────────────────────────────── */}
         <div
