@@ -73,7 +73,7 @@ function OccupancyRing({ pct, size = 32 }: { pct: number; size?: number }) {
   const r    = (size - 5) / 2
   const circ = 2 * Math.PI * r
   const arc  = Math.min(pct / 100, 1) * circ
-  const color = pct > 85 ? "#f87171" : pct > 65 ? "#fbbf24" : "#34d399"
+  const color = pct > 85 ? YT.signalBreachDark : pct > 65 ? YT.signalWarnDark : YT.signalOkDark
   return (
     <svg width={size} height={size} style={{ transform: "rotate(-90deg)", flexShrink: 0 }} aria-hidden="true">
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3.5"/>
@@ -148,7 +148,9 @@ export default function YardMap({ focus, onNavigate }: Props) {
   const [legendExpanded, setLegendExpanded] = useState(false)
 
   // ── Step 3: drawer ────────────────────────────────────────────────────────
+  type DrawerMode = "zone" | "block" | "slot" | "detention"
   const [drawerOpen,      setDrawerOpen]      = useState(false)
+  const [drawerMode,      setDrawerMode]      = useState<DrawerMode>("block")
   // When true, the block drawer shows only hot containers (hoursToLFD ≤ 4 h).
   // Set to true by handleHotBadgeClick; cleared on normal block click or close.
   const [drawerHotFilter, setDrawerHotFilter] = useState(false)
@@ -178,21 +180,6 @@ export default function YardMap({ focus, onNavigate }: Props) {
     return () => document.removeEventListener("mousedown", h)
   }, [colorDropdownOpen])
 
-  // ── Drawer focus management ───────────────────────────────────────────────
-  // Open: move focus into panel after slide animation. Close: return to invoker.
-  useEffect(() => {
-    if (!drawerOpen) {
-      drawerInvokerRef.current?.focus()
-      return
-    }
-    const timer = setTimeout(() => {
-      drawerPanelRef.current
-        ?.querySelector<HTMLElement>('button:not([disabled]), [tabindex="0"]')
-        ?.focus()
-    }, 280) // matches slide transition (260 ms + small buffer)
-    return () => clearTimeout(timer)
-  }, [drawerOpen])
-
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -221,7 +208,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, zoomLevel, drawerOpen, selectedBlockLabel, selectedSlot, shortcutOpen, storyMode])
+  }, [view, zoomLevel, drawerOpen, drawerMode, selectedBlockLabel, selectedSlot, shortcutOpen, storyMode])
 
   // ── Auto-clear planner toast ──────────────────────────────────────────────
   useEffect(() => {
@@ -229,6 +216,21 @@ export default function YardMap({ focus, onNavigate }: Props) {
     const t = setTimeout(() => setPlannerToast(null), 3500)
     return () => clearTimeout(t)
   }, [plannerToast])
+
+  // ── Drawer focus management ───────────────────────────────────────────────
+  // Open: move focus into panel after slide animation. Close: return to invoker.
+  useEffect(() => {
+    if (!drawerOpen) {
+      drawerInvokerRef.current?.focus()
+      return
+    }
+    const timer = setTimeout(() => {
+      drawerPanelRef.current
+        ?.querySelector<HTMLElement>('button:not([disabled]), [tabindex="0"]')
+        ?.focus()
+    }, 280) // matches slide transition (260 ms + small buffer)
+    return () => clearTimeout(timer)
+  }, [drawerOpen])
 
   // ── Story: pan/zoom when step changes ────────────────────────────────────
   useEffect(() => {
@@ -484,9 +486,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
     [zones, containers],
   )
 
-  // ── Drawer mode ───────────────────────────────────────────────────────────
-  type DrawerMode = "zone" | "block" | "slot" | "detention"
-  const [drawerMode, setDrawerMode] = useState<DrawerMode>("block")
+  // ── Drawer aux state ─────────────────────────────────────────────────────
   const [detentionHovered, setDetentionHovered] = useState(false)
   const [drawerZone, setDrawerZone] = useState<string | null>(null)
 
@@ -1006,7 +1006,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                     }}
                     title="Hover to highlight contributing blocks on map · Click to open worklist">
                     <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.16em", color: "rgba(255,255,255,0.55)", marginBottom: 5 }}>DETENTION RISK</div>
-                    <div style={{ fontSize: 30, fontWeight: 900, lineHeight: 1, color: "#f87171", fontFamily: "ui-monospace,monospace" }}>
+                    <div style={{ fontSize: 30, fontWeight: 900, lineHeight: 1, color: YT.signalBreachDark, fontFamily: "ui-monospace,monospace" }}>
                       {detentionExposure.totalUsd >= 1000
                         ? `$${(detentionExposure.totalUsd / 1000).toFixed(1)}k`
                         : `$${Math.round(detentionExposure.totalUsd)}`}
@@ -1019,7 +1019,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                     style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
                     <div>
                       <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 5 }}>HOT ⏱</div>
-                      <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, fontFamily: "ui-monospace,monospace", color: hotCount > 0 ? "#f87171" : "rgba(255,255,255,0.85)" }}>
+                      <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, fontFamily: "ui-monospace,monospace", color: hotCount > 0 ? YT.signalBreachDark : "rgba(255,255,255,0.85)" }}>
                         {hotCount}
                       </div>
                     </div>
@@ -1027,7 +1027,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                       <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 4 }}>OCCUPANCY</div>
                       <div className="flex items-center gap-1.5">
                         <OccupancyRing pct={occupancyPct} />
-                        <span style={{ fontSize: 17, fontWeight: 900, lineHeight: 1, color: occupancyPct > 85 ? "#f87171" : occupancyPct > 65 ? "#fbbf24" : "rgba(255,255,255,0.85)" }}>
+                        <span style={{ fontSize: 17, fontWeight: 900, lineHeight: 1, color: occupancyPct > 85 ? YT.signalBreachDark : occupancyPct > 65 ? YT.signalWarnDark : "rgba(255,255,255,0.85)" }}>
                           {occupancyPct}%
                         </span>
                       </div>
@@ -1090,13 +1090,13 @@ export default function YardMap({ focus, onNavigate }: Props) {
                             <span style={{ fontFamily: "ui-monospace,monospace", fontWeight: 900, fontSize: 12, color: "rgba(255,255,255,0.90)", flexShrink: 0 }}>{s.z.id}</span>
                             <span className="truncate" style={{ fontSize: 10, color: "rgba(255,255,255,0.45)" }}>{s.shortName}</span>
                           </div>
-                          <span style={{ fontSize: 10.5, fontFamily: "ui-monospace,monospace", fontWeight: 600, flexShrink: 0, marginLeft: 4, color: s.pct > 85 ? "#f87171" : s.pct > 65 ? "#fbbf24" : "rgba(255,255,255,0.70)" }}>
+                          <span style={{ fontSize: 10.5, fontFamily: "ui-monospace,monospace", fontWeight: 600, flexShrink: 0, marginLeft: 4, color: s.pct > 85 ? YT.signalBreachDark : s.pct > 65 ? YT.signalWarnDark : "rgba(255,255,255,0.70)" }}>
                             {s.pct}%
                           </span>
                         </div>
                         <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.10)" }}>
                           <div className="h-1 rounded-full transition-all"
-                            style={{ width: `${Math.min(s.pct, 100)}%`, background: s.pct > 85 ? "#f87171" : s.pct > 65 ? "#fbbf24" : "rgba(255,255,255,0.38)" }} />
+                            style={{ width: `${Math.min(s.pct, 100)}%`, background: s.pct > 85 ? YT.signalBreachDark : s.pct > 65 ? YT.signalWarnDark : "rgba(255,255,255,0.38)" }} />
                         </div>
                         <div style={{ fontSize: 9.5, color: "rgba(255,255,255,0.33)", marginTop: 3 }}>{s.cnt} units · {s.z.blocks}bl {s.z.rows}row</div>
                       </button>
@@ -1173,7 +1173,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                     )}
                   </div>
                   {scrubberMin !== null && (
-                    <div style={{ fontSize: 9.5, color: "#fbbf24", marginTop: 4 }}>
+                    <div style={{ fontSize: 9.5, color: YT.signalWarnDark, marginTop: 4 }}>
                       {activeMoveBlocks.size} active block{activeMoveBlocks.size !== 1 ? "s" : ""}
                     </div>
                   )}
@@ -1196,7 +1196,6 @@ export default function YardMap({ focus, onNavigate }: Props) {
                   layouts={blockLayouts}
                   selectedBlock={selectedBlockLabel}
                   onSelectBlock={label => {
-                    drawerInvokerRef.current = document.activeElement as HTMLElement
                     setSelectedBlockLabel(label)
                     setDrawerMode("block")
                     setDrawerZone(null)
@@ -1289,7 +1288,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                       {SHIFT_STORY.map((_, i) => (
                         <button key={i} onClick={() => { setStoryStep(i); setStoryPlaying(false) }}
                           style={{ width: 7, height: 7, borderRadius: "50%", border: "none", cursor: "pointer", padding: 0,
-                            background: i === storyStep ? "#f87171" : i < storyStep ? "rgba(255,255,255,0.50)" : "rgba(255,255,255,0.16)" }}/>
+                            background: i === storyStep ? YT.signalBreachDark : i < storyStep ? "rgba(255,255,255,0.50)" : "rgba(255,255,255,0.16)" }}/>
                       ))}
                     </div>
                   </div>
@@ -1310,7 +1309,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                       ◀
                     </button>
                     <button onClick={() => setStoryPlaying(v => !v)}
-                      style={{ fontSize: 11, fontWeight: 700, color: storyPlaying ? "#fbbf24" : "rgba(255,255,255,0.85)", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 6, cursor: "pointer", padding: "4px 13px" }}>
+                      style={{ fontSize: 11, fontWeight: 700, color: storyPlaying ? YT.signalWarnDark : "rgba(255,255,255,0.85)", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 6, cursor: "pointer", padding: "4px 13px" }}>
                       {storyPlaying ? "⏸ Pause" : "▶ Play"}
                     </button>
                     <button onClick={() => { setStoryStep(s => Math.min(SHIFT_STORY.length - 1, s + 1)); setStoryPlaying(false) }}
@@ -1350,7 +1349,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                     </span>
                     {storyMode && (
                       <span style={{ marginLeft:"auto", fontSize:8.5, fontWeight:700, letterSpacing:"0.12em",
-                        color: storyStep === 3 ? "#34d399" : storyStep >= 1 ? "#fbbf24" : "rgba(255,255,255,0.45)" }}>
+                        color: storyStep === 3 ? YT.signalOkDark : storyStep >= 1 ? YT.signalWarnDark : "rgba(255,255,255,0.45)" }}>
                         {storyStep === 3 ? "✓ CLEARED" : storyStep >= 1 ? "⏱ HOT" : "● WAVE ARRIVED"}
                       </span>
                     )}

@@ -78,6 +78,29 @@ export const YT = {
   /** Cleared / on-time / ok — green. AA on white (4.54:1). */
   signalOk:         "#16a34a",
 
+  // ── Dark-panel signal colours (effective bg ~#1F232C) ────────────────────
+  // These differ from their light-surface twins because the dark panel
+  // background lowers the contrast of standard palette colours below AA.
+  // Always verify new colours against #1F232C (L ≈ 0.018) at 4.5 : 1 min.
+
+  /**
+   * Warning amber on dark map panel — amber-400.
+   * AA on #1F232C (9.6 : 1 ✓). DO NOT use signalWarn (#f59e0b) as text on dark.
+   */
+  signalWarnDark:   "#fbbf24",
+
+  /**
+   * Ok / on-time green on dark map panel — emerald-400.
+   * AA on #1F232C (~5.8 : 1 ✓).
+   */
+  signalOkDark:     "#34d399",
+
+  /**
+   * Dark-glass HUD panel background — matches the left-panel rgba in YardMap.tsx.
+   * Use this token in any future HUD surface instead of duplicating the raw rgba.
+   */
+  panelDarkBg:      "rgba(15,20,30,0.92)",
+
   // ── Typography ───────────────────────────────────────────────────────────
   /**
    * Monospace / stencil family — container IDs, block labels, timestamps.
