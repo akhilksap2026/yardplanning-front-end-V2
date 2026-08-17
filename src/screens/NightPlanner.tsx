@@ -42,6 +42,7 @@ type PlanSource = "seed" | "engine"
 function fmtLoc(loc: PlanningStep["origin"]): string {
   if (!loc || loc.bay == null) return "—"
   if (loc.bay === "GATE / OFF-YARD") return "GATE"
+  if (loc.row == null && loc.tier == null) return String(loc.bay)
   return `Bay ${loc.bay} · R${loc.row ?? "?"} · T${loc.tier ?? "?"}`
 }
 function stepId(s: PlanningStep): string {

@@ -1,0 +1,38 @@
+You are working in the yardplanning-front-end-V2 repo (React + TypeScript + Vite + Tailwind).
+Add TWO new screens. This is ADDITIVE ONLY — do not modify existing screens' behavior, do
+not rename or remove any field, do not change the data model. New screens read existing data
+plus one small new constants file. Reuse the existing design tokens (.ds-label, .ds-kpi,
+.ds-card, .ds-th, .ds-td) and the existing Button/Badge components so the new screens look
+native. IMPORTANT: nothing in the UI, copy, comments, or file names may use the words "demo",
+"dummy", "sample", or "mock" — this is a production feature.
+
+Work in TWO phases. Do NOT start Phase 2 until the Phase 1 report is complete.
+
+═══════════════════════════════════════════════════════════════════════
+PHASE 1 — DISCOVERY (read only, change NOTHING)
+═══════════════════════════════════════════════════════════════════════
+Report:
+1. NAVIGATION: How are screens registered and routed? Open src/App.tsx and find where screens are
+   switched (the screen state + the sidebar nav items + persona gating). List the exact pattern for
+   adding a new screen (nav id, label, icon, persona access, and the render switch).
+2. DESIGN TOKENS: Confirm these CSS utility classes exist in src/index.css and list them:
+   .ds-label, .ds-kpi, .ds-card, .ds-th, .ds-td, .ds-pill, .ds-dot. Note the accent color variable.
+3. LIVE PLAN DATA: Open src/data/planningData.ts and confirm the accessors allSteps, containers,
+   operators, operationSummary, dashboardCounts(). Then verify the seeded fixture
+   (src/data/planningResults.json, batch PLAN-20260815-01) returns exactly:
+   - dashboardCounts(): 174 steps / 72 containers / 2 operators, all Planned
+   - operationSummary(): Putaway 116 · Premarshal ahead of retrieval 36 ·
+     Digout to clear an overstow 15 · Outbound staging and truck loading 7
+   - operators: "J-1 Alex Rivera" (56 steps) and "J-3 George Burns" (62 steps)
+   - estimated_start / estimated_end populated on all 174 steps, spanning
+     2026-08-15T20:00Z → 2026-08-16T05:30Z
+   If any of these numbers differ, STOP and report — do not proceed.
+4. EXISTING METRICS: Confirm these already exist and note their exact values/locations:
+   - TURN_BY_HOUR and CYCLE_BY_TYPE and CAPACITY in src/data/yard-ops.ts
+   - The dashboard KPIs in src/screens/YardMap.tsx (truck turn P50 13.8 vs target 15.0 vs baseline
+     31.4; P90 21.4 vs 52.8) around line 820
+   - The detention value ($8.4k) in YardMap.tsx ~line 613 and LiveOps.tsx ~line 301
+5. CHARTS: Confirm recharts is a dependency and note how existing charts import it.
+6. BUILD BASELINE: Run `npm run build` and `npm run test` on the UNTOUCHED repo. If either fails,
+   STOP and report before changing anything.
+Then STOP and wait.
