@@ -532,6 +532,178 @@ describe('PATCH /api/planner/moves/:id', () => {
   })
 })
 
+// ── DB round-trip persistence ─────────────────────────────────────────────────
+// Each test below writes via the API and then re-reads from the DB (via a
+// separate GET) to confirm the value actually survived the round-trip.
+
+describe('PATCH /api/moves/:id — DB round-trip', () => {
+  it('persists state change so a subsequent GET reflects the new value', async () => {
+    const list = await request(app).get('/api/moves')
+    expect(list.status).toBe(200)
+    const moves = list.body as { id: string; state: string }[]
+    if (moves.length === 0) return // no seed data — skip
+
+    const target = moves.find(m => m.state !== 'DONE' && m.state !== 'IN_PROGRESS') ?? moves[0]
+    if (!target || target.state === 'DONE') return
+
+    const newState = target.state === 'PLANNED' ? 'IN_PROGRESS' : 'PLANNED'
+
+    const patchRes = await request(app)
+      .patch(`/api/moves/${target.id}`)
+      .send({ state: newState })
+    expect(patchRes.status).toBe(200)
+    expect(patchRes.body.state).toBe(newState)
+
+    // Re-read the same move list and verify the DB value changed
+    const afterList = await request(app).get('/api/moves')
+    expect(afterList.status).toBe(200)
+    const afterMove = (afterList.body as { id: string; state: string }[]).find(m => m.id === target.id)
+    expect(afterMove).toBeDefined()
+    expect(afterMove!.state).toBe(newState)
+  })
+})
+
+describe('POST /api/moves/:id/complete — DB round-trip', () => {
+  it('persists DONE state and updates the container address in the DB', async () => {
+    const list = await request(app).get('/api/moves')
+    expect(list.status).toBe(200)
+    type Move = { id: string; state: string; from: string; to: string; containerId: string }
+    const moves = list.body as Move[]
+
+    // Find a move that is in an executable state and has a valid 5-part address
+    const target = moves.find(m =>
+      ['PLANNED', 'ASSIGNED', 'IN_PROGRESS'].includes(m.state) &&
+      m.to && m.to.split('-').length === 5
+    )
+    if (!target) return // no suitable move seeded — skip
+
+    const completeRes = await request(app)
+      .post(`/api/moves/${target.id}/complete`)
+      .send({})
+    // 409 is acceptable if the container is already not at from_loc (stale seed state)
+    if (completeRes.status === 409) return
+    expect(completeRes.status).toBe(200)
+    expect(completeRes.body.state).toBe('DONE')
+
+    // Re-read the move list and verify state=DONE persisted
+    const afterMoves = await request(app).get('/api/moves')
+    const afterMove = (afterMoves.body as Move[]).find(m => m.id === target.id)
+    expect(afterMove).toBeDefined()
+    expect(afterMove!.state).toBe('DONE')
+
+    // Re-read containers and verify the container is now at to_loc
+    const containersRes = await request(app).get('/api/containers')
+    expect(containersRes.status).toBe(200)
+    type Container = { id: string; address: string }
+    const afterContainer = (containersRes.body as Container[]).find(c => c.id === target.containerId)
+    if (afterContainer) {
+      expect(afterContainer.address).toBe(target.to)
+    }
+  })
+})
+
+describe('PUT /api/planner/weights/batch — DB round-trip', () => {
+  it('persists updated weights so a subsequent GET reflects the new values', async () => {
+    // Read existing weights
+    const getRes = await request(app).get('/api/planner/weights')
+    expect(getRes.status).toBe(200)
+    type Weight = { factor_name: string; weight: number }
+    const weights = getRes.body as Weight[]
+    if (weights.length === 0) return // no weights seeded — skip
+
+    // Pick the first weight and nudge it to a distinct sentinel value
+    const target = weights[0]
+    const newValue = parseFloat(((target.weight + 0.13) % 10).toFixed(4))
+
+    const putRes = await request(app)
+      .put('/api/planner/weights/batch')
+      .send({ weights: [{ factor_name: target.factor_name, weight: newValue }], updated_by: 'test' })
+    expect(putRes.status).toBe(200)
+    expect(putRes.body.warnings).toHaveLength(0)
+
+    // Re-read weights from the DB via GET and verify the value changed
+    const afterRes = await request(app).get('/api/planner/weights')
+    expect(afterRes.status).toBe(200)
+    const afterWeight = (afterRes.body as Weight[]).find(w => w.factor_name === target.factor_name)
+    expect(afterWeight).toBeDefined()
+    expect(afterWeight!.weight).toBeCloseTo(newValue, 4)
+
+    // Restore the original value so subsequent test runs start from a clean state
+    await request(app)
+      .put('/api/planner/weights/batch')
+      .send({ weights: [{ factor_name: target.factor_name, weight: target.weight }], updated_by: 'test_restore' })
+  })
+})
+
+describe('POST /api/planner/plans/generate — DB round-trip', () => {
+  it('persists the plan so GET /api/planner/plans/:id returns it from the DB', async () => {
+    const genRes = await request(app)
+      .post('/api/planner/plans/generate')
+      .send({ strategy: 'greedy', time_budget_seconds: 5 })
+    expect(genRes.status).toBe(200)
+    const planId = genRes.body.id as number
+    expect(typeof planId).toBe('number')
+
+    // Re-read the plan by ID — this is a fresh DB query, not the in-memory response
+    const getRes = await request(app).get(`/api/planner/plans/${planId}`)
+    expect(getRes.status).toBe(200)
+    expect(getRes.body.id).toBe(planId)
+    expect(getRes.body.status).toBe('draft')
+    expect(Array.isArray(getRes.body.moves)).toBe(true)
+    expect(getRes.body.moves.length).toBeGreaterThan(0)
+
+    // Move count must match what was returned at generate time
+    expect(getRes.body.moves.length).toBe(genRes.body.moves.length)
+  })
+})
+
+describe('POST /api/planner/plans/:id/confirm — DB round-trip', () => {
+  it('persists confirmed status so GET /api/planner/plans/:id reflects it', async () => {
+    const genRes = await request(app)
+      .post('/api/planner/plans/generate')
+      .send({ strategy: 'greedy', time_budget_seconds: 5 })
+    expect(genRes.status).toBe(200)
+    const planId = genRes.body.id as number
+
+    const confirmRes = await request(app)
+      .post(`/api/planner/plans/${planId}/confirm`)
+      .send()
+    expect(confirmRes.status).toBe(200)
+    expect(confirmRes.body.status).toBe('confirmed')
+
+    // Re-read from DB via GET and verify status persisted
+    const getRes = await request(app).get(`/api/planner/plans/${planId}`)
+    expect(getRes.status).toBe(200)
+    expect(getRes.body.status).toBe('confirmed')
+    expect(getRes.body.confirmed_at).toBeTruthy()
+  })
+})
+
+describe('PATCH /api/planner/moves/:id — DB round-trip', () => {
+  it('persists status change so GET /api/planner/plans/:id reflects the updated move', async () => {
+    const genRes = await request(app)
+      .post('/api/planner/plans/generate')
+      .send({ strategy: 'greedy', time_budget_seconds: 5 })
+    expect(genRes.status).toBe(200)
+    const planId = genRes.body.id as number
+    const moveId = genRes.body.moves[0].id as number
+
+    const patchRes = await request(app)
+      .patch(`/api/planner/moves/${moveId}`)
+      .send({ status: 'in_progress' })
+    expect(patchRes.status).toBe(200)
+    expect(patchRes.body.status).toBe('in_progress')
+
+    // Re-read the plan from DB and confirm the move's status persisted
+    const getRes = await request(app).get(`/api/planner/plans/${planId}`)
+    expect(getRes.status).toBe(200)
+    type M = { id: number; status: string }
+    const afterMove = (getRes.body.moves as M[]).find(m => m.id === moveId)
+    expect(afterMove).toBeDefined()
+    expect(afterMove!.status).toBe('in_progress')
+  })
+})
+
 // ── Write routes — lanes ──────────────────────────────────────────────────────
 
 describe('PATCH /api/lanes/:id', () => {
