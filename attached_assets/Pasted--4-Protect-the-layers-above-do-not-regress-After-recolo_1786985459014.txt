@@ -1,0 +1,16 @@
+.4 — Protect the layers above (do not regress)
+
+After recoloring, verify the things that sit on the blocks still pop — in fact they'll pop more now that the fill is calmer:
+
+ Status color (containerColor, all 6 modes: status/LFD/channel/dwell/priority/rehandle) renders on top and is now more legible against the muted fill. Spot-check LFD mode — the red/amber/grey must clearly separate from the new grey-tinted fills. If any status color now collides with a fill (e.g., a grey dwell state on grey-blue fill), nudge the fill's hue, not the status color.
+ Occupancy bars (the green/colored vertical bars) stay visible — they will, since they're saturated against a now-muted pad.
+ Hot ⏱ / breach / rehandle signals from earlier phases still read clearly.
+ Text (block labels, 47/120, percentages) meets WCAG AA against the new fills — darker text may be needed now that fills are mid-toned rather than near-white. Check the muted-on-muted combos specifically.
+ Hazmat Zone D: its danger identity now comes entirely from the chevron frame + fire markers, not a peach fill — confirm the frame still reads as hazardous.
+5.5 — Also calm the map chrome (quick wins in the same pass)
+
+Two smaller things in the screenshot add to the "flashy" feel — fix them here since you're in the color pass:
+
+The red block-count badges (the little ⏱/number pills scattered on block corners) are pure saturated red on muted blocks — currently the loudest thing on screen. Keep red only for genuine hot/breach (LFD ≤ 4h); for ordinary block-id or count badges use a neutral dark chip (
+#3f3f46 bg, white text) so red regains its "this is urgent" meaning. Right now everything is red, so nothing reads as urgent — this both calms the map and restores the signal.
+Occupancy % text color: the green percentages (52%, 88%, 283%) are bright green regardless of value. Tie the color to the value using the existing thresholds (green ok / amber high / red over) so color carries meaning instead of decoration. Note Q-01 shows 283% — that's an over-capacity state that should read red, not green.

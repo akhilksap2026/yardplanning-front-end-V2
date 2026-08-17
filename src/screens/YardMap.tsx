@@ -17,8 +17,9 @@ import {
   computeEquipmentPositions, computeMoveTrails,
   computeHotByBlock, computeDetentionExposure, computeRehandleByBlock,
 } from "@/lib/yard-layout"
-import { containerColor as _containerColor, LEGENDS } from "@/lib/yard-color"
+import { containerColor as _containerColor, LEGENDS, LEGEND_ENTRIES } from "@/lib/yard-color"
 import type { ColorMode } from "@/lib/yard-color"
+import { YT } from "@/lib/yard-tokens"
 import { useLang } from "@/lib/i18n"
 
 interface Props {
@@ -138,7 +139,10 @@ export default function YardMap({ focus, onNavigate }: Props) {
 
   // ── Step 1: toolbar dropdown / switch state ───────────────────────────────
   const [colorDropdownOpen, setColorDropdownOpen] = useState(false)
-  const colorDropdownRef = useRef<HTMLDivElement>(null)
+  const colorDropdownRef  = useRef<HTMLDivElement>(null)
+  // Drawer focus management — save what opened it so we can return focus on close
+  const drawerPanelRef   = useRef<HTMLDivElement>(null)
+  const drawerInvokerRef = useRef<HTMLElement | null>(null)
 
   // ── Step 2: floating legend ───────────────────────────────────────────────
   const [legendExpanded, setLegendExpanded] = useState(false)
@@ -160,6 +164,9 @@ export default function YardMap({ focus, onNavigate }: Props) {
   const [fitViewSeq,     setFitViewSeq]     = useState(0)
   const [commandedView,  setCommandedView]  = useState<{ cx: number; cy: number; zoom: number; seq: number } | null>(null)
 
+  // ── Colorblind-safe mode — Phase 3.6 ──────────────────────────────────────
+  const [cbMode, setCbMode] = useState(false)
+
   // ── Outside-click: color dropdown ────────────────────────────────────────
   useEffect(() => {
     if (!colorDropdownOpen) return
@@ -171,6 +178,21 @@ export default function YardMap({ focus, onNavigate }: Props) {
     return () => document.removeEventListener("mousedown", h)
   }, [colorDropdownOpen])
 
+  // ── Drawer focus management ───────────────────────────────────────────────
+  // Open: move focus into panel after slide animation. Close: return to invoker.
+  useEffect(() => {
+    if (!drawerOpen) {
+      drawerInvokerRef.current?.focus()
+      return
+    }
+    const timer = setTimeout(() => {
+      drawerPanelRef.current
+        ?.querySelector<HTMLElement>('button:not([disabled]), [tabindex="0"]')
+        ?.focus()
+    }, 280) // matches slide transition (260 ms + small buffer)
+    return () => clearTimeout(timer)
+  }, [drawerOpen])
+
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -180,8 +202,11 @@ export default function YardMap({ focus, onNavigate }: Props) {
         case "Escape":
           if (shortcutOpen)  { setShortcutOpen(false); break }
           if (storyMode)     { setStoryMode(false); setStoryPlaying(false); setStoryStep(0); break }
-          if (drawerOpen)    { setDrawerOpen(false); setSelectedSlot(null) }
-          else if (zoomLevel === "block") { setZoomLevel("yard"); setSelectedSlot(null) }
+          if (drawerOpen) {
+            // Esc drills back one level: slot → block → close (mirrors onBack chain)
+            if (drawerMode === "slot") { setSelectedSlot(null); setDrawerMode("block") }
+            else { setDrawerOpen(false); setSelectedSlot(null) }
+          } else if (zoomLevel === "block") { setZoomLevel("yard"); setSelectedSlot(null) }
           break
         case "1": setZoomLevel("yard"); setSelectedSlot(null); setDrawerOpen(false); break
         case "2": if (selectedBlockLabel || activeLiveBlock) setZoomLevel("block"); break
@@ -422,6 +447,23 @@ export default function YardMap({ focus, onNavigate }: Props) {
   // Rehandle debt — RESHUFFLE move count per source block; drives the ↻N glyph at z5
   const rehandleByBlock = useMemo(() => computeRehandleByBlock(moves), [moves])
 
+  // Worst LFD tier per block — drives colorblind shape glyphs (Phase 3.6)
+  const worstLfdByBlock = useMemo(() => {
+    const map = new Map<string, "breached" | "risk24" | "risk72">()
+    for (const c of containers) {
+      const label = `${c.zone}-${String(c.block).padStart(2, "0")}`
+      const cur = map.get(label)
+      const next: "breached" | "risk24" | "risk72" | null =
+        c.hoursToLFD < 0    ? "breached" :
+        c.hoursToLFD <= 24  ? "risk24"   :
+        c.hoursToLFD <= 72  ? "risk72"   : null
+      if (!next) continue
+      if (!cur || next === "breached" || (next === "risk24" && cur === "risk72"))
+        map.set(label, next)
+    }
+    return map
+  }, [containers])
+
   // Total hot containers across all blocks — for collapsed status strip + HOT KPI cell
   const hotCount = useMemo(
     () => [...hotByBlock.values()].reduce((s, v) => s + v, 0),
@@ -457,6 +499,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
   /** Open the block drawer pre-filtered to only show hot containers (LFD ≤ 4 h).
    *  Called when the user clicks the ⏱ badge on a block in PhysicalYardMap (z5). */
   function handleHotBadgeClick(blockLabel: string) {
+    drawerInvokerRef.current = document.activeElement as HTMLElement
     setSelectedBlockLabel(blockLabel)
     setDrawerMode("block")
     setDrawerZone(null)
@@ -488,7 +531,8 @@ export default function YardMap({ focus, onNavigate }: Props) {
           maxTiers={selectedZoneDef.maxTiers}
           containers={selectedBlockViewContainers.filter(c => c.slotCol === selectedSlot.col && c.rowNum === selectedSlot.row)}
           mode={mode}
-          onBack={() => { setDrawerOpen(false); setSelectedSlot(null) }}
+          onBack={() => { setSelectedSlot(null); setDrawerMode("block") }}
+          onBackAll={() => { setDrawerOpen(false); setSelectedSlot(null) }}
           onNavigate={onNavigate}
           plannerMode={plannerMode}
           onPlannerAction={handlePlannerAction}
@@ -505,7 +549,8 @@ export default function YardMap({ focus, onNavigate }: Props) {
           maxTiers={liveBlockMaxTiers}
           containers={liveBlockViewContainers.filter(c => c.slotCol === selectedSlot.col && c.rowNum === selectedSlot.row)}
           mode={mode}
-          onBack={() => { setDrawerOpen(false); setSelectedSlot(null) }}
+          onBack={() => { setSelectedSlot(null); setDrawerMode("block") }}
+          onBackAll={() => { setDrawerOpen(false); setSelectedSlot(null) }}
           onNavigate={onNavigate}
         />
       )
@@ -513,10 +558,10 @@ export default function YardMap({ focus, onNavigate }: Props) {
     return null
   }
 
-  // ── Floating legend items ─────────────────────────────────────────────────
-  const legendItems: [string, string][] = isLive
-    ? [["Occupied","#374151"],["Empty","#e5e7eb"],["Hazmat + occupied","#f97316"],["Hazmat empty","#fed7aa"]]
-    : LEGENDS[mode]
+  // ── Floating legend entries (label, color, shape) — Phase 3.6 ───────────
+  const legendEntries: [string, string, string][] = isLive
+    ? [["Occupied","#374151","■"],["Empty","#e5e7eb","○"],["Hazmat + occupied","#f97316","◆"],["Hazmat empty","#fed7aa","◆"]]
+    : LEGEND_ENTRIES[mode]
 
   // ── Drawer content resolver ───────────────────────────────────────────────
   function drawerContent() {
@@ -541,11 +586,19 @@ export default function YardMap({ focus, onNavigate }: Props) {
             </div>
             <button onClick={() => setDrawerOpen(false)} className="w-6 h-6 flex items-center justify-center text-neutral-400 hover:text-neutral-700 text-lg leading-none transition-colors">×</button>
           </div>
-          {/* Legend */}
+          {/* Legend — shape + color (always, not just cbMode) */}
           <div className="px-4 py-1.5 border-b border-[#f3f4f6] flex-none">
-            <div className="flex gap-4 text-[10px] text-neutral-500">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-600 inline-block"/><span>Breached LFD</span></span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-500 inline-block"/><span>At risk ≤ 24 h</span></span>
+            <div className="flex gap-5 text-[10px] text-neutral-500">
+              <span className="flex items-center gap-1.5">
+                <span style={{ fontSize: 11, fontWeight: 800, color: YT.signalBreach, lineHeight: 1 }}>▲</span>
+                <span className="w-2 h-2 rounded-sm inline-block" style={{ background: YT.signalBreach }}/>
+                <span>Breached LFD</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span style={{ fontSize: 11, fontWeight: 800, color: YT.signalWarnText, lineHeight: 1 }}>◉</span>
+                <span className="w-2 h-2 rounded-sm inline-block" style={{ background: YT.signalWarn }}/>
+                <span>At risk ≤ 24 h</span>
+              </span>
             </div>
           </div>
           {/* Rows */}
@@ -553,7 +606,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
             {rows.map(r => {
               const blockLabel = `${r.zone}-${String(r.block).padStart(2, "0")}`
               const isBreached = r.status === "breached"
-              const accentColor = isBreached ? "#dc2626" : "#d97706"
+              const accentColor = isBreached ? YT.signalBreach : YT.signalWarnText
               const lfdLabel = isBreached
                 ? `BREACHED ${Math.abs(Math.round(r.hoursToLFD))}h ago`
                 : `LFD in ${Math.round(r.hoursToLFD)}h`
@@ -641,7 +694,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                   <div className="text-[10.5px] text-neutral-500 truncate">{c.consignee} · {c.carrierName}</div>
                 </div>
                 <div className="text-right flex-none">
-                  <div className="text-[11px] font-mono" style={{ color: c.hoursToLFD < 24 ? "#dc2626" : c.hoursToLFD < 72 ? "#d97706" : "#6b7280" }}>
+                  <div className="text-[11px] font-mono" style={{ color: c.hoursToLFD < 24 ? YT.signalBreach : c.hoursToLFD < 72 ? YT.signalWarnText : YT.labelMuted }}>
                     {c.hoursToLFD < 0 ? "BREACHED" : `${c.hoursToLFD}h LFD`}
                   </div>
                   <div className="text-[10.5px] text-neutral-400 font-mono">{c.address}</div>
@@ -1057,10 +1110,11 @@ export default function YardMap({ focus, onNavigate }: Props) {
                 <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
                   <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>OVERLAYS</div>
                   {([
-                    { label: "Equipment [E]",  on: showEquipment,  set: setShowEquipment  },
+                    { label: "Equipment [E]",   on: showEquipment,  set: setShowEquipment  },
                     { label: "Move trails [T]", on: showTrails,     set: setShowTrails     },
-                    { label: "Heat map",        on: showCongestion, set: setShowCongestion },
-                    { label: "Planner",         on: plannerMode,    set: setPlannerMode    },
+                    { label: "Heat map [H]",    on: showCongestion, set: setShowCongestion },
+                    { label: "Planner [P]",     on: plannerMode,    set: setPlannerMode    },
+                    { label: "CB-safe shapes",  on: cbMode,         set: setCbMode         },
                   ] as { label: string; on: boolean; set: (v: boolean) => void }[]).map(o => (
                     <label key={o.label} className="flex items-center justify-between py-1 cursor-pointer">
                       <span style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>{o.label}</span>
@@ -1076,12 +1130,22 @@ export default function YardMap({ focus, onNavigate }: Props) {
                 </div>
               )}
 
-              {/* ── Legend ────────────────────────────────────────────────────── */}
+              {/* ── Legend — Phase 3.6: shape+color when CB-safe mode is on ──── */}
               <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>LEGEND · {isLive ? "LIVE" : mode.toUpperCase()}</div>
-                {legendItems.map(([label, color]) => (
+                <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.14em", color: "rgba(255,255,255,0.55)", marginBottom: 8 }}>
+                  LEGEND · {isLive ? "LIVE" : mode.toUpperCase()}{cbMode && " · ◆ CB-SAFE"}
+                </div>
+                {legendEntries.map(([label, color, shape]) => (
                   <div key={label} className="flex items-center gap-2 py-0.5">
-                    <div className="w-2.5 h-2.5 rounded-sm flex-none" style={{ background: color, border: "1px solid rgba(255,255,255,0.15)" }} />
+                    {cbMode ? (
+                      /* CB-safe: colour square + shape char side-by-side */
+                      <div className="flex items-center gap-1 flex-none" style={{ width: 22 }}>
+                        <div className="w-2 h-2 rounded-sm" style={{ background: color }} />
+                        <span style={{ fontSize: 10, fontWeight: 800, color, lineHeight: 1 }}>{shape}</span>
+                      </div>
+                    ) : (
+                      <div className="w-2.5 h-2.5 rounded-sm flex-none" style={{ background: color, border: "1px solid rgba(255,255,255,0.15)" }} />
+                    )}
                     <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.65)" }}>{label}</span>
                   </div>
                 ))}
@@ -1132,6 +1196,7 @@ export default function YardMap({ focus, onNavigate }: Props) {
                   layouts={blockLayouts}
                   selectedBlock={selectedBlockLabel}
                   onSelectBlock={label => {
+                    drawerInvokerRef.current = document.activeElement as HTMLElement
                     setSelectedBlockLabel(label)
                     setDrawerMode("block")
                     setDrawerZone(null)
@@ -1159,6 +1224,8 @@ export default function YardMap({ focus, onNavigate }: Props) {
                   rehandleByBlock={rehandleByBlock}
                   commandedView={commandedView}
                   fitViewSeq={fitViewSeq}
+                  cbMode={cbMode}
+                  worstLfdByBlock={worstLfdByBlock}
                 />
               </>
             )}
@@ -1167,10 +1234,10 @@ export default function YardMap({ focus, onNavigate }: Props) {
               <div className="flex-1 flex items-center justify-center">
                 <div style={{ maxWidth: 340, textAlign: "center", padding: "32px 28px", background: "#fafafa", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
                   <div style={{ fontSize: 30, marginBottom: 12, opacity: 0.22 }}>📡</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "#111827", marginBottom: 6, letterSpacing: "-0.01em" }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: YT.valueStrong, marginBottom: 6, letterSpacing: "-0.01em" }}>
                     No yard data yet
                   </div>
-                  <div style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.65 }}>
+                  <div style={{ fontSize: 12.5, color: YT.labelMuted, lineHeight: 1.65 }}>
                     Backend is connected but returned no slot data. Check the planning engine, or switch to Seed mode to explore the demo yard.
                   </div>
                   <button onClick={() => setDataSource("seed")}
@@ -1226,8 +1293,9 @@ export default function YardMap({ focus, onNavigate }: Props) {
                       ))}
                     </div>
                   </div>
-                  {/* Step title */}
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: "rgba(255,255,255,0.94)", marginBottom: 5, letterSpacing: "-0.01em" }}>
+                  {/* Step title — aria-live announces step changes to screen readers */}
+                  <div aria-live="polite" aria-atomic="true"
+                    style={{ fontSize: 13.5, fontWeight: 800, color: "rgba(255,255,255,0.94)", marginBottom: 5, letterSpacing: "-0.01em" }}>
                     {SHIFT_STORY[storyStep]?.title}
                   </div>
                   {/* Narration */}
@@ -1259,43 +1327,82 @@ export default function YardMap({ focus, onNavigate }: Props) {
               </div>
             )}
 
-            {/* ── Story container locator (zone R — outside block grid) ──────── */}
+            {/* ── Zone R — pre-clearance panel (Phase 3.7 restyle) ─────────────
+                Solid dark header band (#1e293b) = WCAG AA (white: 14.7:1).
+                When Shift Story is active, rows highlight based on story step.
+            ─────────────────────────────────────────────────────────────── */}
             {(() => {
               const storyCtrs = containers.filter(c => !!(c as any).story)
               if (!storyCtrs.length) return null
               return (
-                <div style={{ position:"absolute", bottom:8, left:8, zIndex:20, maxWidth:380,
-                  background:"white", border:"1px solid #e5e7eb", borderRadius:8,
-                  boxShadow:"0 2px 8px rgba(0,0,0,0.09)", overflow:"hidden" }}>
-                  <div style={{ padding:"5px 12px", display:"flex", alignItems:"center", gap:6,
-                    background:"#f9fafb", borderBottom:"1px solid #e5e7eb" }}>
-                    <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.05em",
-                      textTransform:"uppercase" as const, color:"#374151" }}>
-                      Zone R — pre-clearance
+                <div style={{ position:"absolute", bottom:8, left:8, zIndex:20, maxWidth:420,
+                  background:"white", border:"1px solid rgba(30,41,59,0.18)", borderRadius:10,
+                  boxShadow:"0 4px 20px rgba(0,0,0,0.13)", overflow:"hidden" }}>
+
+                  {/* Solid header band — YT.panelHeaderBg, WCAG AA: white 14.7:1 */}
+                  <div style={{ padding:"7px 12px 7px 14px", display:"flex", alignItems:"center", gap:8, background: YT.panelHeaderBg }}>
+                    <span style={{ fontSize:9, fontWeight:900, letterSpacing:"0.14em",
+                      textTransform:"uppercase" as const, color:"#fff" }}>
+                      Zone R — Pre-clearance
                     </span>
-                    <span style={{ fontSize:10, color:"#6b7280" }}>{storyCtrs.length} container{storyCtrs.length !== 1 ? "s" : ""}</span>
+                    <span style={{ fontSize:10, color:"rgba(255,255,255,0.50)", marginLeft:2 }}>
+                      {storyCtrs.length} container{storyCtrs.length !== 1 ? "s" : ""}
+                    </span>
+                    {storyMode && (
+                      <span style={{ marginLeft:"auto", fontSize:8.5, fontWeight:700, letterSpacing:"0.12em",
+                        color: storyStep === 3 ? "#34d399" : storyStep >= 1 ? "#fbbf24" : "rgba(255,255,255,0.45)" }}>
+                        {storyStep === 3 ? "✓ CLEARED" : storyStep >= 1 ? "⏱ HOT" : "● WAVE ARRIVED"}
+                      </span>
+                    )}
                   </div>
-                  <div style={{ overflow:"auto", maxHeight:200 }}>
-                    <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
-                      <thead>
-                        <tr style={{ background:"#f9fafb", borderBottom:"1px solid #e5e7eb" }}>
-                          <th style={{ padding:"4px 10px", textAlign:"left" as const, fontWeight:600, color:"#6b7280", fontSize:10 }}>Container</th>
-                          <th style={{ padding:"4px 10px", textAlign:"left" as const, fontWeight:600, color:"#6b7280", fontSize:10 }}>Slot address</th>
-                          <th style={{ padding:"4px 10px", textAlign:"left" as const, fontWeight:600, color:"#6b7280", fontSize:10 }}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {storyCtrs.map(c => (
-                          <tr key={c.id} style={{ borderBottom:"1px solid #f3f4f6" }}
-                            onClick={() => setSel(c.id)}
-                            className="cursor-pointer hover:bg-[#f0f9ff] transition-colors">
-                            <td className="font-mono" style={{ padding:"4px 10px", fontWeight:600 }}>{c.id}</td>
-                            <td className="font-mono" style={{ padding:"4px 10px", color:"#0369a1" }}>{c.address || "—"}</td>
-                            <td style={{ padding:"4px 10px", color:"#6b7280" }}>{c.status || "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+
+                  {/* Column headers */}
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 0.7fr", background:"#f8fafc", borderBottom:"1px solid #e2e8f0" }}>
+                    {["Container","Slot","Status"].map(h => (
+                      <div key={h} style={{ padding:"4px 10px", fontSize:9.5, fontWeight:700, color:"#64748b", letterSpacing:"0.07em", textTransform:"uppercase" as const }}>{h}</div>
+                    ))}
+                  </div>
+
+                  <div style={{ overflow:"auto", maxHeight:192 }}>
+                    {storyCtrs.map(c => {
+                      // Story step highlighting
+                      const isHot = (c as any).hoursToLFD !== undefined && (c as any).hoursToLFD <= 4
+                      const rowFocus =
+                        storyMode && storyStep === 0 ? "wave" :
+                        storyMode && storyStep >= 1 && storyStep <= 2 && isHot ? "hot" :
+                        storyMode && storyStep === 3 ? "cleared" : null
+                      const rowBg   = rowFocus === "hot" ? "#fff7ed" : rowFocus === "cleared" ? "#f0fdf4" : rowFocus === "wave" ? "#f0f9ff" : undefined
+                      const barColor= rowFocus === "hot" ? "#f59e0b" : rowFocus === "cleared" ? "#16a34a" : rowFocus === "wave" ? "#0ea5e9" : "transparent"
+
+                      const lfdH: number | undefined = (c as any).hoursToLFD
+                      const statusChip = storyMode && storyStep === 3
+                        ? { bg:"#dcfce7", color:"#16a34a", label:"✓ Cleared" }
+                        : isHot
+                          ? { bg:"#fee2e2", color:"#dc2626", label:"⏱ Hot" }
+                          : { bg:"#f1f5f9", color:"#64748b", label:c.status || "RECEIVED" }
+
+                      return (
+                        <div key={c.id}
+                          onClick={() => setSel(c.id)}
+                          className="cursor-pointer hover:bg-[#f0f9ff] transition-colors"
+                          style={{ display:"grid", gridTemplateColumns:"1fr 1fr 0.7fr",
+                            borderBottom:"1px solid #f1f5f9",
+                            borderLeft:`3px solid ${barColor}`,
+                            background:rowBg }}>
+                          <div className="font-mono" style={{ padding:"5px 10px", fontWeight:700, fontSize:11, color:"#0f172a" }}>{c.id}</div>
+                          <div className="font-mono" style={{ padding:"5px 10px", fontSize:11, color:"#0369a1" }}>{(c as any).address || "—"}</div>
+                          <div style={{ padding:"5px 10px" }}>
+                            <span style={{ fontSize:9, fontWeight:700, borderRadius:4, padding:"2px 6px",
+                              background:statusChip.bg, color:statusChip.color }}>
+                              {statusChip.label}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {storyCtrs.length === 0 && (
+                      <div style={{ padding:"16px 14px", fontSize:11, color:"#94a3b8" }}>No containers in pre-clearance</div>
+                    )}
                   </div>
                 </div>
               )
@@ -1311,8 +1418,32 @@ export default function YardMap({ focus, onNavigate }: Props) {
               minWidth: 0,
             }}
           >
-            {/* Fixed-width inner so content never reflows during animation */}
-            <div className="flex flex-col h-full min-h-0" style={{ width: 440 }}>
+            {/* Fixed-width inner — focus trap + dialog role for keyboard/AT users */}
+            <div className="flex flex-col h-full min-h-0" style={{ width: 440 }}
+              ref={drawerPanelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={
+                drawerMode === "slot"      ? "Container slot detail" :
+                drawerMode === "block"     ? `Block ${selectedBlockLabel ?? ""}` :
+                drawerMode === "zone"      ? "Zone detail" :
+                                             "Detention worklist"
+              }
+              onKeyDown={e => {
+                if (e.key !== "Tab") return
+                const all = Array.from(
+                  drawerPanelRef.current?.querySelectorAll<HTMLElement>(
+                    'button:not([disabled]), [href], input, select, textarea, [tabindex="0"]'
+                  ) ?? []
+                )
+                if (all.length < 2) return
+                const first = all[0], last = all[all.length - 1]
+                if (e.shiftKey) {
+                  if (document.activeElement === first) { e.preventDefault(); last.focus() }
+                } else {
+                  if (document.activeElement === last)  { e.preventDefault(); first.focus() }
+                }
+              }}>
               {drawerOpen ? drawerContent() : null}
             </div>
           </div>

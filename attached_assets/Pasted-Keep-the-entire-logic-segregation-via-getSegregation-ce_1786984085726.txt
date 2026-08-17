@@ -1,0 +1,17 @@
+Keep the entire logic (segregation via getSegregation, cellContainers, slotTint, search matching, containerColor for the fill bar). Rework the presentation and add signals.
+
+Visual parity
+Header: match the map. Block label in mono/stencil; zone as a subtle subtitle. Replace the plain occupancy chip with the map's occupancy-bar treatment (thin dedicated bar + numeric), colored by the same green/amber/red thresholds already computed (pct > 85). Keep it in its own reserved corner — do not tint the whole header.
+Grid cells: keep CELL_W/CELL_H and the bottom-up stack-fill bar (barColor from containerColor — unchanged). Add the map's directional drop shadow (2px 3px 6px rgba(0,0,0,0.12)) and painted-slot feel (subtle inner grid line) so a cell reads like a physical stack footprint, matching the map.
+Selected/hover: keep the red selection ring but add a distinct keyboard-focus ring (e.g., 2px dashed blue) so focus ≠ selection ≠ hover — three visually separable states (UX floor).
+Signals (the parity that matters most)
+Hot / LFD on cells: any cell whose stack contains a hot container (hoursToLFD ≤ 4, matching the map's getHotContainers threshold) gets the same ⏱+count marker used on the map, top-corner, at the signal layer (above the fill bar, never hidden). Pulse respects reduced-motion (solid ring fallback). This is the single most important add — the map screams "this block is hot," the grid must then show which slots.
+Breach vs warn redundancy: for LFD state use shape + color, not hue alone: breached = filled triangle ▲ in --signal-breach; ≤24h = hollow ring in --signal-warn. Colorblind-safe, consistent with the map's Phase 3 colorblind mode.
+Rehandle debt: if a cell's stack has a predicted dig-out (an earlier-due box buried under a later one — you already compute this for rehandle color mode), show the map's ↻ glyph in a corner.
+Overweight cue: if the top/any container in a cell exceeds the reach envelope (grossKg beyond the machine chart used elsewhere), show a small weight glyph — this mirrors the weight-vs-reach validation the YMS already knows about.
+Segregation legibility
+Keep slotTint bay-band tints but render them as a hatched pattern band behind cells (not a flat wash), so segregation is visible without competing with containerColor. Keep the segregation legend, restyled to match the map legend.
+UX floor
+Column/row headers (S{col}, R{row}) get AA-contrast text.
+Grid is keyboard-navigable: arrow keys move a focus cursor across cells, Enter opens the slot (calls onSlotClick). Roving tabindex.
+Preserve the "No containers in this block" empty state; restyle in-voice and add an error state (live mode, block failed to load) and a loading skeleton.

@@ -1,0 +1,23 @@
+Keep all logic: selTier selection, containerColor per tier, lfdLabel/lfdColor, the properties grid, move history, planner actions, onNavigate, onPlannerAction. Rework presentation, elevate the decision content, add signals.
+
+Restructure for the two audiences (UX rework)
+
+Current order buries the story. Reorder the detail panel so the decision-critical content leads:
+
+Container identity (id in mono-black — keep) + a new status ribbon directly under it summarizing the signals at a glance: LFD state (with shape+color token), priority, hazmat, overweight — the same tokens as the map/grid. An exec or foreman reads this ribbon and knows the situation without scanning the grid.
+"Why here" (PIFO) — keep verbatim; this is a crown-jewel differentiator. Restyle to match the map's signal panel styling but keep the PIFO label and reasoning text intact.
+Properties grid — keep all fields and the existing red-flag logic (grossKg > 28000, LFD ≤ 24h, P1, hazmat, rail/sea channel). Add shape tokens next to the colored values so flags aren't hue-only.
+Move history — keep; restyle as a tight vertical timeline matching the map's trail aesthetic.
+Planner actions — keep all three actions and onPlannerAction; restyle as primary buttons in the shared token colors. Only render in plannerMode (unchanged).
+Navigate to — keep all three cross-screen links and onNavigate (screens S4/S7/S2) exactly.
+Tier selector parity
+Keep the horizontal tier stack with containerColor left-border per tier. Add the hot ⏱ marker on any tier whose container is hot, and the breach/warn shape token on the LFD line (not color alone). Keep the "Empty" dashed tiers.
+Selected tier: keep red; add distinct keyboard-focus ring. Tier row must be arrow-key navigable (left/right), Enter selects.
+Detention linkage (parity with map Phase 2)
+If the selected container is contributing to detention exposure (breached or ≤24h LFD), show a small "Detention exposure" tag in the status ribbon that matches the map's drillable detention treatment — closing the loop between the map's $8.4k KPI and the individual box responsible.
+UX floor
+Preserve the "Select an occupied tier…" empty state; add error + loading states.
+All text AA-contrast (the many text-neutral-400 micro-labels — verify each passes at its size; bump to 
+#6b7280/heavier where 9–10px fails AA).
+role="dialog" heading is the focus target; the whole view is keyboard-traversable end to end.
+Any transition/pulse respects reduced-motion.

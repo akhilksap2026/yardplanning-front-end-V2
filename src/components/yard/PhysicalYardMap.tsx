@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from "react"
+import { YT } from "@/lib/yard-tokens"
 import type { BlockLayout, EquipmentPosition, MoveTrail, Facility } from "@/lib/yard-layout"
 import {
   getYardDimensions,
@@ -31,6 +32,9 @@ interface Props {
   commandedView?:     { cx: number; cy: number; zoom: number; seq: number } | null
   // Phase 3.5 — fit-view trigger: fitView fires when this counter increments
   fitViewSeq?:        number
+  // Phase 3.6 — colorblind-safe mode: renders shape glyph on blocks alongside color
+  cbMode?:            boolean
+  worstLfdByBlock?:   Map<string, "breached" | "risk24" | "risk72">
 }
 
 // ── Zone visual identity ──────────────────────────────────────────────────────
@@ -158,7 +162,7 @@ export default function PhysicalYardMap({
   moveTrails = [], showTrails = false,
   congestionByBlock, showCongestion = false,
   activeMoveBlocks,
-  hotByBlock, onHotBadgeClick,
+  hotByBlock, onHotBadgeClick, cbMode, worstLfdByBlock,
   highlightBlocks,
   rehandleByBlock,
   commandedView, fitViewSeq,
@@ -210,16 +214,21 @@ export default function PhysicalYardMap({
   }, [layouts])
 
   // Zones that contain ≥ 1 hot block — zone-level ⏱ indicator in overview
-  const zoneHasHot = useMemo(() => {
+  // zoneHotCount: total hot containers per zone (drives the count badge at overview)
+  const [zoneHasHot, zoneHotCount] = useMemo(() => {
     const set = new Set<string>()
-    if (!hotByBlock) return set
+    const cnt = new Map<string, number>()
+    if (!hotByBlock) return [set, cnt] as const
     for (const [label, count] of hotByBlock) {
       if (count > 0) {
         const l = layouts.find(x => x.label === label)
-        if (l) set.add(l.zone)
+        if (l) {
+          set.add(l.zone)
+          cnt.set(l.zone, (cnt.get(l.zone) ?? 0) + count)
+        }
       }
     }
-    return set
+    return [set, cnt] as const
   }, [hotByBlock, layouts])
 
   // Empty zones — "No containers" overlay in working/detail tier
@@ -566,11 +575,14 @@ export default function PhysicalYardMap({
                       background: ovFillColor, borderRadius: 3,
                     }}/>
                   )}
-                  {/* Zone-level hot dot — replaces per-block ⏱ badges at overview */}
+                  {/* Zone-level hot dot — replaces per-block ⏱ badges at overview.
+                      Shows container count so exec can read severity without zooming in. */}
                   {zoneHasHot.has(zoneId) && (
-                    <div className="yard-hot-badge absolute flex items-center font-black pointer-events-none"
-                      style={{ top: 6, right: 6, background: "#dc2626", color: "white", fontSize: 8, padding: "2px 4px", borderRadius: 6, lineHeight: 1 }}>
-                      ⏱
+                    <div className="yard-hot-badge absolute flex items-center gap-0.5 font-black pointer-events-none"
+                      style={{ top: 6, right: 6, background: YT.signalBreach, color: "white",
+                        fontSize: 8, padding: "2px 5px", borderRadius: 6, lineHeight: 1 }}>
+                      <span>⏱</span>
+                      <span>{zoneHotCount.get(zoneId) ?? ""}</span>
                     </div>
                   )}
                 </>)}
@@ -674,8 +686,8 @@ export default function PhysicalYardMap({
             const bg         = panel?.blockBg  ?? "#f9fafb"
             const bdr        = panel?.blockBorder ?? "#9ca3af"
             const barColor   =
-              layout.occupancyPct > 85 ? "#dc2626" :
-              layout.occupancyPct > 70 ? "#f59e0b" : "#16a34a"
+              layout.occupancyPct > 85 ? YT.signalBreach :
+              layout.occupancyPct > 70 ? YT.signalWarn : YT.signalOk
             // congestion % shown as text (the visual hatch is at z5)
             const congestion = congestionByBlock?.get(layout.label) ?? 0
 
@@ -689,7 +701,7 @@ export default function PhysicalYardMap({
                 style={{
                   left: layout.x, top: layout.y, width: layout.w, height: layout.h,
                   background: bg,
-                  border: `2px solid ${isSelected ? "#dc2626" : isActive ? "#f59e0b" : bdr}`,
+                  border: `2px solid ${isSelected ? YT.signalBreach : isActive ? YT.signalWarn : bdr}`,
                   outline: isSelected ? "3px solid rgba(220,38,38,0.25)" : isActive ? "2px solid rgba(245,158,11,0.4)" : "none",
                   outlineOffset: 2, borderRadius: 4, cursor: "pointer",
                   boxShadow: "2px 3px 6px rgba(0,0,0,0.12)",
@@ -721,9 +733,18 @@ export default function PhysicalYardMap({
 
                 {/* Working + Detail: block label, count/occupancy % */}
                 {!isOverview && (<>
-                  <div className="absolute font-mono font-black leading-none" style={{ top: 7, left: 8, fontSize: 16, color: "#1e293b", letterSpacing: "0.08em", textShadow: "0 1px 0 rgba(255,255,255,0.65)" }}>{layout.label}</div>
+                  <div className="absolute font-mono font-black leading-none flex items-baseline gap-1.5" style={{ top: 7, left: 8, fontSize: 16, color: "#1e293b", letterSpacing: "0.08em", textShadow: "0 1px 0 rgba(255,255,255,0.65)" }}>
+                    {layout.label}
+                    {/* CB-safe shape glyph — Phase 3.6: shown alongside label when cbMode on */}
+                    {cbMode && (() => {
+                      const w = worstLfdByBlock?.get(layout.label)
+                      if (!w) return null
+                      const [shape, color] = w === "breached" ? ["▲", YT.signalBreach] as const : w === "risk24" ? ["◉", YT.signalWarnText] as const : ["◆", YT.signalWarnText] as const
+                      return <span style={{ fontSize: 11, fontWeight: 900, color, textShadow: "none", letterSpacing: 0 }}>{shape}</span>
+                    })()}
+                  </div>
                   {showCongestion && congestion > 0.25 && (
-                    <div className="absolute leading-none font-bold" style={{ top: 8, right: 8, fontSize: 14, color: "#dc2626" }}>{Math.round(congestion * 100)}%</div>
+                    <div className="absolute leading-none font-bold" style={{ top: 8, right: 8, fontSize: 14, color: YT.signalBreach }}>{Math.round(congestion * 100)}%</div>
                   )}
                   <div className="absolute font-bold tabular leading-none" style={{ bottom: 8, left: 10, fontSize: 15, color: "#374151" }}>
                     {layout.containerCount}<span style={{ fontSize: 12, color: "#9ca3af", marginLeft: 3 }}>/ {layout.capacity}</span>
@@ -820,7 +841,7 @@ export default function PhysicalYardMap({
           {showCongestion && !isOverview && layouts.map(layout => {
             const cong = congestionByBlock?.get(layout.label) ?? 0
             if (cong < 0.25) return null
-            const stroke   = cong > 0.75 ? "#dc2626" : cong > 0.50 ? "#f97316" : "#f59e0b"
+            const stroke   = cong > 0.75 ? YT.signalBreach : cong > 0.50 ? "#f97316" : YT.signalWarn
             const opacity  = 0.28 + cong * 0.30
             const edgeW    = 2.5 + cong * 2.5
             const patId    = `hatch-${layout.label.replace("-", "")}`
@@ -849,7 +870,7 @@ export default function PhysicalYardMap({
             if (count === 0) return null
             const layout = layouts.find(l => l.label === blockLabel)
             if (!layout) return null
-            const color = count >= 3 ? "#dc2626" : "#d97706"
+            const color = count >= 3 ? YT.signalBreach : YT.signalWarnText
             return (
               <div key={`rh-${blockLabel}`}
                 className="absolute font-black pointer-events-none"
@@ -890,7 +911,7 @@ export default function PhysicalYardMap({
               <div
                 key={`hot-${blockLabel}`}
                 className="yard-hot-badge absolute flex items-center font-black"
-                style={{ left: layout.x + layout.w - 6, top: layout.y - 12, background: "#dc2626", color: "white", fontSize: 11, padding: "3px 7px 3px 5px", borderRadius: 12, gap: 3, cursor: "pointer", pointerEvents: "auto", whiteSpace: "nowrap", zIndex: 10, lineHeight: 1 }}
+                style={{ left: layout.x + layout.w - 6, top: layout.y - 12, background: YT.signalBreach, color: "white", fontSize: 11, padding: "3px 7px 3px 5px", borderRadius: 12, gap: 3, cursor: "pointer", pointerEvents: "auto", whiteSpace: "nowrap", zIndex: 10, lineHeight: 1 }}
                 title={`${count} container${count > 1 ? "s" : ""} breach LFD in ≤ 4 h — click to inspect`}
                 onClick={e => { e.stopPropagation(); onHotBadgeClick?.(blockLabel) }}
               >

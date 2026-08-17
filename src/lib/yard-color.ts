@@ -1,13 +1,58 @@
 export type ColorMode = "status" | "lfd" | "channel" | "dwell" | "priority" | "rehandle"
 
-export const LEGENDS: Record<ColorMode, [string, string][]> = {
-  status:   [["In yard","#9ca3af"],["Staged","#fbbf24"],["Receiving","#4b5563"],["Customs held","#9b1c1c"]],
-  lfd:      [["Breached","#9b1c1c"],["≤24 h","#dc2626"],["≤72 h","#f59e0b"],[">72 h","#d1d5db"]],
-  channel:  [["Rail","#9b1c1c"],["Sea","#f97316"],["Road","#d1d5db"]],
-  dwell:    [["<5 d","#d1d5db"],["5–10 d","#6b7280"],["10–18 d","#374151"],[">18 d","#111827"]],
-  priority: [["P1 — critical","#dc2626"],["P2 — high","#f97316"],["P3 — normal","#3b82f6"],["P4 — low","#9ca3af"]],
-  rehandle: [["0 rehandles","#16a34a"],["1 rehandle","#f59e0b"],["2+ rehandles","#dc2626"]],
+// ── Shape token vocabulary ──────────────────────────────────────────────────
+// Every entry has a redundant shape so colorblind-safe mode can render shape
+// alongside color.  Shape conventions:
+//   ▲ = danger / breach / critical
+//   ◉ = urgent / at-risk (≤ 24 h)
+//   ◆ = warning / elevated
+//   ■ = normal / base state
+//   ○ = low / empty / below threshold
+//   ● = categorical (channel/status)
+// ───────────────────────────────────────────────────────────────────────────
+
+export const LEGEND_ENTRIES: Record<ColorMode, [string, string, string][]> = {
+  status:  [
+    ["In yard",       "#9ca3af", "■"],
+    ["Staged",        "#fbbf24", "◆"],
+    ["Receiving",     "#4b5563", "●"],
+    ["Customs held",  "#9b1c1c", "▲"],
+  ],
+  lfd: [
+    ["Breached",  "#9b1c1c", "▲"],
+    ["≤ 24 h",   "#dc2626", "◉"],
+    ["≤ 72 h",   "#f59e0b", "◆"],
+    ["> 72 h",   "#d1d5db", "■"],
+  ],
+  channel: [
+    ["Rail", "#9b1c1c", "▲"],
+    ["Sea",  "#f97316", "◆"],
+    ["Road", "#d1d5db", "■"],
+  ],
+  dwell: [
+    ["< 5 d",   "#d1d5db", "■"],
+    ["5–10 d",  "#6b7280", "◆"],
+    ["10–18 d", "#374151", "◉"],
+    ["> 18 d",  "#111827", "▲"],
+  ],
+  priority: [
+    ["P1 — critical", "#dc2626", "▲"],
+    ["P2 — high",     "#f97316", "◆"],
+    ["P3 — normal",   "#3b82f6", "■"],
+    ["P4 — low",      "#9ca3af", "○"],
+  ],
+  rehandle: [
+    ["0 rehandles",  "#16a34a", "■"],
+    ["1 rehandle",   "#f59e0b", "◆"],
+    ["2+ rehandles", "#dc2626", "▲"],
+  ],
 }
+
+// Backward-compat export — same data without shape char
+export const LEGENDS: Record<ColorMode, [string, string][]> = Object.fromEntries(
+  (Object.entries(LEGEND_ENTRIES) as [ColorMode, [string, string, string][]][])
+    .map(([k, entries]) => [k, entries.map(([l, c]) => [l, c] as [string, string])]),
+) as Record<ColorMode, [string, string][]>
 
 export interface ColorInput {
   status:     string
