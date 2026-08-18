@@ -85,16 +85,39 @@ export type EquipmentType = { icon: string; label: string; bg: string; text: str
 export function getEquipmentType(step: PlanningStep): EquipmentType {
   switch (step.move_method) {
     case "Crane lift":
-      return { icon: "🏗️", label: "Crane",      bg: "#eff6ff", text: "#1e40af" }  // blue-50/blue-800
+      return { icon: "🏗️", label: "Crane",  bg: "#eff6ff", text: "#1e40af" }  // blue-50/blue-800
     case "Yard-truck haul":
-      return { icon: "🚛", label: "Yard Truck", bg: "#fffbeb", text: "#92400e" }  // amber-50/amber-800
+      return { icon: "🚛", label: "Jockey", bg: "#fffbeb", text: "#92400e" }  // amber-50/amber-800
     case "Move to staging":
-      return { icon: "🚛", label: "Yard Truck", bg: "#fffbeb", text: "#92400e" }  // amber-50/amber-800
+      return { icon: "🚛", label: "Jockey", bg: "#fffbeb", text: "#92400e" }  // amber-50/amber-800
     case "Inspection":
-      return { icon: "👁️", label: "Manual",     bg: "#f3f4f6", text: "#374151" }  // gray-100/gray-700
+      return { icon: "👁️", label: "Inspect", bg: "#f3f4f6", text: "#374151" }  // gray-100/gray-700
     default:
       return { icon: "⚙️", label: step.move_method ?? "—", bg: "#f3f4f6", text: "#374151" }
   }
+}
+
+// ── Shared equipment lookup — defined once, used on every Move surface ────────
+// Maps move_method → { id, label }. Fleet: Jockey, Crane, Inspection only.
+// Import getEquipmentFromMethod (for contexts that only have a method string)
+// or getEquipment (for contexts that have a full PlanningStep).
+
+const _EQUIP_MAP: Record<string, { id: string; label: string }> = {
+  "Crane lift":      { id: "CRANE-01",   label: "Crane"  },
+  "Yard-truck haul": { id: "JOCKEY-01",  label: "Jockey" },
+  "Move to staging": { id: "JOCKEY-01",  label: "Jockey" },
+  "Inspection":      { id: "INSPECT-01", label: "Inspect" },
+}
+
+/** Returns { id, label } from a raw move_method string, or null if absent/unknown. */
+export function getEquipmentFromMethod(moveMethod: string | null | undefined): { id: string; label: string } | null {
+  if (!moveMethod) return null
+  return _EQUIP_MAP[moveMethod] ?? null
+}
+
+/** Returns { id, label } for the equipment assigned to a PlanningStep, or null. */
+export function getEquipment(step: PlanningStep): { id: string; label: string } | null {
+  return getEquipmentFromMethod(step.move_method)
 }
 
 // ── Status colors ────────────────────────────────────────────────────────────

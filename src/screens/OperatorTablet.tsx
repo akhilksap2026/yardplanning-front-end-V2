@@ -6,6 +6,7 @@ import type { BackendMoveDetail } from "@/lib/backend-api"
 import { slotAddress, REASON_LABELS } from "@/lib/backend-adapters"
 import { useLang }         from "@/lib/i18n"
 import { stepsForOperator, operators, type PlanningStep } from "@/data/planningData"
+import { getEquipmentFromMethod } from "@/utils/displayLabels"
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const AMBER   = "#b45309"
@@ -34,6 +35,7 @@ type DisplayTask = {
   id: string|number; seq: number; container: string
   size?: string; weight?: string; from: string; to: string
   reason: string; warn?: string; schedule?: string; est: number
+  equipId?: string; equipLabel?: string
 }
 
 // ── Wizard steps (for right-panel reference) ──────────────────────────────────
@@ -51,6 +53,7 @@ const DEMO_TASK: DisplayTask = {
   size: "20ft", weight: "18.4t",
   from: "Bay 9 · R1 · T1", to: "Staging Area S-3",
   reason: "Pre-marshal ahead of retrieval", est: 7,
+  equipId: "JOCKEY-01", equipLabel: "Jockey",
 }
 
 // ── Damage codes & exception options ──────────────────────────────────────────
@@ -256,21 +259,26 @@ export default function OperatorTablet({ focus, inModal = false }: { focus?: str
   // by stepsForOperator). Resets queueIdx when operator changes.
   const seedQueue: DisplayTask[] = useMemo(() => {
     if (!selectedSeedOperator) return []
-    return stepsForOperator(selectedSeedOperator).map((s, i) => ({
-      id:        `${selectedSeedOperator.replace(/\s+/g, "-")}-${i + 1}`,
-      seq:       i + 1,
-      container: s.container_id ?? "—",
-      size:      undefined,
-      weight:    undefined,
-      from:      _fmtLoc(s.origin),
-      to:        _fmtLoc(s.destination),
-      reason:    s.operator_pickup ?? s.operation,
-      // Schedule is informational — keep it out of `warn` (reserved for safety alerts)
-      schedule:  s.estimated_start
-        ? `Scheduled ${new Date(s.estimated_start).toISOString().slice(11, 16)} → ${new Date(s.estimated_end ?? s.estimated_start).toISOString().slice(11, 16)}`
-        : undefined,
-      est:       _stepDurMin(s),
-    }))
+    return stepsForOperator(selectedSeedOperator).map((s, i) => {
+      const eq = getEquipmentFromMethod(s.move_method)
+      return {
+        id:         `${selectedSeedOperator.replace(/\s+/g, "-")}-${i + 1}`,
+        seq:        i + 1,
+        container:  s.container_id ?? "—",
+        size:       undefined,
+        weight:     undefined,
+        from:       _fmtLoc(s.origin),
+        to:         _fmtLoc(s.destination),
+        reason:     s.operator_pickup ?? s.operation,
+        // Schedule is informational — keep it out of `warn` (reserved for safety alerts)
+        schedule:   s.estimated_start
+          ? `Scheduled ${new Date(s.estimated_start).toISOString().slice(11, 16)} → ${new Date(s.estimated_end ?? s.estimated_start).toISOString().slice(11, 16)}`
+          : undefined,
+        est:        _stepDurMin(s),
+        equipId:    eq?.id,
+        equipLabel: eq?.label,
+      }
+    })
   }, [selectedSeedOperator])
 
   // Reset queue pointer when operator is switched
@@ -893,6 +901,24 @@ export default function OperatorTablet({ focus, inModal = false }: { focus?: str
                       <span className="text-[12px] font-semibold leading-relaxed" style={{ color:"#1e40af" }}>{displayTask.schedule}</span>
                     </div>
                   )}
+
+                  {/* Yard equipment — friendly type + ID */}
+                  <div className="mx-3 mt-3 px-3 py-2.5 rounded-xl flex gap-2 items-center"
+                    style={{ background:"#f9fafb", border:"1px solid #e5e7eb" }}>
+                    <span className="text-[14px] flex-none">🔧</span>
+                    {displayTask.equipLabel ? (
+                      <>
+                        <span className="text-[12px] font-semibold" style={{ color:"#374151" }}>
+                          {displayTask.equipLabel}
+                        </span>
+                        <span className="font-mono text-[11px]" style={{ color:"#9ca3af" }}>
+                          {displayTask.equipId}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[12px]" style={{ color:"#9ca3af" }}>—</span>
+                    )}
+                  </div>
 
                   {/* Est */}
                   <div className="flex items-center justify-between px-4 py-3">

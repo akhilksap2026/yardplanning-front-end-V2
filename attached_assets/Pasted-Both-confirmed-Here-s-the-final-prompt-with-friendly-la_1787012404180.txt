@@ -1,0 +1,23 @@
+Both confirmed. Here's the final prompt with friendly-label mapping and full scope across all three Move surfaces:
+
+---
+
+**Task: Surface Yard Equipment (Type + ID) consistently everywhere a Move is shown**
+
+The planning seed data already carries per-move equipment in three columns — **Equipment ID**, **Equipment Type**, and **Operator** (see `src/data/yard-data.ts` / `yard-ops.ts` and the `EQUIPMENT` registry). It's rendered only partially in the NightPlanner grid today (split between `getEquipmentType()` for planning-source moves and `m.move.equipment` for seed-source moves). Normalize and complete this so **both Equipment Type and Equipment ID display consistently across every surface where a Move appears: the NightPlanner grid + details pane, the LiveOps Gantt, and the Operator Tablet.**
+
+1. **Data** — Ensure the `Move` model exposes both `equipmentId` (e.g. `JOCKEY-01`, `CRANE-01`, `INSPECT-01`) and `equipmentType` (`JockeyHaul`, `CraneLift`, `Inspection`), populated from the planning sheet's Equipment ID / Equipment Type columns. Use the sheet's actual IDs and types — do not invent Forklift/FL1-style values; the fleet is Jockey, Crane, and Inspection only. Reconcile against the Resource Registry so IDs are stable.
+
+2. **Friendly-label mapping** — Display equipment types via a shared mapping: `JockeyHaul → Jockey`, `CraneLift → Crane`, `Inspection → Inspect`. Keep the raw underlying IDs (`JOCKEY-01` etc.) unchanged. Define this map once (a small shared helper, e.g. in `displayLabels`) and reuse it on every surface so labels never drift.
+
+3. **NightPlanner grid** — In (or beside) the existing ASSIGNED column, show operator name plus **Equipment Type (friendly label)** and **Equipment ID**. Unify the two code paths so seed-source and planning-source moves render identically. ID in `.ds-mono`, type as a subtle `.ds-badge`.
+
+4. **NightPlanner details pane** — Add an explicit "Yard Equipment" field showing friendly Type + ID (and operator).
+
+5. **LiveOps Gantt** — Surface equipment on each move bar: show the Equipment ID / friendly Type in the bar's hover tooltip (and inline on the bar where width allows).
+
+6. **Operator Tablet** — Wherever a move/task is shown, display its assigned Equipment (friendly Type + ID) alongside the existing move detail.
+
+7. **Empty state** — Missing equipment → muted "—" (app convention), consistently on all surfaces.
+
+8. **Constraints** — Reuse existing tokens and `.ds-*` classes, no new colors or inline styles; keep AA contrast, 4px grid, current row heights; degrade to horizontal scroll if a column widens a table. Use the single shared label map everywhere — no per-screen re-implementations. Touch only Move-rendering surfaces.

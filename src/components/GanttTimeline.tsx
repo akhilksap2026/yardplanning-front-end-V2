@@ -23,6 +23,7 @@ import {
   stepsForOperator,
   SHIFT_START_MIN, SHIFT_DURATION_MIN, GANTT_HOURS,
 } from "@/data/planningData"
+import { getEquipmentFromMethod } from "@/utils/displayLabels"
 
 // ── Two operator lanes — names exactly as stored in planningResults.json ──────
 const LANES = [
@@ -128,10 +129,11 @@ export default function GanttTimeline({ onHourClick }: Props) {
       ...lane,
       steps: stepsForOperator(lane.key)
         .map(s => ({
-          id:       s.activity_id ?? `${s.operator}-${s.step_number}`,
-          op:       s.operation,
-          startMin: isoToMin(s.estimated_start),
-          endMin:   isoToMin(s.estimated_end),
+          id:         s.activity_id ?? `${s.operator}-${s.step_number}`,
+          op:         s.operation,
+          moveMethod: s.move_method,
+          startMin:   isoToMin(s.estimated_start),
+          endMin:     isoToMin(s.estimated_end),
         }))
         .filter((s): s is typeof s & { startMin: number; endMin: number } =>
           s.startMin !== null && s.endMin !== null
@@ -373,13 +375,14 @@ export default function GanttTimeline({ onHourClick }: Props) {
                 const durPct = Math.max(0.5, (step.endMin - step.startMin) / SHIFT_DURATION_MIN * 100)
                 const leftPct = pctNum(step.startMin).toFixed(3)
 
-                const tip = `${step.id} · ${cfg.label} · ${lane.label} · ${step.status}`
+                const equip = getEquipmentFromMethod(step.moveMethod)
+                const tip = `${step.id} · ${cfg.label} · ${lane.label}${equip ? ` · ${equip.label} ${equip.id}` : ""}`
 
                 return (
                   <div
                     key={step.id}
                     role="img"
-                    aria-label={`${step.id}: ${cfg.label}, ${lane.label}, ${step.status}`}
+                    aria-label={`${step.id}: ${cfg.label}, ${lane.label}${equip ? `, ${equip.label} ${equip.id}` : ""}`}
                     title={tip}
                     style={{
                       position: "absolute",

@@ -12,7 +12,7 @@ import { backendApi } from "@/lib/backend-api"
 import type { BackendPlanDetail } from "@/lib/backend-api"
 import { allSteps, operatorNames, dashboardCounts, stepsForOperator, type PlanningStep, PLAN_CODE, SHIFT_HORIZON, GANTT_HOURS, SHIFT_START_MIN, SHIFT_DURATION_MIN } from "@/data/planningData"
 import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
-import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, isExtraMovement, getStatusStyle, getDisplayContainerId, isAnonymousContainer, generateWhyText } from "@/utils/displayLabels"
+import { getDisplayOperation, getDisplayMoveMethod, getEquipmentType, getEquipment, isExtraMovement, getStatusStyle, getDisplayContainerId, isAnonymousContainer, generateWhyText } from "@/utils/displayLabels"
 import { useLang } from "@/lib/i18n"
 import ShiftScorecard from "@/screens/ShiftScorecard"
 import OptimizerComparison from "@/screens/OptimizerComparison"
@@ -360,6 +360,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
     const isHot        = m.source !== "planning" && hotContainerIds.has(containerId ?? "")
     const isExtra      = m.source === "planning" && isExtraMovement(m.move.operation)
     const equipBadge   = m.source === "planning" ? getEquipmentType(m.move) : null
+    const equipInfo    = m.source === "planning" ? getEquipment(m.move)     : null
     const operation    = m.source === "planning" ? m.move.operation : null
     const typeStyle    = operation ? MOVE_TYPE_STYLE[operation] ?? null : null
     const stepStatus   = m.source === "planning" ? m.move.step_status : null
@@ -424,14 +425,21 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
           {isExtra && <div style={{ fontSize:11, color:"var(--ds-subtle)", marginTop:2 }}>(position adjust)</div>}
         </td>
 
-        {/* ASSIGNED — operator name + equipment badge */}
+        {/* ASSIGNED — operator name + equipment type badge + equipment ID */}
         <td style={{ width:"20%", padding:"10px 12px" }}>
           <div style={{ fontSize:12, fontWeight:500, color:"var(--text-primary)", marginBottom:equipBadge?3:0 }}>{operatorName}</div>
           {equipBadge && (
-            <span style={{ display:"inline-flex", alignItems:"center", gap:3, padding:"2px 6px", borderRadius:4,
-              background:equipBadge.bg, color:equipBadge.text, fontSize:10, fontWeight:500 }}>
-              {equipBadge.label}
-            </span>
+            <div style={{ display:"flex", alignItems:"center", gap:4, flexWrap:"wrap" }}>
+              <span style={{ display:"inline-flex", alignItems:"center", gap:3, padding:"2px 6px", borderRadius:4,
+                background:equipBadge.bg, color:equipBadge.text, fontSize:10, fontWeight:500 }}>
+                {equipBadge.label}
+              </span>
+              {equipInfo && (
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--ds-subtle)" }}>
+                  {equipInfo.id}
+                </span>
+              )}
+            </div>
           )}
         </td>
 
@@ -1107,6 +1115,7 @@ export default function NightPlanner({ focus, onNavigate }: Props) {
                   {/* Metadata — label/value hairlines, 8px vertical padding */}
                   {([
                     ["Operator",    selStep.operator ?? "—",        false] as const,
+                    ["Yard equipment", (() => { const eq = getEquipment(selStep); return eq ? `${eq.label} · ${eq.id}` : "—" })(), true]  as const,
                     ["Move method", getDisplayMoveMethod(selStep),  true]  as const,
                     ["Time slot",   selStep.estimated_start
                       ? fmtIso(selStep.estimated_start)+"–"+fmtIso(selStep.estimated_end)+" ("+stepDur(selStep).toFixed(1)+"′)"
