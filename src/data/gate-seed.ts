@@ -304,6 +304,52 @@ export const GATE_REF_IDS: Record<string, { orderId?: string; shipmentId?: strin
   "TCLU0000044b": { shipmentId:"SHP-991801" },
   "CMAU0000045b": { orderId:"ORD-881923", shipmentId:"SHP-663020" },
 
+  // ── Context-generated inbound rows ───────────────────────────────────────
+  "EGLV2000001": { orderId:"ORD-200101", shipmentId:"SHP-200101" },
+  "HMMU2000002": { orderId:"ORD-200102" },
+  "MAEU2000003": { orderId:"ORD-200103", shipmentId:"SHP-200103" },
+  "HMMU2000004": { shipmentId:"SHP-200104" },
+  "OOLU2000005": { orderId:"ORD-200105", shipmentId:"SHP-200105" },
+  // EGLV2000006 — neither
+  "OOLU2000007": { orderId:"ORD-200107", shipmentId:"SHP-200107" },
+  "EGLV2000008": { orderId:"ORD-200108" },
+  "YMLU2000009": { orderId:"ORD-200109", shipmentId:"SHP-200109" },
+  "YMLU2000010": { shipmentId:"SHP-200110" },
+  "COSU2000011": { orderId:"ORD-200111", shipmentId:"SHP-200111" },
+  "MSCU2000012": { orderId:"ORD-200112", shipmentId:"SHP-200112" },
+  "MSCU2000013": { orderId:"ORD-200113" },
+  "COSU2000014": { orderId:"ORD-200114", shipmentId:"SHP-200114" },
+  // ONEU2000015 — neither
+  "OOLU2000016": { orderId:"ORD-200116", shipmentId:"SHP-200116" },
+  "MAEU2000017": { orderId:"ORD-200117", shipmentId:"SHP-200117" },
+  "YMLU2000018": { shipmentId:"SHP-200118" },
+  "HLXU2000019": { orderId:"ORD-200119", shipmentId:"SHP-200119" },
+  "YMLU2000020": { orderId:"ORD-200120", shipmentId:"SHP-200120" },
+  "CMAU2000021": { orderId:"ORD-200121" },
+  "HLXU2000022": { orderId:"ORD-200122", shipmentId:"SHP-200122" },
+
+  // ── Context-generated outbound rows ──────────────────────────────────────
+  "HLXU2000023": { orderId:"ORD-200123", shipmentId:"SHP-200123" },
+  "YMLU2000024": { shipmentId:"SHP-200124" },
+  "HLXU2000025": { orderId:"ORD-200125", shipmentId:"SHP-200125" },
+  "COSU2000026": { orderId:"ORD-200126", shipmentId:"SHP-200126" },
+  "MAEU2000027": { orderId:"ORD-200127" },
+  "ONEU2000028": { orderId:"ORD-200128", shipmentId:"SHP-200128" },
+  // MAEU2000029 — neither
+  "CMAU2000030": { orderId:"ORD-200130", shipmentId:"SHP-200130" },
+  "COSU2000031": { shipmentId:"SHP-200131" },
+  "OOLU2000032": { orderId:"ORD-200132", shipmentId:"SHP-200132" },
+  "HLXU2000033": { orderId:"ORD-200133", shipmentId:"SHP-200133" },
+  "HMMU2000034": { orderId:"ORD-200134" },
+  "YMLU2000035": { orderId:"ORD-200135", shipmentId:"SHP-200135" },
+  "EGLV2000036": { orderId:"ORD-200136", shipmentId:"SHP-200136" },
+  "MSCU2000037": { shipmentId:"SHP-200137" },
+  "OOLU2000038": { orderId:"ORD-200138", shipmentId:"SHP-200138" },
+  "HMMU2000039": { orderId:"ORD-200139", shipmentId:"SHP-200139" },
+  "COSU2000040": { orderId:"ORD-200140" },
+  "CMAU2000041": { orderId:"ORD-200141", shipmentId:"SHP-200141" },
+  "YMLU2000042": { orderId:"ORD-200142", shipmentId:"SHP-200142" },
+
   // ── Story rows ────────────────────────────────────────────────────────────
   "EITU3333307": { orderId:"ORD-334120", shipmentId:"SHP-770891" },
   "DAIU4444460": { orderId:"ORD-771905", shipmentId:"SHP-441024" },
