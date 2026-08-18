@@ -93,6 +93,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
   // ── Inbound / Outbound filter + search + dark mode ───────────────────────
   const [filterPill,  setFilterPill]  = useState<"all"|"alerts"|"holds"|"in_queue"|"in_yard">("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [copiedId,    setCopiedId]    = useState<string | null>(null)
   const [darkMode,    setDarkMode]    = useState(false)
   const [utcTime,     setUtcTime]     = useState(() => new Date().toUTCString().slice(17,25))
 
@@ -1279,7 +1280,8 @@ export default function GateConsole({ focus, onNavigate }: Props) {
           .filter(r => {
             if (!searchQuery) return true
             const q = searchQuery.toLowerCase()
-            return [r.containerId, r.consignee, r.driver, r.plate, r.carrierName, r.trucker, r.scac]
+            return [r.containerId, r.consignee, r.driver, r.plate, r.carrierName, r.trucker, r.scac,
+                    (r as any).orderId, (r as any).shipmentId]
               .some(f => f?.toLowerCase().includes(q))
           })
 
@@ -1405,6 +1407,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                 <thead style={{ position:"sticky", top:0, zIndex:10 }}>
                   <tr style={{ background: C.surface0, borderBottom:`1.5px solid ${C.borderMid}` }}>
                     <th className={TH} style={thStyle}>Container</th>
+                    <th className={TH} style={thStyle}>References</th>
                     <th className={TH} style={thStyle}>Consignee</th>
                     <th className={TH} style={thStyle}>Shipping line</th>
                     <th className={TH} style={thStyle}>Road carrier</th>
@@ -1421,7 +1424,7 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                 </thead>
                 <tbody>
                   {visibleRows.length === 0 && (
-                    <tr><td colSpan={11 + extraCols} className="px-5 py-8 text-center"
+                    <tr><td colSpan={12 + extraCols} className="px-5 py-8 text-center"
                       style={{ color: C.textDim, fontSize:12 }}>
                       No containers match the current filter.
                     </td></tr>
@@ -1490,7 +1493,77 @@ export default function GateConsole({ focus, onNavigate }: Props) {
                           )}
                         </td>
 
-                        {/* 2. Consignee */}
+                        {/* 2. Reference IDs — ORD / SHP badges with click-to-copy */}
+                        {(() => {
+                          const orderId    = (r as any).orderId    as string | undefined
+                          const shipmentId = (r as any).shipmentId as string | undefined
+                          const ordKey = `${r.containerId}:ord`
+                          const shpKey = `${r.containerId}:shp`
+                          const copy = (text: string, key: string) => {
+                            navigator.clipboard.writeText(text)
+                            setCopiedId(key)
+                            setTimeout(() => setCopiedId(p => p === key ? null : p), 1500)
+                          }
+                          return (
+                            <td style={{ ...tdStyle, minWidth:124 }}>
+                              <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+
+                                {/* Order badge */}
+                                {orderId ? (
+                                  <span
+                                    className="ds-badge ds-badge-active"
+                                    title={`Copy order ID ${orderId}`}
+                                    style={{ cursor:"pointer", display:"inline-flex", alignItems:"baseline",
+                                      gap:4, userSelect:"none",
+                                      opacity: copiedId === ordKey ? 0.55 : 1,
+                                      transition:"opacity 0.12s" }}
+                                    onClick={() => copy(orderId, ordKey)}
+                                  >
+                                    {copiedId === ordKey ? (
+                                      <span style={{ fontSize:10, fontWeight:700, color:"#166534" }}>✓ Copied</span>
+                                    ) : (
+                                      <>
+                                        <span style={{ fontSize:9, fontWeight:700, letterSpacing:"0.06em",
+                                          textTransform:"uppercase", opacity:0.65 }}>ORD</span>
+                                        <span className="font-mono" style={{ fontSize:11, fontWeight:600 }}>{orderId}</span>
+                                      </>
+                                    )}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: C.textDim, fontSize:13 }}>—</span>
+                                )}
+
+                                {/* Shipment badge */}
+                                {shipmentId ? (
+                                  <span
+                                    className="ds-badge ds-badge-neutral"
+                                    title={`Copy shipment ID ${shipmentId}`}
+                                    style={{ cursor:"pointer", display:"inline-flex", alignItems:"baseline",
+                                      gap:4, userSelect:"none",
+                                      opacity: copiedId === shpKey ? 0.55 : 1,
+                                      transition:"opacity 0.12s" }}
+                                    onClick={() => copy(shipmentId, shpKey)}
+                                  >
+                                    {copiedId === shpKey ? (
+                                      <span style={{ fontSize:10, fontWeight:700, color:"#166534" }}>✓ Copied</span>
+                                    ) : (
+                                      <>
+                                        <span style={{ fontSize:9, fontWeight:700, letterSpacing:"0.06em",
+                                          textTransform:"uppercase", opacity:0.65 }}>SHP</span>
+                                        <span className="font-mono" style={{ fontSize:11, fontWeight:600 }}>{shipmentId}</span>
+                                      </>
+                                    )}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: C.textDim, fontSize:13 }}>—</span>
+                                )}
+
+                              </div>
+                            </td>
+                          )
+                        })()}
+
+                        {/* 3. Consignee */}
                         <td style={tdStyle}>
                           <div style={{ fontSize:14, fontWeight:500, color: C.text, whiteSpace:"nowrap" }}>{r.consignee}</div>
                           <div className="font-mono" style={{ fontSize:12, fontWeight:500, color: C.textMuted, marginTop:3 }}>{r.sealNumber}</div>

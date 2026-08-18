@@ -58,6 +58,8 @@ export interface LiveGateRow {
   updatedAt:       string
   freeDays:        number | null       // from carriers table
   detentionBasis:  string | null       // from carriers table
+  orderId?:        string              // ERP order ref (ORD-######)
+  shipmentId?:     string              // TMS shipment ref (SHP-######)
 }
 
 export type ContainerStatus = "in_transit" | "yard" | "staged" | "departed";

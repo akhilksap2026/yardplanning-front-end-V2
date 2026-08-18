@@ -44,6 +44,10 @@ export interface GateContainerRow {
   specialInstructions?: string
   /** true on the 4 story gate rows; false on context-generated rows */
   story?:              boolean
+  /** ERP / TMS order reference — ORD-###### format */
+  orderId?:            string
+  /** Shipping / booking shipment reference — SHP-###### format */
+  shipmentId?:         string
 }
 
 // ─── INBOUND — 28 containers ──────────────────────────────────────────────
@@ -199,16 +203,124 @@ const _STORY_OUTBOUND: GateContainerRow[] = [
   },
 ];
 
+// ── Reference ID lookup — ORD / SHP keyed by containerId ──────────────────────
+// ~60 % both · ~15 % orderId only · ~15 % shipmentId only · ~10 % neither
+const _REF: Record<string, { orderId?: string; shipmentId?: string }> = {
+  // ── Inbound ──────────────────────────────────────────────────────────────
+  "OOLU0000043": { orderId:"ORD-441892", shipmentId:"SHP-220134" },
+  "TCLU0000041": { orderId:"ORD-119032" },
+  "MSCU0000040": { orderId:"ORD-774005", shipmentId:"SHP-330219" },
+  "MSCU0000045": { shipmentId:"SHP-553318" },
+  "HLXU0000044": { orderId:"ORD-091222", shipmentId:"SHP-448801" },
+  // TCLU0000046  — neither
+  "CMAU0000042": { orderId:"ORD-881045", shipmentId:"SHP-662234" },
+  "CMAU0000047": { orderId:"ORD-330712" },
+  "MAEU0000051": { orderId:"ORD-002109", shipmentId:"SHP-771008" },
+  "CSNU0000052": { shipmentId:"SHP-441204" },
+  "EGLV0000053": { orderId:"ORD-443901", shipmentId:"SHP-220918" },
+  "YMLU0000054": { orderId:"ORD-990312", shipmentId:"SHP-663451" },
+  // HLXU0000055  — neither
+  "MSCU0000056": { orderId:"ORD-661034", shipmentId:"SHP-770891" },
+  "OOLU0000057": { orderId:"ORD-112038" },
+  "TCLU0000058": { orderId:"ORD-554217", shipmentId:"SHP-221045" },
+  "CMAU0000059": { orderId:"ORD-773104", shipmentId:"SHP-119003" },
+  "MAEU0000060": { shipmentId:"SHP-881002" },
+  "CSNU0000061": { orderId:"ORD-220941", shipmentId:"SHP-442891" },
+  "EGLV0000062": { orderId:"ORD-009312", shipmentId:"SHP-553120" },
+  "YMLU0000063": { orderId:"ORD-441009", shipmentId:"SHP-664231" },
+  "HLXU0000064": { orderId:"ORD-882211" },
+  "MSCU0000065": { orderId:"ORD-330714", shipmentId:"SHP-881903" },
+  "OOLU0000066": { shipmentId:"SHP-554891" },
+  "TCLU0000067": { orderId:"ORD-009900", shipmentId:"SHP-220135" },
+  "CMAU0000068": { orderId:"ORD-110234", shipmentId:"SHP-661092" },
+  "MAEU0000069": { orderId:"ORD-773412", shipmentId:"SHP-330871" },
+  "CSNU0000070": { orderId:"ORD-883201" },
+  "EGLV0000071": { orderId:"ORD-334102", shipmentId:"SHP-441203" },
+  "YMLU0000072": { shipmentId:"SHP-112931" },
+  "HLXU0000073": { orderId:"ORD-771033", shipmentId:"SHP-882109" },
+  "MSCU0000074": { orderId:"ORD-220012", shipmentId:"SHP-553804" },
+  "OOLU0000075": { orderId:"ORD-882034", shipmentId:"SHP-220919" },
+  "TCLU0000076": { orderId:"ORD-991234" },
+  "CMAU0000077": { orderId:"ORD-443012", shipmentId:"SHP-771892" },
+  "MAEU0000078": { shipmentId:"SHP-330091" },
+  "CSNU0000079": { orderId:"ORD-110223", shipmentId:"SHP-442019" },
+  "EGLV0000080": { orderId:"ORD-773904", shipmentId:"SHP-663120" },
+  "YMLU0000081": { orderId:"ORD-009123", shipmentId:"SHP-880312" },
+  "HLXU0000082": { orderId:"ORD-221104" },
+  "MSCU0000083": { orderId:"ORD-880391", shipmentId:"SHP-443120" },
+  "OOLU0000084": { shipmentId:"SHP-553921" },
+  "TCLU0000085": { orderId:"ORD-441980", shipmentId:"SHP-221034" },
+  "CMAU0000086": { orderId:"ORD-992301", shipmentId:"SHP-664012" },
+  // MAEU0000087  — neither
+  "CSNU0000088": { orderId:"ORD-334112" },
+  "EGLV0000089": { orderId:"ORD-009445", shipmentId:"SHP-772019" },
+  "YMLU0000090": { orderId:"ORD-881204", shipmentId:"SHP-334201" },
+
+  // ── Outbound ─────────────────────────────────────────────────────────────
+  "TCLU0000006": { orderId:"ORD-661002", shipmentId:"SHP-441923" },
+  "OOLU0000008": { orderId:"ORD-019931" },
+  "MSCU0000005": { orderId:"ORD-002441", shipmentId:"SHP-330712" },
+  "HLXU0000004": { shipmentId:"SHP-773401" },
+  "CMAU0000007": { orderId:"ORD-110938", shipmentId:"SHP-441092" },
+  "HLXU0000009": { orderId:"ORD-992215", shipmentId:"SHP-663804" },
+  // MSCU0000000  — neither
+  "CMAU0000002": { orderId:"ORD-554103" },
+  "TCLU0000001": { orderId:"ORD-330991", shipmentId:"SHP-221043" },
+  "OOLU0000003": { shipmentId:"SHP-773290" },
+  "MAEU0000010": { orderId:"ORD-443012", shipmentId:"SHP-882034" },
+  "CSNU0000011": { orderId:"ORD-991043", shipmentId:"SHP-334892" },
+  "EGLV0000012": { orderId:"ORD-771204" },
+  "YMLU0000013": { orderId:"ORD-220391", shipmentId:"SHP-441023" },
+  "HLXU0000014": { shipmentId:"SHP-334801" },
+  "MSCU0000015": { orderId:"ORD-990234", shipmentId:"SHP-663019" },
+  "OOLU0000016": { orderId:"ORD-882301", shipmentId:"SHP-441203" },
+  "TCLU0000017": { orderId:"ORD-112091" },
+  "CMAU0000018": { orderId:"ORD-443910", shipmentId:"SHP-880012" },
+  "MAEU0000019": { shipmentId:"SHP-330892" },
+  "CSNU0000020": { orderId:"ORD-110934", shipmentId:"SHP-662891" },
+  // EGLV0000021  — neither
+  "YMLU0000022": { orderId:"ORD-009812", shipmentId:"SHP-441290" },
+  "HLXU0000023": { orderId:"ORD-220933" },
+  "MSCU0000024": { orderId:"ORD-774110", shipmentId:"SHP-330893" },
+  "OOLU0000025": { shipmentId:"SHP-332011" },
+  "TCLU0000026": { orderId:"ORD-881023", shipmentId:"SHP-441924" },
+  "CMAU0000027": { orderId:"ORD-663091" },
+  "MAEU0000028": { orderId:"ORD-112034", shipmentId:"SHP-773012" },
+  "CSNU0000029": { orderId:"ORD-441203", shipmentId:"SHP-663891" },
+  "EGLV0000030": { shipmentId:"SHP-220831" },
+  "YMLU0000031": { orderId:"ORD-334201", shipmentId:"SHP-881023" },
+  "HLXU0000032": { orderId:"ORD-991023" },
+  "MSCU0000033": { orderId:"ORD-443820", shipmentId:"SHP-220136" },
+  "OOLU0000034": { orderId:"ORD-773012", shipmentId:"SHP-442891" },
+  "TCLU0000035": { orderId:"ORD-880903" },
+  // CMAU0000036  — neither
+  "MAEU0000037": { orderId:"ORD-221034", shipmentId:"SHP-663120" },
+  "CSNU0000038": { shipmentId:"SHP-112034" },
+  "EGLV0000039": { orderId:"ORD-994312", shipmentId:"SHP-441025" },
+  "YMLU0000040": { orderId:"ORD-440892", shipmentId:"SHP-882019" },
+  "HLXU0000041": { orderId:"ORD-332041" },
+  "MSCU0000042": { orderId:"ORD-663904", shipmentId:"SHP-441205" },
+  "OOLU0000043b": { orderId:"ORD-112891", shipmentId:"SHP-330019" },
+  "TCLU0000044b": { shipmentId:"SHP-991801" },
+  "CMAU0000045b": { orderId:"ORD-881923", shipmentId:"SHP-663020" },
+
+  // ── Story rows ────────────────────────────────────────────────────────────
+  "EITU3333307": { orderId:"ORD-334120", shipmentId:"SHP-770891" },
+  "DAIU4444460": { orderId:"ORD-771905", shipmentId:"SHP-441024" },
+  "GAIU7777765": { orderId:"ORD-220338" },
+  "MSCU1234566": { orderId:"ORD-661003", shipmentId:"SHP-440912" },
+}
+
 // ── Final merged exports (base + context + story) ─────────────────────────────
 
 export const INBOUND_SEED: GateContainerRow[] = [
-  ..._INBOUND_BASE,
+  ..._INBOUND_BASE.map(r => ({ ...r, ..._REF[r.containerId] })),
   ...(CONTEXT_GATE_ROWS.filter(r => r.direction === "inbound") as GateContainerRow[]),
-  ..._STORY_INBOUND,
+  ..._STORY_INBOUND.map(r => ({ ...r, ..._REF[r.containerId] })),
 ];
 
 export const OUTBOUND_SEED: GateContainerRow[] = [
-  ..._OUTBOUND_BASE,
+  ..._OUTBOUND_BASE.map(r => ({ ...r, ..._REF[r.containerId] })),
   ...(CONTEXT_GATE_ROWS.filter(r => r.direction === "outbound") as GateContainerRow[]),
-  ..._STORY_OUTBOUND,
+  ..._STORY_OUTBOUND.map(r => ({ ...r, ..._REF[r.containerId] })),
 ];
