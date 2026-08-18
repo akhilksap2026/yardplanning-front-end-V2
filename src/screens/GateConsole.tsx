@@ -9,7 +9,7 @@ import { computeRehandleCost } from "@/lib/utils"
 import { fmtTime, fmtTimestamp } from "@/utils/time"
 import GateInspection from "@/components/gate/GateInspection"
 import { allSteps } from "@/data/planningData"
-import { INBOUND_SEED, OUTBOUND_SEED } from "@/data/gate-seed"
+import { INBOUND_SEED, OUTBOUND_SEED, GATE_REF_IDS } from "@/data/gate-seed"
 import { STORY_GATE_TXNS } from "@/data/story-seed"
 import { useLang } from "@/lib/i18n"
 import Skeleton from "@/components/ui/Skeleton"
@@ -156,8 +156,13 @@ export default function GateConsole({ focus, onNavigate }: Props) {
   // Merge live data over seed: live rows enriched with freeDays/detentionBasis;
   // seed used as fallback when backend is unreachable.
   // Seed data cast to LiveGateRow shape — freeDays/detentionBasis will be undefined until live fetch resolves
-  const inboundRows  = (liveInbound  ?? INBOUND_SEED  as unknown as LiveGateRow[]) as LiveGateRow[]
-  const outboundRows = (liveOutbound ?? OUTBOUND_SEED as unknown as LiveGateRow[]) as LiveGateRow[]
+  const mergeRef = (rows: LiveGateRow[]) =>
+    rows.map(r => {
+      const ref = GATE_REF_IDS[r.containerId] ?? {}
+      return { ...r, orderId: r.orderId ?? ref.orderId, shipmentId: r.shipmentId ?? ref.shipmentId }
+    }) as LiveGateRow[]
+  const inboundRows  = mergeRef((liveInbound  ?? INBOUND_SEED  as unknown as LiveGateRow[]))
+  const outboundRows = mergeRef((liveOutbound ?? OUTBOUND_SEED as unknown as LiveGateRow[]))
 
   // ── Existing effects ──────────────────────────────────────────────────────
   useEffect(() => {

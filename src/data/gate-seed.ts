@@ -203,9 +203,9 @@ const _STORY_OUTBOUND: GateContainerRow[] = [
   },
 ];
 
-// ── Reference ID lookup — ORD / SHP keyed by containerId ──────────────────────
+// ── Reference ID lookup — ORD / SHP keyed by containerId (exported for live-row merge) ──
 // ~60 % both · ~15 % orderId only · ~15 % shipmentId only · ~10 % neither
-const _REF: Record<string, { orderId?: string; shipmentId?: string }> = {
+export const GATE_REF_IDS: Record<string, { orderId?: string; shipmentId?: string }> = {
   // ── Inbound ──────────────────────────────────────────────────────────────
   "OOLU0000043": { orderId:"ORD-441892", shipmentId:"SHP-220134" },
   "TCLU0000041": { orderId:"ORD-119032" },
@@ -314,13 +314,13 @@ const _REF: Record<string, { orderId?: string; shipmentId?: string }> = {
 // ── Final merged exports (base + context + story) ─────────────────────────────
 
 export const INBOUND_SEED: GateContainerRow[] = [
-  ..._INBOUND_BASE.map(r => ({ ...r, ..._REF[r.containerId] })),
+  ..._INBOUND_BASE.map(r => ({ ...r, ...GATE_REF_IDS[r.containerId] })),
   ...(CONTEXT_GATE_ROWS.filter(r => r.direction === "inbound") as GateContainerRow[]),
-  ..._STORY_INBOUND.map(r => ({ ...r, ..._REF[r.containerId] })),
+  ..._STORY_INBOUND.map(r => ({ ...r, ...GATE_REF_IDS[r.containerId] })),
 ];
 
 export const OUTBOUND_SEED: GateContainerRow[] = [
-  ..._OUTBOUND_BASE.map(r => ({ ...r, ..._REF[r.containerId] })),
+  ..._OUTBOUND_BASE.map(r => ({ ...r, ...GATE_REF_IDS[r.containerId] })),
   ...(CONTEXT_GATE_ROWS.filter(r => r.direction === "outbound") as GateContainerRow[]),
-  ..._STORY_OUTBOUND.map(r => ({ ...r, ..._REF[r.containerId] })),
+  ..._STORY_OUTBOUND.map(r => ({ ...r, ...GATE_REF_IDS[r.containerId] })),
 ];
